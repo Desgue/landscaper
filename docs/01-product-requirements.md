@@ -20,17 +20,20 @@ A web-based garden planner that combines the fluid, intuitive canvas experience 
 
 ### F2: Terrain Painting
 
-- Paint terrain types onto grid cells or freeform regions
-- Built-in types: grass, soil, weed, concrete, gravel, mulch
+- Paint terrain types onto grid cells (grid-cell-based painting)
+- Option to disable grid snapping for freeform placement when needed
+- Built-in types: grass, soil, weed, concrete, gravel, mulch, raised bed
 - Extensible registry — users or devs can add new terrain types
 - Each terrain type has: name, texture/pattern, color, metadata
 
 ### F3: Plant Placement
 
 - Drag-and-drop plants from a categorized sidebar/palette
-- Built-in plants: cherry tomatoes, tomatoes, onions, eggplant, peppers, herbs, lettuce, carrots
+- Built-in plants: cherry tomatoes, tomatoes, onions, eggplant, peppers, basil, lettuce, carrots
+- Each herb is a separate registry entry (no generic "herbs" grouping)
 - Extensible registry — same pattern as terrain
 - Each plant has: name, icon, spacing requirements, season info, category
+- Plant spacing defines the outer box of the plant's grid cell (the cell edges); configurable per plant type since different plants have different spacing needs
 - Plants snap to grid but allow sub-grid positioning
 
 ### F4: Selection & Manipulation
@@ -40,10 +43,23 @@ A web-based garden planner that combines the fluid, intuitive canvas experience 
 - Copy/paste, undo/redo
 - Properties panel (inspector) for selected element
 
+### F4b: Structures
+
+- Place structure elements on the canvas
+- Built-in structures: brick walls, fences, raised beds
+- Extensible registry — same pattern as terrain and plants
+- Each structure has: name, icon, dimensions, metadata
+
+### F4c: Labels & Annotations
+
+- Text/label tool to add annotations on the canvas
+- Labels are standalone elements that can be selected, moved, and styled
+
 ### F5: Garden Journal
 
 - Timeline of journal entries tied to a garden project
-- Each entry: date, text notes, optional photos, linked elements
+- Each entry: date, text notes, linked elements, optional weather snapshot
+- Weather data auto-filled from weather API (Open-Meteo) or entered manually
 - Track planting dates, watering, harvest, observations
 - Filter/search journal history
 
@@ -56,18 +72,29 @@ A web-based garden planner that combines the fluid, intuitive canvas experience 
 ## Out of Scope (for MVP)
 
 - Multi-user / real-time collaboration
-- Weather/climate integration
+- Advanced weather/climate integration (forecasting, alerts, seasonal planning)
 - AI-powered suggestions
 - Mobile-native app (responsive web is fine)
 - E-commerce / seed purchasing integration
+- Journal photo support
+- Measure tool
 
 ## Success Metrics
 
 - TODO: Define once we align on what success looks like
 
+## Resolved Decisions
+
+- Terrain is grid-cell-based, with an option to disable grid snapping
+- No photo support in journal (text only)
+- Weather snapshots in journal (auto-filled via Open-Meteo API or manual)
+- Each herb/plant is a separate registry entry — no generic groupings
+- Structures (brick walls, fences, raised beds) are in MVP scope
+- Labels/text tool is in MVP scope
+- No measure tool
+- Plant spacing defines the plant's grid cell outer box, configurable per plant type
+
 ## Open Questions
 
-- [ ] Should terrain be grid-cell-based (Minecraft style) or freeform shapes (Excalidraw style)?
 - [ ] Do we need user accounts, or is local-only storage sufficient for MVP?
 - [ ] What level of plant metadata do we want? (just visual, or growing guides too?)
-- [ ] Should the journal support photo uploads or just text?

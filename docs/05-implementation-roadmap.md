@@ -17,6 +17,15 @@ Each phase delivers a usable increment. Phase 1 is the MVP — a functional gard
   - Tailwind CSS config
   - Project structure (folders, base types)
 
+- [ ] **1.1b — Design tokens & UI foundations**
+  - Define primary, secondary, accent color palette
+  - Choose font families (UI + canvas labels)
+  - Establish icon style (toolbar: outlined monochrome, plants: colored top-down)
+  - Set spacing, border radius, and shadow tokens
+  - Grid appearance defaults (dotted vs solid, colors)
+  - Document tokens in a shared config (CSS variables or Tailwind theme)
+  - Tooltip component: every button/icon gets a hover tooltip with name + shortcut
+
 - [ ] **1.2 — Canvas foundation**
   - Blank canvas with pan (drag) and zoom (scroll)
   - Grid rendering (dots or lines, 1m cells)
@@ -25,21 +34,34 @@ Each phase delivers a usable increment. Phase 1 is the MVP — a functional gard
 
 - [ ] **1.3 — Terrain painting**
   - Terrain registry loaded from JSON
-  - Terrain brush tool: select type, click/drag to paint cells
+  - Terrain brush tool: select type, click/drag to paint grid cells
+  - Option to disable grid snapping for freeform placement
   - Terrain renders as colored rectangles (textures later)
   - Eraser tool to remove terrain
 
 - [ ] **1.4 — Plant placement**
-  - Plant registry loaded from JSON
+  - Plant registry loaded from JSON (each herb is a separate entry, no groupings)
   - Side palette with plant list (icons + names)
   - Drag-and-drop or click-to-place plants on canvas
   - Plants render as icons snapped to grid
+  - Plant spacing defines the outer box (cell size) on the grid, configurable per plant type
+
+- [ ] **1.4b — Structure placement**
+  - Structure registry loaded from JSON (brick walls, fences, raised beds)
+  - Structures tab in side palette
+  - Drag-and-drop or click-to-place structures on canvas
+  - Structures render on canvas between terrain and plant layers
 
 - [ ] **1.5 — Selection & manipulation**
   - Select tool: click to select, box select
   - Move, delete selected elements
   - Inspector panel shows properties of selection
   - Undo/redo (Ctrl+Z / Ctrl+Shift+Z)
+
+- [ ] **1.5b — Labels & annotations**
+  - Text/label tool to add annotations on the canvas
+  - Labels are selectable, movable, and styled elements
+  - Font size and color configurable via inspector
 
 - [ ] **1.6 — Persistence**
   - Auto-save to IndexedDB
@@ -72,9 +94,15 @@ Each phase delivers a usable increment. Phase 1 is the MVP — a functional gard
 
 - [ ] **2.3 — Journal (basic)**
   - Journal panel (slide-in or tab)
-  - Create journal entries: date, text, tags
-  - Link entries to specific plants/areas
+  - Create journal entries: date, text, tags (no photo support)
+  - Link entries to specific plants/areas/structures
   - Timeline view of entries
+
+- [ ] **2.3b — Weather integration**
+  - Open-Meteo API client (no key needed, free for personal use)
+  - Auto-fill weather snapshot when creating a journal entry (temp, humidity, condition)
+  - Manual override/entry for weather fields
+  - Graceful fallback if API is unreachable
 
 - [ ] **2.4 — Plant status tracking**
   - Plant lifecycle: planned → planted → growing → harvested → removed
@@ -96,12 +124,7 @@ Each phase delivers a usable increment. Phase 1 is the MVP — a functional gard
   - Export as SVG
   - Print-friendly layout with legend
 
-- [ ] **3.2 — Journal with photos**
-  - Photo upload in journal entries
-  - Photo gallery view
-  - Photos stored in IndexedDB as blobs
-
-- [ ] **3.3 — Garden statistics**
+- [ ] **3.2 — Garden statistics**
   - Dashboard: total area, breakdown by terrain type
   - Plant inventory list with status
   - Upcoming tasks (based on planting dates + days to harvest)
@@ -115,8 +138,8 @@ Each phase delivers a usable increment. Phase 1 is the MVP — a functional gard
 - [ ] User accounts + cloud sync
 - [ ] Companion planting suggestions / warnings
 - [ ] Seasonal planning views (spring vs summer layout)
-- [ ] Structure elements (fences, paths, raised beds, sheds)
-- [ ] Weather logging integration
+- [ ] Additional structure types (paths, sheds, pergolas, etc.)
+- [ ] Advanced weather features (forecasts, seasonal trends, watering recommendations)
 - [ ] Mobile-optimized view
 - [ ] Collaboration / sharing gardens
 

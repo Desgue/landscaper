@@ -99,8 +99,8 @@ screenToWorld(sx, sy) = sx / (zoom * cellPixelSize) + viewportX
 
 1. Grid lines (background)
 2. Terrain elements
-3. Plant elements
-4. Structures (future)
+3. Structure elements (brick walls, fences, raised beds)
+4. Plant elements
 5. Labels/annotations
 6. Selection overlay, handles, guides (UI layer)
 
@@ -127,13 +127,17 @@ src/
 │   ├── viewport.ts         # Pan, zoom, coordinate transforms
 │   ├── layers/             # Render layers
 │   │   ├── TerrainLayer.tsx
+│   │   ├── StructureLayer.tsx
 │   │   ├── PlantLayer.tsx
+│   │   ├── LabelLayer.tsx
 │   │   └── SelectionLayer.tsx
 │   └── tools/              # Tool behaviors
 │       ├── SelectTool.ts
 │       ├── PanTool.ts
 │       ├── TerrainBrushTool.ts
 │       ├── PlantPlacementTool.ts
+│       ├── StructurePlacementTool.ts
+│       ├── LabelTool.ts
 │       └── EraserTool.ts
 ├── ui/                     # UI chrome (non-canvas)
 │   ├── Toolbar.tsx
@@ -153,7 +157,10 @@ src/
 ├── registries/             # Extensible type registries
 │   ├── terrain.json
 │   ├── plants.json
+│   ├── structures.json
 │   └── registryLoader.ts
+├── weather/                # Weather API integration
+│   └── openMeteo.ts        # Open-Meteo API client
 ├── persistence/            # Save/load/export
 │   ├── indexedDb.ts
 │   ├── jsonExport.ts
@@ -163,11 +170,35 @@ src/
 │   ├── elements.ts
 │   ├── terrain.ts
 │   ├── plants.ts
+│   ├── structures.ts
+│   ├── labels.ts
 │   └── journal.ts
 └── assets/                 # Static assets
     ├── textures/           # Terrain texture images
     └── icons/              # Plant icons
 ```
+
+## Weather API Integration
+
+**Chosen API: Open-Meteo** — free, no API key, no signup, no rate limits for personal use.
+
+- Base URL: `https://api.open-meteo.com/v1/forecast`
+- No authentication required
+- Provides: current temperature, humidity, weather condition, soil temperature, soil moisture
+- Historical data back to 1940 (useful for seasonal insights)
+- Called when creating a journal entry to auto-fill the weather snapshot
+- User can override or manually enter weather data
+- Graceful degradation: if API is unreachable, weather fields are left blank for manual entry
+
+**Alternatives evaluated (kept as reference):**
+
+| API | Free Tier | Notes |
+|-----|-----------|-------|
+| Open-Meteo | Unlimited (non-commercial) | **Selected.** No key, no card, best for personal use |
+| OpenWeatherMap | 1,000 calls/day | Requires API key; One Call 3.0 needs credit card |
+| WeatherAPI.com | 1M calls/month | Generous, includes astronomy data (sunrise/sunset) |
+| Visual Crossing | 1,000 records/day | Strong historical data |
+| Tomorrow.io | 500 calls/day | Has soil temperature data but lower limits |
 
 ## Future Backend (Post-MVP)
 

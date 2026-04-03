@@ -2,7 +2,7 @@
 
 ## Design Goal
 
-All element types (terrain, plants, structures) follow a **registry pattern** — a base interface with a type-specific config, making it trivial to add new types without changing core logic.
+All element types (terrain, plants, structures, labels) follow a **registry pattern** — a base interface with a type-specific config, making it trivial to add new types without changing core logic.
 
 ## Core Entities
 
@@ -75,7 +75,6 @@ TerrainType {
 | concrete | Concrete | hardscape | #9E9E9E |
 | gravel | Gravel | hardscape | #BDBDBD |
 | mulch | Mulch | natural | #5D4037 |
-| raised-bed | Raised Bed | structure | #A1887F |
 
 **Adding a new terrain type** = add an entry to the registry (JSON/config). No code changes needed.
 
@@ -88,7 +87,7 @@ PlantType {
   category: string             // e.g. "vegetable", "herb", "fruit", "flower"
   iconUrl: string              // top-down icon for canvas
   thumbnailUrl: string         // sidebar thumbnail
-  spacingCm: number            // recommended spacing between plants
+  spacingCm: number            // defines the outer box (cell size) of the plant on the grid; configurable per plant type
   rowSpacingCm: number         // recommended row spacing
   sunRequirement: "full" | "partial" | "shade"
   waterNeed: "low" | "medium" | "high"
@@ -116,11 +115,14 @@ PlantType {
 
 ### Terrain Element (extends Element)
 
+Terrain is grid-cell-based by default. Width/height are in whole cell units unless grid snapping is disabled.
+
 ```
 TerrainElement extends Element {
   type: "terrain"
   terrainTypeId: string        // references TerrainType.id
-  // width/height define the painted area
+  gridSnapped: boolean         // true = locked to grid cells, false = freeform placement
+  // width/height define the painted area (in grid cells when snapped, meters when freeform)
 }
 ```
 
@@ -137,6 +139,52 @@ PlantElement extends Element {
 }
 ```
 
+### Structure Types — Registry
+
+```
+StructureType {
+  id: string                   // e.g. "brick-wall", "fence", "raised-bed"
+  name: string                 // display name
+  category: string             // e.g. "boundary", "container"
+  iconUrl: string              // canvas icon
+  thumbnailUrl: string         // sidebar thumbnail
+  defaultWidth: number         // default width in meters
+  defaultHeight: number        // default height in meters
+  description: string?
+}
+```
+
+**Built-in structure types:**
+
+| id | name | category |
+|----|------|----------|
+| brick-wall | Brick Wall | boundary |
+| fence | Fence | boundary |
+| raised-bed | Raised Bed | container |
+
+**Adding a new structure type** = add an entry to the registry. No code changes needed.
+
+### Structure Element (extends Element)
+
+```
+StructureElement extends Element {
+  type: "structure"
+  structureTypeId: string      // references StructureType.id
+  notes: string?
+}
+```
+
+### Label Element (extends Element)
+
+```
+LabelElement extends Element {
+  type: "label"
+  text: string
+  fontSize: number
+  fontColor: string
+}
+```
+
 ### Journal Entry
 
 ```
@@ -146,17 +194,10 @@ JournalEntry {
   date: date
   title: string?
   content: string              // markdown or rich text
-  photos: Photo[]
   linkedElementIds: string[]   // elements this entry is about
   tags: string[]               // e.g. "planting", "harvest", "observation"
-  weather: WeatherSnapshot?    // optional
+  weather: WeatherSnapshot?    // optional, auto-filled from weather API or manual
   createdAt: datetime
-}
-
-Photo {
-  id: string
-  url: string                  // local blob URL or uploaded URL
-  caption: string?
 }
 
 WeatherSnapshot {
@@ -182,6 +223,16 @@ WeatherSnapshot {
 {
   "types": [
     { "id": "cherry-tomato", "name": "Cherry Tomato", ... },
+    // ADD NEW TYPES HERE — each herb/plant is a separate entry, no generic groupings
+  ]
+}
+
+// registries/structures.json
+{
+  "types": [
+    { "id": "brick-wall", "name": "Brick Wall", ... },
+    { "id": "fence", "name": "Fence", ... },
+    { "id": "raised-bed", "name": "Raised Bed", ... },
     // ADD NEW TYPES HERE
   ]
 }
@@ -199,16 +250,25 @@ Garden projects serialize to JSON for save/load/export:
   "garden": { ... },
   "registries": {
     "terrain": [ ... ],
-    "plants": [ ... ]
+    "plants": [ ... ],
+    "structures": [ ... ]
   }
 }
 ```
 
 This allows custom types to travel with the project file.
 
+## Resolved Decisions
+
+- Terrain is grid-cell-based with option to disable grid snapping
+- Structures (brick walls, fences, raised beds) are in MVP
+- Raised bed is a structure type, not a terrain type
+- No photo support in journal (text only)
+- Weather snapshots in journal entries (auto-filled via weather API or manual entry)
+- Each herb/plant is a separate registry entry — no generic groupings
+- Plant spacing (`spacingCm`) defines the plant's outer grid cell box, configurable per plant type
+
 ## Open Questions
 
 - [ ] Should registries be user-editable in the UI, or config-file-only for now?
-- [ ] Do we want a "structure" type (fences, paths, sheds) in MVP?
 - [ ] How much plant metadata is MVP vs nice-to-have? (companion planting, days to harvest)
-- [ ] Journal photo storage: local blob, base64 in JSON, or external upload?

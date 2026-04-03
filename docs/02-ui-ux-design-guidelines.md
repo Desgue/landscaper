@@ -24,22 +24,29 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
+### Tooltips
+
+- Every toolbar button, palette item, and interactive icon must have a tooltip on hover
+- Tooltips show the action name and keyboard shortcut (e.g. "Select (V)", "Terrain Brush (B)")
+- Short delay before showing (~300ms), dismiss on mouse leave
+- Consistent positioning: below toolbar buttons, to the right of palette items
+
 ### Top Toolbar
 
 Inspired by Excalidraw's toolbar. Tools (left to right):
 - **Select** (V) — default pointer tool
 - **Hand/Pan** (H) — drag canvas
-- **Terrain brush** (B) — paint terrain onto grid
+- **Terrain brush** (B) — paint terrain onto grid cells
 - **Plant tool** (P) — place plants
+- **Structure tool** (S) — place structures (walls, fences, raised beds)
 - **Eraser** (E) — remove elements
 - **Text/Label** (T) — add annotations
-- **Measure** (M) — measure distances
 - **Undo/Redo** — always visible
 
 ### Side Palette
 
 - Collapsible panel on the left (like Garden Planner's toolbar)
-- Tabs or sections: Terrain | Plants | Structures (future)
+- Tabs or sections: Terrain | Plants | Structures
 - Search/filter within palette
 - Drag from palette onto canvas, or click palette then click canvas
 
@@ -78,6 +85,7 @@ Inspired by Excalidraw's toolbar. Tools (left to right):
 - Select terrain type → click/drag to paint cells
 - Brush size configurable (1x1, 2x2, 3x3, custom)
 - Paint fills grid cells with terrain texture/color
+- Option to disable grid snapping for freeform placement
 
 ## Visual Language
 
@@ -114,6 +122,12 @@ Inspired by Excalidraw's toolbar. Tools (left to right):
 - Sufficient contrast ratios for all UI text
 - Screen reader labels for toolbar actions
 - Focus indicators on interactive elements
+
+## Resolved Design Decisions
+
+- No measure tool — removed from toolbar
+- Structures palette is part of MVP (not future)
+- Terrain painting is grid-cell-based with optional grid-snap disable
 
 ## Open Design Questions
 
