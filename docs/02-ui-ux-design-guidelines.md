@@ -33,7 +33,7 @@
 
 ### Top Toolbar
 
-Inspired by Excalidraw's toolbar. Tools (left to right):
+Inspired by Excalidraw's toolbar. Tools (left to right) — see `docs/06-keyboard-shortcuts.md` for the full shortcut reference:
 - **Select** (V) — default pointer tool
 - **Hand/Pan** (H) — drag canvas
 - **Terrain brush** (B) — paint terrain onto grid cells
@@ -83,7 +83,7 @@ Inspired by Excalidraw's toolbar. Tools (left to right):
 
 ### Terrain Painting
 - Select terrain type → click/drag to paint cells
-- Brush size configurable (1x1, 2x2, 3x3, custom)
+- Brush size configurable (1x1, 2x2, 3x3) — transient UI tool setting, not persisted in the data model
 - Paint fills grid cells with terrain texture/color
 - Option to disable grid snapping for freeform placement
 
@@ -128,10 +128,8 @@ Inspired by Excalidraw's toolbar. Tools (left to right):
 - No measure tool — removed from toolbar
 - Structures palette is part of MVP (not future)
 - Terrain painting is grid-cell-based with optional grid-snap disable
-
-## Open Design Questions
-
-- [ ] Hand-drawn sketch aesthetic (Excalidraw) vs clean/flat (Garden Planner)?
-- [ ] Dark mode support?
-- [ ] Terrain: texture fills vs solid colors vs pattern fills?
-- [ ] Plant icon style: top-down realistic, isometric, or flat icon?
+- Visual aesthetic: semi-realistic (stylized but somewhat realistic, middle ground)
+- Dark mode: no, light theme only for MVP
+- Terrain rendering: solid colors first in MVP, textures added in Phase 2
+- Plant icon style: flat colored top-down icons
+- Brush size (1x1, 2x2, 3x3) included in MVP as a UI-only tool setting

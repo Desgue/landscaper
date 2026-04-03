@@ -22,7 +22,7 @@ A web-based garden planner that combines the fluid, intuitive canvas experience 
 
 - Paint terrain types onto grid cells (grid-cell-based painting)
 - Option to disable grid snapping for freeform placement when needed
-- Built-in types: grass, soil, weed, concrete, gravel, mulch, raised bed
+- Built-in types: grass, soil, weed/wild, concrete, gravel, mulch
 - Extensible registry — users or devs can add new terrain types
 - Each terrain type has: name, texture/pattern, color, metadata
 
@@ -93,8 +93,6 @@ A web-based garden planner that combines the fluid, intuitive canvas experience 
 - Labels/text tool is in MVP scope
 - No measure tool
 - Plant spacing defines the plant's grid cell outer box, configurable per plant type
-
-## Open Questions
-
-- [ ] Do we need user accounts, or is local-only storage sufficient for MVP?
-- [ ] What level of plant metadata do we want? (just visual, or growing guides too?)
+- Local-only, local-first architecture — no user accounts for MVP
+- Full plant metadata in MVP (spacing, sun, water, season, days to harvest, companion plants)
+- Raised bed is a structure type, not a terrain type

@@ -20,11 +20,15 @@ Each phase delivers a usable increment. Phase 1 is the MVP — a functional gard
 - [ ] **1.1b — Design tokens & UI foundations**
   - Define primary, secondary, accent color palette
   - Choose font families (UI + canvas labels)
-  - Establish icon style (toolbar: outlined monochrome, plants: colored top-down)
+  - Visual aesthetic: semi-realistic (stylized but somewhat realistic)
+  - Toolbar icons: outlined monochrome; Plant icons: flat colored top-down
+  - Terrain rendering: solid colors in Phase 1, textures in Phase 2
+  - Light theme only (no dark mode for MVP)
   - Set spacing, border radius, and shadow tokens
   - Grid appearance defaults (dotted vs solid, colors)
   - Document tokens in a shared config (CSS variables or Tailwind theme)
   - Tooltip component: every button/icon gets a hover tooltip with name + shortcut
+  - See `docs/06-keyboard-shortcuts.md` for the full shortcut reference
 
 - [ ] **1.2 — Canvas foundation**
   - Blank canvas with pan (drag) and zoom (scroll)
@@ -35,6 +39,7 @@ Each phase delivers a usable increment. Phase 1 is the MVP — a functional gard
 - [ ] **1.3 — Terrain painting**
   - Terrain registry loaded from JSON
   - Terrain brush tool: select type, click/drag to paint grid cells
+  - Configurable brush size (1x1, 2x2, 3x3) — transient UI tool setting
   - Option to disable grid snapping for freeform placement
   - Terrain renders as colored rectangles (textures later)
   - Eraser tool to remove terrain
@@ -147,7 +152,7 @@ Each phase delivers a usable increment. Phase 1 is the MVP — a functional gard
 
 ## Development Approach
 
-- **Prototype first**: Build a throwaway canvas spike (1-2 days) to validate Konva.js or alternative before committing
+- **Canvas engine**: Konva.js (committed — no prototype spike needed)
 - **Vertical slices**: Each milestone is a thin vertical slice — touching canvas, state, and UI
 - **Test as we go**: Unit tests for state logic, E2E tests for critical flows (save/load, place plant)
 - **Design tokens early**: Establish colors, spacing, icon style before building too many components

@@ -117,6 +117,8 @@ PlantType {
 
 Terrain is grid-cell-based by default. Width/height are in whole cell units unless grid snapping is disabled.
 
+> **Note:** Brush size (1x1, 2x2, 3x3) is a transient UI tool setting that controls how many cells are painted per stroke. It is not persisted in the element model — only the resulting painted cells are stored.
+
 ```
 TerrainElement extends Element {
   type: "terrain"
@@ -182,6 +184,10 @@ LabelElement extends Element {
   text: string
   fontSize: number
   fontColor: string
+  fontFamily: string             // e.g. "Inter", "system-ui"
+  textAlign: "left" | "center" | "right"
+  bold: boolean
+  italic: boolean
 }
 ```
 
@@ -268,7 +274,7 @@ This allows custom types to travel with the project file.
 - Each herb/plant is a separate registry entry — no generic groupings
 - Plant spacing (`spacingCm`) defines the plant's outer grid cell box, configurable per plant type
 
-## Open Questions
+## Resolved Questions
 
-- [ ] Should registries be user-editable in the UI, or config-file-only for now?
-- [ ] How much plant metadata is MVP vs nice-to-have? (companion planting, days to harvest)
+- Registries are config-file-only for MVP (not UI-editable)
+- Full plant metadata is in MVP scope (spacing, sun, water, season, days to harvest, companion plants — all already modeled above)

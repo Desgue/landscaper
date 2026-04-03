@@ -2,7 +2,7 @@
 
 ## Architecture Overview
 
-Single-page application (SPA) with local-first storage. No backend required for MVP — all data lives in the browser. Backend can be added later for sync/accounts.
+Single-page application (SPA) with a local-first architecture. No backend required for MVP — all data lives in the browser. No user accounts for MVP. Backend can be added later for sync/accounts.
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -13,7 +13,7 @@ Single-page application (SPA) with local-first storage. No backend required for 
 │  │ Engine   │  │ (React)  │  │ Module    │            │
 │  │          │  │          │  │           │            │
 │  │ - Render │  │ - Toolbar│  │ - Entries │            │
-│  │ - Pan/   │  │ - Palette│  │ - Photos  │            │
+│  │ - Pan/   │  │ - Palette│  │ - Weather │            │
 │  │   Zoom   │  │ - Inspect│  │ - Timeline│            │
 │  │ - Grid   │  │ - Modals │  │           │            │
 │  └────┬─────┘  └────┬─────┘  └─────┬─────┘            │
@@ -25,7 +25,7 @@ Single-page application (SPA) with local-first storage. No backend required for 
 │  │  - Garden state (elements, grid)        │            │
 │  │  - UI state (tool, selection, zoom)     │            │
 │  │  - Undo/redo history                    │            │
-│  │  - Registries (terrain, plants)         │            │
+│  │  - Registries (terrain, plants, structures) │         │
 │  └────────────────┬────────────────────────┘            │
 │                   │                                     │
 │  ┌────────────────┴────────────────────────┐            │
@@ -45,7 +45,7 @@ Single-page application (SPA) with local-first storage. No backend required for 
 | **Framework** | React + TypeScript | Ecosystem, component model, Excalidraw is React-based |
 | **Canvas rendering** | HTML Canvas (2D) or **Konva.js** | Konva gives us layers, hit detection, events on a Canvas element. Alternative: pure Canvas 2D API for max control |
 | **State management** | Zustand | Lightweight, works well with Canvas, easy undo/redo middleware |
-| **Persistence** | IndexedDB via Dexie.js | Structured local storage, handles blobs for photos |
+| **Persistence** | IndexedDB via Dexie.js | Structured local storage, handles binary data for textures/icons |
 | **Styling** | Tailwind CSS | For UI chrome (toolbar, panels). Canvas is separate. |
 | **Build tool** | Vite | Fast dev server, good React/TS support |
 | **Testing** | Vitest + Playwright | Unit + E2E |
@@ -210,9 +210,9 @@ When/if we add a backend:
 - API: REST or tRPC
 - Hosting: Vercel (frontend) + Railway/Fly (backend)
 
-## Open Questions
+## Resolved Questions
 
-- [ ] Konva.js vs Fabric.js vs custom Canvas — needs a prototype spike
-- [ ] Do we want offline-first with service worker?
-- [ ] Image assets (textures, plant icons): bundle with app or load from CDN?
-- [ ] Should the canvas engine be a separate package for reusability?
+- Canvas engine: **Konva.js** (committed, no prototype spike needed)
+- Local-first architecture adopted; service worker for offline support TBD post-MVP
+- Image assets (textures, plant icons): **bundled with the app**
+- Canvas engine: **integrated in app** (src/canvas/), not a separate package
