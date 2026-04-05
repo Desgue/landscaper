@@ -13,61 +13,63 @@ A web-based garden planner that combines the fluid, intuitive canvas experience 
 
 ### F1: Infinite Canvas with Grid
 
-- Pan (scroll/drag), zoom (pinch/scroll wheel), fit-to-view
-- Grid overlay: default 1m per square, configurable scale
-- Rulers on edges showing real-world measurements (meters)
+- Pan, zoom, fit-to-view
+- Grid overlay: 1m per square, configurable scale
 - Minimap for orientation on large gardens
 
 ### F2: Terrain Painting
 
-- Paint terrain types onto grid cells (grid-cell-based painting)
-- Option to disable grid snapping for freeform placement when needed
+- Paint terrain types onto grid cells (floor-based cell snapping)
+- Configurable brush size (1x1, 2x2, 3x3)
 - Built-in types: grass, soil, weed/wild, concrete, gravel, mulch
-- Extensible registry — users or devs can add new terrain types
-- Each terrain type has: name, texture/pattern, color, metadata
+- Extensible registry — add new terrain types via config
+- Alt modifier toggles grid snapping (disables for most tools; enables for labels which default to free placement)
 
 ### F3: Plant Placement
 
-- Drag-and-drop plants from a categorized sidebar/palette
+- Place plants from a categorized sidebar palette (click-to-stamp or drag-and-drop)
 - Built-in plants: cherry tomatoes, tomatoes, onions, eggplant, peppers, basil, lettuce, carrots
-- Each herb is a separate registry entry (no generic "herbs" grouping)
 - Extensible registry — same pattern as terrain
-- Each plant has: name, icon, spacing requirements, season info, category
-- Plant spacing defines the outer box of the plant's grid cell (the cell edges); configurable per plant type since different plants have different spacing needs
-- Plants snap to grid but allow sub-grid positioning
+- Plant spacing (spacingCm) determines the visual size of the plant within the grid cell; the plant icon is centered in the cell
+- Each plant has: name, icon, spacing, season info, category, sun requirement, water need, days to harvest, companion plants
 
 ### F4: Selection & Manipulation
 
-- Select, move, resize, rotate, delete elements
+- Select, move, delete elements
 - Multi-select (box select, shift-click)
 - Copy/paste, undo/redo
-- Properties panel (inspector) for selected element
+- Resize terrain regions and structures (plants have fixed size from spacing)
+- Inspector panel for editing properties of the selected element
 
 ### F4b: Structures
 
-- Place structure elements on the canvas
+- Place structure elements on the canvas (click for default size, or drag to define extent)
 - Built-in structures: brick walls, fences, raised beds
 - Extensible registry — same pattern as terrain and plants
-- Each structure has: name, icon, dimensions, metadata
+- Structures, plants, and terrain can freely overlap
 
 ### F4c: Labels & Annotations
 
 - Text/label tool to add annotations on the canvas
-- Labels are standalone elements that can be selected, moved, and styled
+- Labels are standalone elements: selectable, movable, resizable text boxes
+- Font size, color, alignment, bold, italic configurable via inspector
 
 ### F5: Garden Journal
 
-- Timeline of journal entries tied to a garden project
-- Each entry: date, text notes, linked elements, optional weather snapshot
-- Weather data auto-filled from weather API (Open-Meteo) or entered manually
-- Track planting dates, watering, harvest, observations
-- Filter/search journal history
+- Full-screen journal view (replaces canvas temporarily)
+- Each entry: date, title, text notes, tags
+- Link entries to specific elements (pre-selection from canvas or pick from within the entry)
+- Timeline views: chronological list (default) and calendar view
+- Filter/search by text or tags
+- Weather snapshot per entry (fetched on demand via Open-Meteo API or entered manually)
 
 ### F6: Project Management
 
+- Welcome screen on first launch (create new or import)
 - Create, save, load, rename, delete garden projects
-- Auto-save to local storage + explicit save/export
-- Export as image (PNG/SVG) or JSON
+- Auto-save on every change (debounced)
+- Export as JSON or PNG image
+- Import from JSON (duplicate names get a suffix)
 
 ## Out of Scope (for MVP)
 
@@ -76,23 +78,8 @@ A web-based garden planner that combines the fluid, intuitive canvas experience 
 - AI-powered suggestions
 - Mobile-native app (responsive web is fine)
 - E-commerce / seed purchasing integration
-- Journal photo support
-- Measure tool
+- Journal photo support (text only)
 
-## Success Metrics
+## Behavioral Specification
 
-- TODO: Define once we align on what success looks like
-
-## Resolved Decisions
-
-- Terrain is grid-cell-based, with an option to disable grid snapping
-- No photo support in journal (text only)
-- Weather snapshots in journal (auto-filled via Open-Meteo API or manual)
-- Each herb/plant is a separate registry entry — no generic groupings
-- Structures (brick walls, fences, raised beds) are in MVP scope
-- Labels/text tool is in MVP scope
-- No measure tool
-- Plant spacing defines the plant's grid cell outer box, configurable per plant type
-- Local-only, local-first architecture — no user accounts for MVP
-- Full plant metadata in MVP (spacing, sun, water, season, days to harvest, companion plants)
-- Raised bed is a structure type, not a terrain type
+For detailed interaction behaviors, grid snapping rules, placement mechanics, and edge cases, see `docs/03-behavior-specifications.md`.
