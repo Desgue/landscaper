@@ -1,9 +1,8 @@
 # Garden Planner — Implementation Plan (Coordination)
 
-> **AI-First Coordination Document.** This file maps the full build across 5 parallel sub-plans.
+> **AI-First Coordination Document.** This file maps the full build across 6 parallel sub-plans.
 > Agents working on a sub-plan open only that plan's file — not this one.
 > This file is the entry point for orchestrators and for understanding cross-plan contracts.
-> Image generation is out of scope. See `docs/backend/image-generation.md` separately.
 
 ---
 
@@ -22,6 +21,11 @@ PLAN-A: Core Engine          ──► PLAN-B: Spatial Canvas
           ▼                                  ▼
 PLAN-D: Intelligence Layer       PLAN-E: Delivery
 (measure · journal · cost)       (export · polish · audit)
+          │
+          │  (also branches from A, parallel to B/C/D)
+          │
+PLAN-F: Image Generation UI
+(generate button · options · API client · result modal)
 ```
 
 ### Execution Rules
@@ -33,6 +37,7 @@ PLAN-D: Intelligence Layer       PLAN-E: Delivery
 | **D starts after B** | PLAN-D reads element data; needs element IDs and types from B. Inspector hooks (C) are soft dependency — stub them in C if D starts in parallel |
 | **E is last** | PLAN-E integrates work from all plans; starts only when A+B+C+D are `done` |
 | **B and D may overlap** | Once B has at least terrain + one element type complete, D agents can start on measurement and cost math in isolation |
+| **F starts after A** | PLAN-F depends only on PLAN-A (toolbar slot, project state, `markDirty()`). Can run in parallel with B, C, D, and E once A is `done`. Backend must be running for integration testing |
 
 ### Sub-Plan Files
 
@@ -43,6 +48,7 @@ PLAN-D: Intelligence Layer       PLAN-E: Delivery
 | C | `docs/plans/frontend/PLAN-C.md` | Select · move/copy/paste · inspector · eraser · layers · groups | `todo` |
 | D | `docs/plans/frontend/PLAN-D.md` | Measurement · dimensions · journal · cost tracking | `todo` |
 | E | `docs/plans/frontend/PLAN-E.md` | PNG export · minimap · visual polish · shortcut audit | `todo` |
+| F | `docs/plans/frontend/PLAN-F.md` | Image generation UI · API client · options panel · result modal | `todo` |
 
 ---
 
@@ -99,6 +105,8 @@ PLAN-D: Intelligence Layer       PLAN-E: Delivery
 |------|----------|-----------|
 | 2026-04-06 | Split into 5 sub-plans along engine/canvas/editing/intelligence/delivery boundaries | Enables parallel execution after Plan A; each boundary matches a coherent technical domain |
 | 2026-04-06 | Image generation excluded from all sub-plans | Per project scope; covered separately in `docs/backend/image-generation.md` |
+| 2026-04-06 | Created PLAN-F for frontend image generation UI | Was excluded from Plans A-E but needs a plan to avoid being orphaned; can parallelize with C/D after A |
+| 2026-04-06 | Created backend implementation plan (PLAN-BACKEND.md) | Backend and frontend developing in parallel; need coordinated contract testing and shared fixtures |
 
 ---
 

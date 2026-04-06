@@ -68,7 +68,8 @@ Workflows, UI, and non-element features.
 | [template.md](template.md) | Writing conventions, doc type skeletons, cross-reference format, anti-patterns |
 | [INDEX.md](INDEX.md) | This file — entry point and manifest |
 | [PLAN_TEMPLATE.md](plans/PLAN_TEMPLATE.md) | AI-first plan template — copy this to create a new implementation plan; includes agent protocol and context map structure |
-| [IMPLEMENTATION_PLAN.md](plans/frontend/IMPLEMENTATION_PLAN.md) | Full implementation plan for all features (image generation excluded); living document updated by agents throughout development |
+| [IMPLEMENTATION_PLAN.md](plans/frontend/IMPLEMENTATION_PLAN.md) | Full implementation plan for all features; living document updated by agents throughout development |
+| [PLAN-F.md](plans/frontend/PLAN-F.md) | Image generation UI plan — Generate button, options panel, API client, loading overlay, result modal, error handling |
 
 ---
 
