@@ -57,6 +57,7 @@ Workflows, UI, and non-element features.
 | [persistence-projects.md] | Project management (save/load/export/import) | Welcome Screen, New Project Flow, Auto-Save, JSON Export, JSON Import, PNG Export |
 | [visual-design.md] | Cross-cutting visual and interaction design | Design Principles, Layout, Color Palette, Typography, Icons, Responsive, Accessibility, Design Rationale |
 | [cost-tracking.md] | Project cost estimation | Cost Model, Currency Setting, Inspector Integration, Cost Summary Panel, Cost Calculation Rules |
+| [image-generation.md] | Photorealistic image generation from plan data | Pipeline Stages, 3D Scene Construction, Depth Map, Segmentation Map, Prompt Construction, API Request, Camera/Viewpoint, Generation Panel UI |
 
 ---
 
@@ -99,3 +100,6 @@ When looking for where a concept is canonically defined, use this table. The **o
 | Cost model & calculation rules | cost-tracking.md | data-schema.md |
 | Dimension element | measurement-dimensions.md | data-schema.md "### Dimension Element", spatial-math-specification.md "## 13" |
 | Measurement tool | measurement-dimensions.md | keyboard-shortcuts.md |
+| Image generation pipeline | image-generation.md | data-schema.md, persistence-projects.md, journal.md, layers-groups.md |
+| Segmentation color assignments | image-generation.md "### Segmentation Map" | (standalone — not referenced by other docs) |
+| 3D scene construction rules | image-generation.md "### Stage 1: 3D Scene Construction" | (standalone — not referenced by other docs) |
