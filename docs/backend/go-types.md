@@ -211,6 +211,12 @@ These fields from the frontend schema are never read by the backend. They are de
 | Label fields (`text`, `fontSize`, etc.) | Labels are always excluded from segmentation and prompt |
 | Dimension fields (`startPoint`, `endPoint`, etc.) | Dimensions are always excluded from segmentation and prompt |
 | Registry fields beyond what's listed | Cost, sun requirement, water need, season, companion plants, icon/texture URLs — all unused |
+| `project.name` | Project display name; not used in generation pipeline |
+| `project.createdAt`, `project.updatedAt` | Project-level timestamps; not used in pipeline |
+| `project.yardBoundary.edgeLengths` | Computed edge lengths; backend derives geometry from vertices directly |
+| `layer.name` | Layer display name; backend only needs visibility and lock state |
+| `layer.order` | Layer panel display order; backend only needs visibility and lock state |
+| `project.uiState.lastGenerateOptions` | Persisted generation panel settings; frontend-only |
 
 ---
 

@@ -1,5 +1,9 @@
 # Backend Plans
 
-No backend implementation plan exists yet.
+## Plans
 
-The image generation feature (`docs/backend/image-generation.md`) is the primary backend workstream. When a backend plan is created, use `docs/plans/PLAN_TEMPLATE.md` as the starting point and place the plan file here.
+| Plan | File | Owns | Status |
+|------|------|------|--------|
+| PLAN-BACKEND | [`PLAN-BACKEND.md`](PLAN-BACKEND.md) | Go HTTP server, request validation, 2D segmentation render, prompt construction, Gemini API integration, embedded SPA serving | `todo` |
+
+The image generation service is the primary backend workstream. See the backend spec docs at `docs/backend/` for full technical details.

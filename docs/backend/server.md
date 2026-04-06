@@ -83,6 +83,17 @@ Any `GET` request that does not match `/api/*` is served from the embedded files
 
 CORS is not configured. The React app is served from the same origin as the API — no cross-origin requests are needed.
 
+### Development Proxy
+
+During local development, Vite runs on port 5173 and the Go server on port 8080 — different origins. The Vite dev server is configured to proxy `/api/` requests to `http://localhost:8080` (see `vite.config.ts`). This eliminates the need for CORS configuration in development.
+
+Workflow:
+1. `go run ./cmd/server` — starts the Go backend on port 8080
+2. `npm run dev` — starts Vite on port 5173 with proxy active
+3. Open `http://localhost:5173` — SPA served by Vite, API calls proxied to Go
+
+In production, the Go binary serves both the embedded SPA and the API from the same origin — no proxy needed.
+
 ---
 
 ## Environment Variables
