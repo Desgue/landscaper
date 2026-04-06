@@ -50,7 +50,7 @@ garden-planner/
 | Structured logging | `log/slog` (standard library) |
 | JSON parsing | `encoding/json` (standard library) |
 | 2D segmentation render | [`fogleman/gg`](https://github.com/fogleman/gg) — pure Go 2D graphics context, PNG output |
-| Gemini API client | [`google/generative-ai-go`](https://github.com/google/generative-ai-go) — official Go SDK |
+| Gemini API client | [`google.golang.org/genai`](https://pkg.go.dev/google.golang.org/genai) — official Go SDK |
 
 No CGo, no system graphics dependencies. `fogleman/gg` is pure Go. The service has no external dependencies beyond the Gemini API.
 
@@ -90,7 +90,7 @@ CORS is not configured. The React app is served from the same origin as the API 
 | Variable | Required | Purpose | Default |
 |---|---|---|---|
 | `GEMINI_API_KEY` | Yes | Google AI Studio API key for Nano Banana | — |
-| `GEMINI_MODEL` | No | Nano Banana model ID | `gemini-2.0-flash-exp-image-generation` |
+| `GEMINI_MODEL` | No | Nano Banana model ID | `gemini-3.1-flash-image-preview` |
 | `PORT` | No | HTTP listen port | `8080` |
 
 The server refuses to start if `GEMINI_API_KEY` is empty.

@@ -4,14 +4,14 @@ Stage 4 of the image generation pipeline — wraps the Nano Banana (Gemini) API 
 
 ## Client Setup
 
-Import: [`google/generative-ai-go`](https://github.com/google/generative-ai-go)
+Import: [`google.golang.org/genai`](https://pkg.go.dev/google.golang.org/genai)
 
 Environment variables:
 
 | Variable | Required | Default |
 |---|---|---|
 | `GEMINI_API_KEY` | Yes | — |
-| `GEMINI_MODEL` | No | `gemini-2.0-flash-exp-image-generation` |
+| `GEMINI_MODEL` | No | `gemini-3.1-flash-image-preview` |
 
 A context with a 60-second timeout is created per request, not at package level. The client is initialized inside the request handler and closed when the request completes.
 
@@ -19,50 +19,76 @@ A context with a 60-second timeout is created per request, not at package level.
 ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 defer cancel()
 
-client, err := genai.NewClient(ctx, option.WithAPIKey(os.Getenv("GEMINI_API_KEY")))
+client, err := genai.NewClient(ctx, &genai.ClientConfig{
+    APIKey: os.Getenv("GEMINI_API_KEY"),
+})
 if err != nil {
     return err
 }
 defer client.Close()
-
-model := client.GenerativeModel(os.Getenv("GEMINI_MODEL"))
-model.SetTemperature(1)
-model.ResponseMIMEType = "image/png"
 ```
 
 ## Request Construction
 
-The request is assembled from two parts: a text prompt and the segmentation map as an inline image blob.
+The request is assembled from a text prompt, the segmentation map, and an optional yard photo. All parts are sent via `client.Models.GenerateContent`. The segmentation map is always first; the yard photo, when present, is second. Gemini receives them in this order and the prompt preamble (see [prompt-construction.md "## Yard Photo Preamble"]) references them by position.
 
 ```go
-parts := []genai.Part{
-    genai.Text(prompt),
-    genai.Blob{MIMEType: "image/png", Data: segMapBytes},
+parts := []*genai.Part{
+    {Text: prompt},
+    {InlineData: &genai.Blob{MIMEType: "image/png", Data: segMapBytes}},
+}
+if len(yardPhotoBytes) > 0 {
+    parts = append(parts, &genai.Part{
+        InlineData: &genai.Blob{MIMEType: yardPhotoMIMEType, Data: yardPhotoBytes},
+    })
 }
 
-resp, err := model.GenerateContent(ctx, parts...)
+contents := []*genai.Content{{Parts: parts}}
+
+cfg := &genai.GenerateContentConfig{
+    ResponseModalities: []genai.Modality{genai.ModalityImage},
+    ImageConfig: &genai.ImageConfig{
+        AspectRatio: aspectRatio, // "1:1" | "16:9" | "9:16"
+        ImageSize:   "1K",
+    },
+}
+if options.Seed != -1 {
+    cfg.Seed = int32(options.Seed)
+}
+
+resp, err := client.Models.GenerateContent(ctx, os.Getenv("GEMINI_MODEL"), contents, cfg)
 ```
 
-- `prompt` — constructed string from [prompt-construction.md "## Prompt Assembly"]
+- `prompt` — constructed string from [prompt-construction.md "## Full Prompt Assembly"]
 - `segMapBytes` — PNG bytes from [segmentation-render.md "## Stage 2: 2D Segmentation Render"]
+- `yardPhotoBytes` — decoded bytes from `request.yard_photo` base64 field; empty slice when field is absent
+- `yardPhotoMIMEType` — `"image/jpeg"` or `"image/png"`, detected from magic bytes during validation
 
 Parameters sent to Nano Banana:
 
 | Parameter | Value | Source |
 |---|---|---|
 | model | `$GEMINI_MODEL` | env var |
-| prompt | constructed string | [prompt-construction.md "## Prompt Assembly"] |
-| reference_image | segmentation map PNG bytes | [segmentation-render.md "## Stage 2: 2D Segmentation Render"] |
-| aspect_ratio | `"1:1"` / `"16:9"` / `"9:16"` | derived from `options.aspect_ratio` |
-| seed | `options.seed` | omit parameter entirely when seed is `-1` |
-
-`aspect_ratio` and `seed` are passed via `GenerationConfig` fields if supported by the model version. Consult the Gemini Go SDK changelog — these fields are experimental and may change between model revisions.
+| prompt | constructed string | [prompt-construction.md "## Full Prompt Assembly"] |
+| parts[1] | segmentation map PNG bytes | [segmentation-render.md "## Stage 2: 2D Segmentation Render"] |
+| parts[2] | yard photo bytes (JPEG or PNG) | `request.yard_photo` — omitted when field is absent |
+| `ImageConfig.AspectRatio` | `"1:1"` / `"16:9"` / `"9:16"` | derived from `options.aspect_ratio` |
+| `ImageConfig.ImageSize` | `"1K"` | fixed default; upgrade to `"2K"` or `"4K"` when performance allows |
+| `Seed` | `options.seed` as `int32` | omitted entirely when `options.seed == -1` |
 
 ## Response Extraction
 
-Iterate `resp.Candidates[0].Content.Parts` and find the first `genai.Blob` with `MIMEType == "image/png"`. Return its `.Data` bytes as the HTTP response body with `Content-Type: image/png`.
+Iterate `resp.Candidates[0].Content.Parts` and find the first part whose `InlineData` field is non-nil and has `MIMEType == "image/png"`. Return `InlineData.Data` bytes as the HTTP response body with `Content-Type: image/png`.
 
-If no `image/png` part is found in the response, return HTTP 502 with body `"no image in Nano Banana response"`.
+```go
+for _, part := range resp.Candidates[0].Content.Parts {
+    if part.InlineData != nil && part.InlineData.MIMEType == "image/png" {
+        return part.InlineData.Data, nil
+    }
+}
+```
+
+If no matching part is found, return HTTP 502 with body `"no image in Nano Banana response"`.
 
 ## Error Handling
 
@@ -120,7 +146,7 @@ Scenario: Gemini API returns an error response
 Scenario: Gemini API returns a response with no image/png part
   Given a valid segmentation map PNG in segMapBytes
   And a valid constructed prompt string
-  And the Gemini API returns a response containing no genai.Blob with MIMEType "image/png"
+  And the Gemini API returns a response containing no part with InlineData.MIMEType "image/png"
   When the Gemini client sends the request
   Then the response has HTTP status 502
   And the response body is "no image in Nano Banana response"
@@ -139,4 +165,21 @@ Scenario: aspect_ratio "square" maps to Gemini aspect_ratio "1:1"
   Given options.aspect_ratio is "square"
   When the Gemini client sends the request
   Then the GenerationConfig aspect_ratio field is set to "1:1"
+
+Scenario: yard_photo present adds second blob to request parts
+  Given a valid segmentation map PNG in segMapBytes
+  And a valid constructed prompt string
+  And yardPhotoBytes contains a decoded JPEG image
+  When the Gemini client sends the request
+  Then the request contents have 3 parts: prompt text, segmentation map blob, yard photo blob
+  And the yard photo blob MIMEType is "image/jpeg"
+  And the yard photo blob is at parts index 2
+
+Scenario: yard_photo absent sends only segmentation map
+  Given a valid segmentation map PNG in segMapBytes
+  And a valid constructed prompt string
+  And yardPhotoBytes is empty
+  When the Gemini client sends the request
+  Then the request contents have 2 parts: prompt text and segmentation map blob
+  And no yard photo blob is present
 ```
