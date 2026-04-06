@@ -175,7 +175,7 @@ Areas outside the boundary are not rendered (void — mapped to `#000000` in seg
 
 Render the 3D scene to two off-screen targets at the output resolution matching the requested `aspect_ratio`.
 
-**Render layer order:** when elements overlap, the element higher in the canvas render order paints over lower elements in both the depth map and segmentation map. Order (bottom to top): terrain → paths → structures → plants [canvas-viewport.md "## Render Layer Order (bottom to top)"].
+**Render layer order:** when elements overlap, the element higher in the canvas render order paints over lower elements in both the depth map and segmentation map. The 3D render uses the following subset of the canvas layer order (bottom to top): terrain → yard boundary ground fill → paths → structures → plants. Canvas-only layers (grid lines, overflow dim overlay, labels, dimensions, selection UI) are never rendered in the 3D maps — labels and dimensions have no physical geometry [## Stage 1: 3D Scene Construction]; grid/overlay/selection are UI artifacts. Reference: [canvas-viewport.md "## Render Layer Order (bottom to top)"].
 
 #### Depth Map
 
@@ -432,6 +432,16 @@ Adding real-world height to the garden planner is a significant change that span
 
 Until height is implemented in the main app, `structureType.heightCm` and `plantType.heightCm` are used by the image generation API only. The 2D canvas is unaffected.
 
+When the height schema is formalized, the following per-growth-form defaults (used today as fallbacks in the standalone API when `plantType.heightCm` is null) should be adopted as canonical schema defaults:
+
+| Growth form | Default `heightCm` |
+|---|---|
+| herb | 30cm |
+| shrub | 120cm |
+| tree | 600cm |
+| groundcover | 5cm |
+| climber | 200cm |
+
 ---
 
 ## Future App Integration
@@ -440,7 +450,7 @@ When this API is integrated into the garden planner app, the following UI and in
 
 - **Visualize panel**: right-side panel with 3D scene preview, prompt display, style controls, generate button, result display
 - **Journal attachment**: generated images saved to journal entries [journal.md "## Entries"]
-- **Keyboard shortcut**: `V` to open the Visualize panel [keyboard-shortcuts.md]
+- **Keyboard shortcut**: `V` is currently assigned to the Select tool [keyboard-shortcuts.md "## Tools"]; an alternative shortcut must be chosen for the Visualize panel at integration time
 - **API credentials**: stored in app user settings (not in project JSON export)
 
 ---

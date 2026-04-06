@@ -294,6 +294,8 @@ perp = normalize({ x: -chord.y, y: chord.x })   // left normal of chord
 sagitta = dot(M - mid, perp)                      // signed distance
 ```
 
+> The computed `sagitta` value is stored in the data schema as `arcSagitta` on structure elements, path segments, and yard boundary edge types [data-schema.md "### Structure Element", "### Path Element", "### Yard Boundary Storage"].
+
 **Step 2: Compute radius**
 
 From the sagitta formula: `R = (h² + (L/2)²) / (2h)` where h = sagitta, L = chordLen.

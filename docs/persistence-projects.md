@@ -41,7 +41,7 @@ Importing a JSON file creates a new project from the file data and opens it. If 
 
 ## PNG Export
 
-Exports an image of the full yard extent at 1:1 scale (1cm = 1px), minimum 1920px on the longest side. Includes all visible elements (respecting layer visibility — hidden layers are excluded from export), the scale bar [canvas-viewport.md "## Scale Bar"], but not the UI chrome (toolbar, palette, inspector, status bar). Cost summary is not included in PNG export.
+Exports an image of the full yard extent at 1:1 scale (1cm = 1px), minimum 1920px on the longest side. Includes all visible elements (respecting layer visibility — hidden layers are excluded from export; locked layers are included since locked elements are still visible and rendered normally [layers-groups.md "## Layer Locking"]), the scale bar [canvas-viewport.md "## Scale Bar"], but not the UI chrome (toolbar, palette, inspector, status bar). Cost summary is not included in PNG export.
 
 ## History Storage
 
