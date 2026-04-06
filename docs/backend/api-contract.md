@@ -18,7 +18,8 @@ Accept: image/png
 
 ```json
 {
-  "project": { "...full JSON export per data-schema.md ## Export Format..." },
+  "project":    { "...full JSON export per data-schema.md ## Export Format..." },
+  "yard_photo": "string (base64-encoded JPEG or PNG of the real yard) | omit for segmentation-only generation",
   "options": {
     "include_planned": "boolean (default: true)",
     "garden_style":    "cottage | formal | tropical | mediterranean | japanese | kitchen | native | contemporary | garden",
@@ -31,7 +32,7 @@ Accept: image/png
 }
 ```
 
-`options` is optional. All `options` fields are optional. See [data-schema.md "## Export Format"] for the full `project` JSON shape.
+`options` is optional. All `options` fields are optional. `yard_photo` is optional — when omitted, generation uses the segmentation map only. When present, the yard photo is passed to Gemini as a second reference image alongside the segmentation map, grounding the output in the real yard's perspective and lighting. See [data-schema.md "## Export Format"] for the full `project` JSON shape.
 
 ---
 
@@ -98,8 +99,9 @@ Validated before any rendering begins. All invalid requests return HTTP 400 imme
 | `options.aspect_ratio` | One of 3 allowed values if present | `"invalid aspect_ratio"` |
 | `options.seed` | Integer or omitted; `-1` means random | `"invalid seed"` |
 | `options.include_planned` | Boolean or omitted | `"invalid include_planned"` |
+| `yard_photo` | Valid base64 string decoding to JPEG or PNG magic bytes if present | `"invalid yard_photo"` |
 
-`project.elements` and `project.registries` are not validated at request time — missing or unknown registry entries are handled during rendering.
+`project.elements` and `project.registries` are not validated at request time — missing or unknown registry entries are handled during rendering. `yard_photo` magic byte check: JPEG starts with `\xFF\xD8\xFF`; PNG starts with `\x89PNG\r\n\x1a\n`. Validation decodes the base64 and inspects the first 8 bytes only — the full image is not validated.
 
 ---
 
@@ -127,6 +129,7 @@ Exact error strings per case:
 | Segmentation render failure | 500 | `"segmentation render failed"` |
 | No image part in Gemini response | 502 | `"no image in Nano Banana response"` |
 | Gemini API returns error | 502 | `"Nano Banana error: {upstream message}"` |
+| `yard_photo` present but invalid base64 or wrong format | 400 | `"invalid yard_photo"` |
 | Gemini API timeout (> 60s) | 504 | `"image generation timed out"` |
 
 Gemini error handling is defined in [gemini-client.md "## Error Handling"].
@@ -315,6 +318,44 @@ Scenario: Gemini API error
 ```
 
 See [gemini-client.md "## Error Handling"] for upstream error propagation.
+
+### Scenario: yard_photo provided
+
+```
+Scenario: yard_photo provided alongside project
+  Given a valid project JSON with a yard boundary of >= 3 vertices
+  And yard_photo is a valid base64-encoded JPEG of the real yard
+  When POST /api/generate is called
+  Then the segmentation map and yard photo are both sent to Gemini as reference images
+  And the prompt includes the dual-image context preamble
+  And the response status is 200
+  And the response body is a valid PNG
+```
+
+See [prompt-construction.md "## Yard Photo Preamble"] and [gemini-client.md "## Request Construction"].
+
+### Scenario: yard_photo omitted
+
+```
+Scenario: yard_photo omitted
+  Given a valid project JSON with a yard boundary of >= 3 vertices
+  And the request body contains no yard_photo field
+  When POST /api/generate is called
+  Then only the segmentation map is sent to Gemini as a reference image
+  And the response status is 200
+  And the response body is a valid PNG
+```
+
+### Scenario: yard_photo is invalid base64
+
+```
+Scenario: Invalid yard_photo
+  Given a valid project JSON with a yard boundary of >= 3 vertices
+  And yard_photo is set to a string that is not valid base64
+  When POST /api/generate is called
+  Then the response status is 400
+  And the response body is { "error": "invalid yard_photo" }
+```
 
 ### Scenario: options.include_planned is false
 

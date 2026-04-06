@@ -120,6 +120,18 @@ The `"not a floor plan"` directive is present in all three variants. It reduces 
 
 Note: viewpoint does not affect the segmentation map render — the map is always top-down. The viewpoint directive is prompt-only; the model infers the requested perspective from the layout combined with the style suffix.
 
+## Yard Photo Preamble
+
+When `yard_photo` is present in the request, prepend a fixed context sentence to the prompt before the subject block. This tells Gemini the role of each reference image so it does not conflate the segmentation map with the target output style.
+
+```
+"The first image is a top-down segmentation plan of the garden layout. The second image is the real yard. Generate a photorealistic view showing the planned garden in the real yard's perspective and lighting."
+```
+
+This preamble is inserted once, at the very start of the prompt, regardless of viewpoint or style options. The rest of the prompt (subject, elements, style suffix) is assembled identically to the non-photo path.
+
+When `yard_photo` is absent, this preamble is omitted entirely — do not include a partial or modified version.
+
 ## Full Prompt Assembly
 
 ```
@@ -140,4 +152,14 @@ When no elements remain after filtering:
 A garden, summer, golden hour. photorealistic, eye-level view, garden photography, natural lighting, high detail, not a floor plan.
 ```
 
-The assembled prompt string is passed directly to the Gemini API call. See [gemini-client.md "## Request Construction"] for how the prompt is combined with the segmentation map and sent to Nano Banana.
+When `yard_photo` is present, the full prompt with elements is:
+
+```
+The first image is a top-down segmentation plan of the garden layout. The second image is
+the real yard. Generate a photorealistic view showing the planned garden in the real yard's
+perspective and lighting. A cottage garden, late summer, golden hour. Cherry Tomato,
+Lavender, Rose Bush, Wooden Pergola, Raised Bed, Grass, Gravel. photorealistic, eye-level
+view, garden photography, natural lighting, high detail, not a floor plan.
+```
+
+The assembled prompt string is passed directly to the Gemini API call. See [gemini-client.md "## Request Construction"] for how the prompt is combined with the segmentation map and optional yard photo when sent to Nano Banana.
