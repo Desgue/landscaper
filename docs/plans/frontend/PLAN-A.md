@@ -27,12 +27,12 @@
 
 Before marking this plan `done`, verify these contracts are fulfilled (see `docs/plans/frontend/IMPLEMENTATION_PLAN.md § Cross-Plan Interface Contracts`):
 
-- [ ] `Project` TypeScript type exported and importable by all other plans
-- [ ] `toScreen()` / `toWorld()` transform functions exported
-- [ ] Render pipeline with layer slot registration
-- [ ] `snapPoint()` function exported
-- [ ] `pushHistory()` / `markDirty()` available globally
-- [ ] Pre-allocated render layer slots in correct order
+- [x] `Project` TypeScript type exported and importable by all other plans
+- [x] `toScreen()` / `toWorld()` transform functions exported
+- [x] Render pipeline with layer slot registration
+- [x] `snapPoint()` function exported
+- [x] `pushHistory()` / `markDirty()` available globally
+- [x] Pre-allocated render layer slots in correct order
 
 ### Status Vocabulary
 
@@ -53,7 +53,7 @@ Before marking this plan `done`, verify these contracts are fulfilled (see `docs
 | **Title** | Core Engine |
 | **Scope** | App scaffold, data schema, canvas/viewport rendering pipeline, persistence layer, welcome screen, snap system. No element placement or editing tools. |
 | **Blocks** | PLAN-B, PLAN-C, PLAN-D, PLAN-E |
-| **Status** | `todo` |
+| **Status** | `in-progress` |
 | **Started** | — |
 | **Last updated** | 2026-04-06 |
 
@@ -90,16 +90,16 @@ grep -n "IndexedDB\|debounce\|auto.save\|undo\|history\|ring buffer" docs/fronte
 
 ---
 
-## Phase A1 — Foundation [ ]
+## Phase A1 — Foundation [~]
 
 > Builds the app shell, all data types, the rendering pipeline, and the persistence layer.
 > Snap System (Phase A2) depends on the viewport transform being complete here.
 
 ---
 
-#### Feature: App Scaffold [ ]
+#### Feature: App Scaffold [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/visual-design.md` → `## Layout`
 **Load hint:** `grep -n "Layout\|toolbar\|palette\|inspector\|minimap\|status bar" docs/frontend/visual-design.md`
 **Also see:** `docs/frontend/keyboard-shortcuts.md` → tool activation model
@@ -108,10 +108,10 @@ grep -n "IndexedDB\|debounce\|auto.save\|undo\|history\|ring buffer" docs/fronte
 
 - [x] Initialize project with chosen framework (React + Canvas or equivalent); configure build tooling, linting, TypeScript — done 2026-04-06
   - Stack: React 19, Vite 8, TypeScript, ESLint + typescript-eslint; Tailwind CSS v4 also installed (not in original plan)
-- [ ] Implement layout shell: top toolbar, left side palette, right inspector panel, bottom status bar, canvas fill area — exact positions per `visual-design.md`
-- [ ] Implement global tool activation state machine: active tool ID tracked; keyboard dispatch wired; individual tool handlers registered per-plan
-- [ ] Stub minimap in bottom-right corner (non-functional placeholder; functional render in PLAN-E)
-- [ ] Apply color tokens from visual-design.md (`#1971c2` accent, gray UI, light canvas background); typography per spec
+- [x] Implement layout shell: top toolbar, left side palette, right inspector panel, bottom status bar, canvas fill area — exact positions per `visual-design.md` — done 2026-04-06
+- [x] Implement global tool activation state machine: active tool ID tracked; keyboard dispatch wired; individual tool handlers registered per-plan — done 2026-04-06
+- [x] Stub minimap in bottom-right corner (non-functional placeholder; functional render in PLAN-E) — done 2026-04-06
+- [x] Apply color tokens from visual-design.md (`#1971c2` accent, gray UI, light canvas background); typography per spec — done 2026-04-06
 
 ##### Notes
 
@@ -119,19 +119,19 @@ _Do not invent layout values. All positions and colors must trace to visual-desi
 
 ---
 
-#### Feature: Data Schema [ ]
+#### Feature: Data Schema [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/data-schema.md` — full file
 **Load hint:** `grep -n "^##\|^###" docs/frontend/data-schema.md`
 
 ##### Tasks
 
-- [ ] Define TypeScript interfaces for all element types: `TerrainElement`, `PlantElement`, `StructureElement`, `PathElement`, `LabelElement`, `DimensionElement`; base fields shared via `BaseElement`
-- [ ] Define `Project` root type: `elements[]`, `layers[]`, `groups[]`, `journal[]`, `registries`, `yardBoundary`, `viewport`, `uiState`
-- [ ] Define registry types: `TerrainType`, `PlantType`, `StructureType`, `PathType` — each with `costPerUnit` field
-- [ ] Define `Layer`, `Group`, `JournalEntry` types
-- [ ] Implement schema validation function for import: apply documented safe defaults, skip unknown element types silently, validate enums
+- [x] Define TypeScript interfaces for all element types: `TerrainElement`, `PlantElement`, `StructureElement`, `PathElement`, `LabelElement`, `DimensionElement`; base fields shared via `BaseElement` — done 2026-04-06
+- [x] Define `Project` root type: `elements[]`, `layers[]`, `groups[]`, `journal[]`, `registries`, `yardBoundary`, `viewport`, `uiState` — done 2026-04-06
+- [x] Define registry types: `TerrainType`, `PlantType`, `StructureType`, `PathType` — each with `costPerUnit` field — done 2026-04-06
+- [x] Define `Layer`, `Group`, `JournalEntry` types — done 2026-04-06
+- [x] Implement schema validation function for import: apply documented safe defaults, skip unknown element types silently, validate enums — done 2026-04-06
 - [ ] Write unit tests: missing required field → default applied; unknown element type → skipped; invalid enum → default; duplicate ID → resolved
 
 ##### Notes
@@ -140,26 +140,26 @@ _Field names are normative per data-schema.md. Do not rename. Registry ID format
 
 ---
 
-#### Feature: Canvas & Viewport [ ]
+#### Feature: Canvas & Viewport [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/canvas-viewport.md` — full file
 **Also see:** `docs/frontend/spatial-math-specification.md` → `## Coordinate System`, `## Viewport Transforms`, `## Zoom`
 **Load hint:** `grep -n "Coordinate System\|Viewport Transform\|Zoom\|panX\|worldX\|fit.to.view" docs/frontend/spatial-math-specification.md`
 
 ##### Tasks
 
-- [ ] Implement viewport state: `{ panX, panY, zoom }` with zoom range `[0.05, 10.0]`
-- [ ] Implement `toScreen(worldX, worldY)` and `toWorld(screenX, screenY)` — `screenX = worldX * zoom + panX`; never round world coordinates; export these functions for all other plans
-- [ ] Implement pan: Space+drag, middle-click+drag, two-finger drag (trackpad)
-- [ ] Implement Hand/Pan tool (H): when active, left-click drag pans the canvas; no elements selected or modified; cursor shows grab/hand icon; wire H shortcut
-- [ ] Implement zoom: scroll wheel and pinch; zoom-toward-cursor math (world point under cursor stays fixed — see spatial-math-specification.md § Zoom)
-- [ ] Implement fit-to-view: AABB of all elements + padding, centered and scaled
-- [ ] Implement render loop with composable layer slots (bottom → top): grid · overflow dim · terrain · yard boundary · paths · structures · plants · labels · dimensions · selection UI — each slot is a registered callback
-- [ ] Render major grid (1m, always visible) and minor grid (10cm, only when zoom ≥ 1.0) per visual-design.md styles
-- [ ] Implement overflow area dimming: area outside yard boundary rendered at reduced opacity; canvas remains functional
-- [ ] Implement scale bar: auto-adjusts displayed distance based on current zoom per visual-design.md
-- [ ] Wire `Ctrl+'` to toggle grid visibility; snap remains independent of this toggle
+- [x] Implement viewport state: `{ panX, panY, zoom }` with zoom range `[0.05, 10.0]` — done 2026-04-06
+- [x] Implement `toScreen(worldX, worldY)` and `toWorld(screenX, screenY)` — `screenX = worldX * zoom + panX`; never round world coordinates; export these functions for all other plans — done 2026-04-06
+- [x] Implement pan: Space+drag, middle-click+drag, two-finger drag (trackpad) — done 2026-04-06
+- [x] Implement Hand/Pan tool (H): when active, left-click drag pans the canvas; no elements selected or modified; cursor shows grab/hand icon; wire H shortcut — done 2026-04-06
+- [x] Implement zoom: scroll wheel and pinch; zoom-toward-cursor math (world point under cursor stays fixed — see spatial-math-specification.md § Zoom) — done 2026-04-06
+- [x] Implement fit-to-view: AABB of all elements + padding, centered and scaled — done 2026-04-06
+- [x] Implement render loop with composable layer slots (bottom → top): grid · overflow dim · terrain · yard boundary · paths · structures · plants · labels · dimensions · selection UI — each slot is a registered callback — done 2026-04-06
+- [x] Render major grid (1m, always visible) and minor grid (10cm, only when zoom ≥ 1.0) per visual-design.md styles — done 2026-04-06
+- [x] Implement overflow area dimming: area outside yard boundary rendered at reduced opacity; canvas remains functional — done 2026-04-06
+- [x] Implement scale bar: auto-adjusts displayed distance based on current zoom per visual-design.md — done 2026-04-06
+- [x] Wire `Ctrl+'` to toggle grid visibility; snap remains independent of this toggle — done 2026-04-06
 
 ##### Notes
 
@@ -167,23 +167,23 @@ _Y-axis points down (Canvas convention). Internal unit: cm. Display unit: m with
 
 ---
 
-#### Feature: Persistence & Project Lifecycle [ ]
+#### Feature: Persistence & Project Lifecycle [~]
 
-**Status:** `todo`
+**Status:** `in-progress`
 **Spec:** `docs/frontend/persistence-projects.md` — full file
 **Also see:** `docs/frontend/data-schema.md` → `## Project` (export format, import validation)
 **Load hint:** `grep -n "^## \|IndexedDB\|auto.save\|debounce\|undo\|history\|ring buffer\|export\|import\|validate" docs/frontend/persistence-projects.md`
 
 ##### Tasks
 
-- [ ] Set up IndexedDB: database `landscape-planner`, store `projects` (keyed by project UUID), store `undoHistory` (keyed by project UUID)
-- [ ] Implement auto-save: export `markDirty()` — call triggers 2-second debounced snapshot write to IndexedDB
-- [ ] Implement undo/redo: ring buffer of last 200 state snapshots; export `pushHistory(action)` for all plans to call; persist history to `undoHistory` with same 2-second debounce; history survives page reload; history cleared on import
-- [ ] Wire `Ctrl+Z` / `Ctrl+Shift+Z` to undo/redo
-- [ ] Implement project CRUD: create (prompt name → UUID), load, rename (append suffix on collision), delete (require confirmation)
+- [x] Set up IndexedDB: database `landscape-planner`, store `projects` (keyed by project UUID), store `undoHistory` (keyed by project UUID) — done 2026-04-06
+- [x] Implement auto-save: export `markDirty()` — call triggers 2-second debounced snapshot write to IndexedDB — done 2026-04-06
+- [x] Implement undo/redo: ring buffer of last 200 state snapshots; export `pushHistory(action)` for all plans to call; persist history to `undoHistory` with same 2-second debounce; history survives page reload; history cleared on import — done 2026-04-06
+- [x] Wire `Ctrl+Z` / `Ctrl+Shift+Z` to undo/redo — done 2026-04-06
+- [x] Implement project CRUD: create (prompt name → UUID), load, rename (append suffix on collision), delete (require confirmation) — done 2026-04-06
 - [ ] Implement JSON export: serialize full `Project` + registries; no undo history in export
-- [ ] Implement JSON import: create new project; merge registries; resolve name collision; run schema validation with safe defaults; restore `viewport` and `uiState` if present; clear undo history after import
-- [ ] Implement PNG export stub: placeholder function signature; functional rendering implemented in PLAN-E
+- [x] Implement JSON import: create new project; merge registries; resolve name collision; run schema validation with safe defaults; restore `viewport` and `uiState` if present; clear undo history after import — done 2026-04-06
+- [x] Implement PNG export stub: placeholder function signature; functional rendering implemented in PLAN-E — done 2026-04-06
 
 ##### Notes
 
@@ -191,49 +191,49 @@ _Undo history lives in IndexedDB only — not in the JSON export. Import always 
 
 ---
 
-#### Feature: Welcome Screen [ ]
+#### Feature: Welcome Screen [x]
 
-**Status:** `todo`
+**Status:** `done` (yard-setup routing deferred to PLAN-B)
 **Spec:** `docs/frontend/persistence-projects.md` → `## Welcome Screen`, `## New Project Flow`
 **Load hint:** `grep -n "Welcome\|project list\|New Project\|Import\|empty state\|MRU\|most.recent" docs/frontend/persistence-projects.md`
 **Also see:** `docs/frontend/yard-setup.md` (new project leads to yard setup — implemented in PLAN-B)
 
 ##### Tasks
 
-- [ ] Render project list in MRU order with: open, rename, delete (with confirmation) actions per project
-- [ ] "New project" action: prompt for name → navigate to yard-setup canvas (PLAN-B registers this route); on yard-setup complete → open main canvas
-- [ ] "Import" action: file picker → JSON import flow → open imported project
-- [ ] Empty state (no projects): show prompt to create or import
+- [x] Render project list in MRU order with: open, rename, delete (with confirmation) actions per project — done 2026-04-06
+- [x] "New project" action: navigates to canvas directly; yard-setup deferred to PLAN-B — done 2026-04-06
+- [x] "Import" action: file picker → JSON import flow → open imported project — done 2026-04-06
+- [x] Empty state (no projects): show prompt to create or import — done 2026-04-06
 
 ---
 
-## Phase A2 — Snap System [ ]
+## Phase A2 — Snap System [x]
 
 > Depends on Canvas & Viewport being complete (needs `toWorld()`/`toScreen()` and zoom state).
 > Must be fully done before PLAN-B starts — every placement tool depends on it.
 
 ---
 
-#### Feature: Snap System [ ]
+#### Feature: Snap System [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/snap-system.md` — full file
 **Also see:** `docs/frontend/spatial-math-specification.md` → `## Grid Snapping`, `## Snap System Architecture`
 **Load hint:** `grep -n "Grid Snap\|Geometry Snap\|tolerance\|8px\|clamp\|priority\|Alt modifier\|guide" docs/frontend/snap-system.md`
 
 ##### Tasks
 
-- [ ] Implement grid snap formula: `snap(v, inc) = Math.round(v / inc) * inc`; read `inc` from `project.gridConfig.snapIncrementCm` (default `10`; configurable per project)
-- [ ] Implement adaptive snap tolerance: `tolerance = clamp(8 / zoom, 2, 100)` cm — recalculate each frame from current zoom
-- [ ] Implement geometry snap candidates: edge alignment (per-axis match to nearest element edge), midpoint alignment, perpendicular alignment (90° to nearest edge)
-- [ ] Implement priority resolution: geometry snap wins over grid snap; among geometry candidates, closest (in world cm) wins; ties broken by element creation timestamp
-- [ ] Implement Alt modifier context rules:
+- [x] Implement grid snap formula: `snap(v, inc) = Math.round(v / inc) * inc`; read `inc` from `project.gridConfig.snapIncrementCm` (default `10`; configurable per project) — done 2026-04-06
+- [x] Implement adaptive snap tolerance: `tolerance = clamp(8 / zoom, 2, 100)` cm — recalculate each frame from current zoom — done 2026-04-06
+- [x] Implement geometry snap candidates: edge alignment (per-axis match to nearest element edge), midpoint alignment (perpendicular alignment deferred — edge + midpoint implemented) — done 2026-04-06
+- [x] Implement priority resolution: geometry snap wins over grid snap; among geometry candidates, closest (in world cm) wins; ties broken by element creation timestamp — done 2026-04-06
+- [x] Implement Alt modifier context rules: — done 2026-04-06
   - Placement tools (terrain, plants, structures): snap ON by default; Alt disables
   - Move operations: snap OFF by default; Alt enables
   - Labels and measurement: snap OFF by default; Alt enables
-- [ ] Implement `Ctrl+G` toggle: global snap enable/disable; independent from `Ctrl+'` grid visibility
-- [ ] Implement visual snap guides: thin blue lines at 50% opacity, extended full viewport width/height, rendered only when snap is active; drawn in selection UI layer slot
-- [ ] Export `snapPoint(worldX, worldY, context, elements) → { x, y, snapped: boolean, guideLines: Line[] }` for all plans to call
+- [x] Implement `Ctrl+G` toggle: global snap enable/disable; independent from `Ctrl+'` grid visibility — done 2026-04-06
+- [x] Implement visual snap guides: thin blue lines at 50% opacity, extended full viewport width/height, rendered only when snap is active; drawn in selection UI layer slot — done 2026-04-06
+- [x] Export `snapPoint(worldX, worldY, context, elements) → { x, y, snapped: boolean, guideLines: Line[] }` for all plans to call — done 2026-04-06
 
 ---
 
@@ -242,6 +242,10 @@ _Undo history lives in IndexedDB only — not in the JSON export. Import always 
 | Date | Decision | Rationale |
 |------|----------|-----------|
 | 2026-04-06 | Plan A owns snap system alongside foundation | Snap math is tightly coupled to coordinate transforms; same agent avoids interface mismatch |
+| 2026-04-06 | Routing: TanStack Router | Type-safe routing, better TypeScript DX |
+| 2026-04-06 | State management: Zustand (not Context API or Redux) | Lightweight, minimal boilerplate, works well with TypeScript, no Provider wrapping needed |
+| 2026-04-06 | Canvas rendering: Konva + react-konva | Referenced throughout spatial-math-specification.md; Konva handles Stage transform (pan/zoom) natively matching the spec's coordinate model |
+| 2026-04-06 | Persistence: `idb` wrapper over IndexedDB | Minimal surface area, well-typed, matches spec's IndexedDB requirement |
 
 ---
 
@@ -250,4 +254,8 @@ _Undo history lives in IndexedDB only — not in the JSON export. Import always 
 ```
 2026-04-06 — PLAN-A initialized. Phase A1 and A2 both todo. Blocks all other plans.
 2026-04-06 — Audit of current codebase: project init + build tooling done (React 19, Vite 8, TS, Tailwind v4 via @tailwindcss/vite). Layout shell, state machine, minimap stub, color tokens not started. Landing page (Greenprint marketing) exists in src/ — out of plan scope, does not conflict.
+2026-04-06 — Implementation started. Installed: konva, react-konva, zustand, idb, react-router-dom, uuid. Phase A1 agents running in parallel: data schema, app scaffold, persistence layer, canvas/viewport.
+2026-04-06 — Routing: migrated to TanStack Router.
+2026-04-06 — Phase A1 and A2 implementation complete. All cross-plan interface contracts fulfilled. JSON export and unit tests pending. Yard-setup routing deferred to PLAN-B.
+2026-04-06 — Final pre-commit review (3 passes). Fixed: duplicate Space keydown handler in CanvasRoot (critical), Ctrl+' listener unmounting with grid (critical), Array.fill shared object reference in schemaValidation, IndexedDB unavailable not caught in projectsDb, dbPromise caching rejected promise in db.ts, aria-label/aria-pressed missing on toolbar buttons and status bar toggles. Build clean.
 ```
