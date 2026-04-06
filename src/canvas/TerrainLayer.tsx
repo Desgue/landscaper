@@ -194,6 +194,18 @@ function eraseCell(cellX: number, cellY: number, draft: Project): void {
   )
 }
 
+// ─── Custom hit function for invisible Rect ──────────────────────────────────
+// Konva applies shape opacity to the hit canvas globalAlpha, so opacity < 0.004
+// produces alpha=0 pixels that getIntersection() can't detect. Using a custom
+// hitFunc draws on the hit canvas at full alpha regardless of visual opacity.
+
+function invisibleRectHitFunc(context: Konva.Context, shape: Konva.Shape) {
+  context.beginPath()
+  context.rect(0, 0, shape.width(), shape.height())
+  context.closePath()
+  context.fillStrokeShape(shape)
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface TerrainLayerProps {
@@ -204,7 +216,7 @@ interface TerrainLayerProps {
 export default function TerrainLayer({ width: _width, height: _height }: TerrainLayerProps) {
   const project = useProjectStore((s) => s.currentProject)
   const registries = useProjectStore((s) => s.registries)
-  const { updateProject } = useProjectStore()
+  const updateProject = useProjectStore((s) => s.updateProject)
   const pushHistory = useHistoryStore((s) => s.pushHistory)
   const activeTool = useToolStore((s) => s.activeTool)
 
@@ -212,28 +224,20 @@ export default function TerrainLayer({ width: _width, height: _height }: Terrain
   const selectedTerrainTypeId = useTerrainPaintStore((s) => s.selectedTerrainTypeId)
   const brushSize = useTerrainPaintStore((s) => s.brushSize)
 
-  // Track drag state in refs to avoid stale closures (FIX 5)
-  const isDraggingRef = useRef(false)
-  const lastWorldPosRef = useRef<{ x: number; y: number } | null>(null)
-  const prePaintSnapRef = useRef<Project | null>(null)
-
   const isTerrainTool = activeTool === 'terrain'
   const isEraserTool = activeTool === 'eraser'
   const isActive = isTerrainTool || isEraserTool
 
-  /** Convert a Konva event pointer to raw world coordinates.
-   *  Terrain uses cell-based placement (worldToCell handles alignment),
-   *  so we do NOT snap to 100cm here — that would double-round and offset
-   *  the painted cell from the cursor. */
+  // Track drag state in refs to avoid stale closures
+  const isDraggingRef = useRef(false)
+  const lastWorldPosRef = useRef<{ x: number; y: number } | null>(null)
+  const prePaintSnapRef = useRef<Project | null>(null)
+
   const getWorldPos = useCallback((e: Konva.KonvaEventObject<MouseEvent>): { x: number; y: number } => {
     const stage = e.target.getStage()
     if (!stage) return { x: 0, y: 0 }
-
-    // getRelativePointerPosition returns world-space coords accounting for
-    // the Stage's pan/zoom transform — correct at any zoom level.
     const worldPos = stage.getRelativePointerPosition()
     if (!worldPos) return { x: 0, y: 0 }
-
     return worldPos
   }, [])
 
@@ -368,16 +372,17 @@ export default function TerrainLayer({ width: _width, height: _height }: Terrain
 
   return (
     <Layer listening={isActive}>
-      {/* Transparent hit area — handlers MUST live on the Rect, not the Layer.
-          In Konva, transparent fills have alpha=0 in the hit canvas, so the shape
-          won't register pointer events unless handlers are attached directly to it. */}
+      {/* Invisible hit area — uses hitFunc to bypass Konva's opacity-on-hit-canvas
+          issue where low opacity causes globalAlpha~0 on the hit canvas pixel,
+          making getIntersection() unable to detect the shape. */}
       {isActive && (
         <Rect
           x={-50000}
           y={-50000}
           width={100000}
           height={100000}
-          fill="rgba(0,0,0,0.001)"
+          fill="transparent"
+          hitFunc={invisibleRectHitFunc}
           listening={true}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
