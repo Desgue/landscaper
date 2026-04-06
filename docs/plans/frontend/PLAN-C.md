@@ -132,9 +132,26 @@ grep -n "Inspector\|inspector\|layer dropdown\|cost\|area\|perimeter\|journal" d
 - [ ] Implement move: drag selected element(s); free movement by default; Alt+drag enables snap — call `snapPoint()` with move context (Alt modifier rule)
 - [ ] Implement delete: Delete or Backspace removes all currently selected elements; call `pushHistory()` once for the batch
 - [ ] Implement copy: Ctrl+C captures snapshot of selected elements (deep copy of data, new IDs on paste)
-- [ ] Implement paste: Ctrl+V; pasted elements form a group centered at current cursor position, snapped to 10cm grid; call `pushHistory()`
+- [ ] Implement paste: Ctrl+V; pasted elements placed centered at current cursor position (AABB center at cursor), snapped to 10cm grid — snap is always ON for paste; Alt has no effect on paste snap; pasted elements become the active selection; call `pushHistory()`
 - [ ] Implement structure rotation: drag rotation handle; free (no snap); call `pushHistory()` on release
 - [ ] All operations call `markDirty()` after `pushHistory()`
+
+---
+
+#### Feature: Resize [ ]
+
+**Status:** `todo`
+**Spec:** `docs/frontend/selection-manipulation.md` → `## Resize`
+**Also see:** `docs/frontend/snap-system.md` → `## Alt Modifier Behavior` (resizing: snap ON, Alt disables)
+
+##### Tasks
+
+- [ ] Terrain: no resize handles (always 100×100cm, one grid cell)
+- [ ] Plants: no resize handles (size derived from `spacingCm` in registry)
+- [ ] Structures: drag edge handles to resize; snap to 10cm increments; Alt disables snap; call `pushHistory()` on release; call `markDirty()`
+- [ ] Labels: drag corner/edge handles to resize text box; text wraps inside box; snap ON; Alt disables snap; call `pushHistory()`; call `markDirty()`
+- [ ] Paths: drag segment endpoints via handles; arc segment radii adjustable; call `pushHistory()` per edit; call `markDirty()`
+- [ ] Dimensions: no resize handles — drag endpoints to reposition (covered in PLAN-D)
 
 ---
 
@@ -166,10 +183,23 @@ grep -n "Inspector\|inspector\|layer dropdown\|cost\|area\|perimeter\|journal" d
 
 ##### Tasks
 
-- [ ] Implement eraser tool (E): click removes the topmost unlocked element at cursor using the same priority order as selection
+- [ ] Implement eraser tool (E): click removes the topmost unlocked element at cursor using the same priority order as selection; drag also removes the topmost unlocked element at each cursor position as the drag continues
 - [ ] Respect locked elements: skip locked elements in the priority stack; remove the topmost unlocked one
 - [ ] Call `pushHistory()` on each erase; call `markDirty()`
 - [ ] Wire E shortcut to eraser tool
+
+---
+
+#### Feature: Z-Order (Bring to Front / Send to Back) [ ]
+
+**Status:** `todo`
+**Spec:** `docs/frontend/data-schema.md` → `### Z-Index`
+
+##### Tasks
+
+- [ ] Implement right-click context menu on selected elements: "Bring to Front" sets `element.zIndex` above all same-type elements in the same layer; "Send to Back" sets it below all same-type elements
+- [ ] Z-order adjustments do not affect cross-type render order (labels always above plants regardless of zIndex — per canvas-viewport.md render layer order)
+- [ ] Call `pushHistory()` and `markDirty()` on each z-order change
 
 ---
 
@@ -206,14 +236,14 @@ grep -n "Inspector\|inspector\|layer dropdown\|cost\|area\|perimeter\|journal" d
 
 ##### Tasks
 
-- [ ] Implement group creation: Ctrl+Shift+G on selected elements (min 2); all members must share the same layer; create `Group` record with new UUID and member IDs
+- [ ] Implement group creation: Ctrl+Shift+G on selected elements (min 2); if selected elements span multiple layers, move all to the active layer before grouping and show a non-blocking warning "Elements moved to [layer name] for grouping"; create `Group` record with new UUID and member IDs
 - [ ] Compute group AABB from union of member `getAABB()` results
 - [ ] Implement group selection (integrates with Phase C1 select tool): click any member → select whole group; double-click → enter individual-edit mode; Escape → exit
 - [ ] Implement group operations: move (all members move together), delete (all members removed, group record removed), copy/paste (new group with new IDs)
 - [ ] Implement group resize: drag AABB corner handle; scale all members proportionally from AABB center
 - [ ] Implement box-select group rule: if any member's AABB is fully enclosed by the selection box, select the entire group
 - [ ] Implement ungroup: Ctrl+Shift+U; removes Group record, members remain as individual elements
-- [ ] Groups are flat — creating a group from elements that include group members flattens them; no nested groups
+- [ ] Groups are flat — elements already in a group cannot join a new group; if any selected element already has a `groupId`, block the action with inline feedback and prompt the user to ungroup first (Ctrl+Shift+U); no auto-flattening
 - [ ] All operations call `pushHistory()` and `markDirty()`
 
 ---

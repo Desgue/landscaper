@@ -102,7 +102,7 @@ grep -n "Open.Meteo\|API\|geolocation\|tempC\|condition\|humidity\|fetch" docs/f
 
 - [ ] Implement measurement tool (M): click first point, click second point; show live distance tooltip attached to midpoint of the drawn line during placement
 - [ ] Distance formula: `sqrt((x2-x1)² + (y2-y1)²)` formatted as meters with cm precision
-- [ ] Snap: geometry snap active by default; Alt disables (call `snapPoint()` with measurement context)
+- [ ] Snap: free placement by default (no grid snap) — same inversion as labels; Alt ENABLES snap (snap-system.md § Alt Modifier Behavior); geometry snap fires on element edges and corners within tolerance regardless of Alt
 - [ ] On second click: show inline options "Dismiss" (discard) and "Keep" (save as persistent dimension element)
 - [ ] Wire M shortcut to measurement tool
 
@@ -142,7 +142,8 @@ grep -n "Open.Meteo\|API\|geolocation\|tempC\|condition\|humidity\|fetch" docs/f
 - [ ] Implement Shoelace formula for polygon area: applies to terrain cell groups, straight-edged structures, closed straight paths, yard boundary
 - [ ] Implement arc segment area contribution: integrate arc sector area into Shoelace for shapes with arc edges
 - [ ] Implement perimeter: sum of edge lengths — straight edges use Euclidean distance; arc edges use `radius × angle` (arc length)
-- [ ] Implement material volume: `volume_m³ = area_m² × depthCm / 100` for terrain and path elements that have a depth field
+- [ ] Implement terrain material estimate in inspector: Area (cell count × 1 m²), editable Depth field (cm, transient — defaults to a per-type sensible value such as mulch: 8cm, gravel: 5cm — resets on selection change, not stored), and Volume (`area × depth / 100` in m³)
+- [ ] Implement path material estimate in inspector: Length (sum of segment lengths in m), Width (`strokeWidthCm`), and Area (`length × width` in m²) — paths have no depth or volume field
 - [ ] Register these values into the inspector's `inspector:geometry` slot via `registerInspectorSection('inspector:geometry', GeometryPanel)` — applicable for terrain, structures, closed paths, yard boundary
 
 ---
@@ -162,9 +163,10 @@ grep -n "Open.Meteo\|API\|geolocation\|tempC\|condition\|humidity\|fetch" docs/f
 ##### Tasks
 
 - [ ] Implement `JournalEntry` in app state: `{ id, date, title, content (markdown), tags[], linkedElementIds[], weather? }`; `date` defaults to today
-- [ ] Implement journal panel UI: toggleable side panel or modal; entry list newest-first, scrollable; create/edit/delete entry actions
+- [ ] Implement journal full-screen view: opening the journal replaces the canvas (full-screen takeover); a "Back to canvas" action returns to the canvas with the project intact and the current state unchanged; within the view: entry list newest-first, scrollable, create/edit/delete entry actions
 - [ ] Tags: freeform text array; auto-complete suggestions from all tags used in the project
 - [ ] Body: render markdown (bold, italic, lists, links at minimum); edit in a textarea or inline editor
+- [ ] Implement search and filter: text search field filters entries by title/content; tag selector filters by tag; only matching entries shown; filters are additive
 
 ---
 
@@ -209,7 +211,7 @@ grep -n "Open.Meteo\|API\|geolocation\|tempC\|condition\|humidity\|fetch" docs/f
 
 - [ ] Implement optional weather field per entry: `{ tempC: number, condition: string, humidity: number }`
 - [ ] Implement geolocation: browser `navigator.geolocation` prompt on first use; persist coordinates in `Project.uiState.location`; show manual entry fallback in settings if prompt denied
-- [ ] Implement Open-Meteo API fetch: fetch historical weather for `entry.date` and stored coordinates (free API, no key required); populate weather fields on response
+- [ ] Add "Fetch weather" button in the entry form; on click, fetch current weather from the Open-Meteo API using stored or prompted coordinates (free API, no key required); populate `tempC`, `condition`, and `humidity` fields; if API unreachable, show inline "Weather unavailable" message and leave fields empty for manual entry
 - [ ] Allow manual override: user can type weather values directly regardless of API result
 - [ ] Render weather as a compact display line (temperature, condition icon, humidity) below the entry title when `weather` field is set
 
@@ -253,7 +255,7 @@ grep -n "Open.Meteo\|API\|geolocation\|tempC\|condition\|humidity\|fetch" docs/f
 - [ ] Implement cost summary panel (accessible from Project Menu → "Cost Summary" and via a dedicated button in the status bar)
 - [ ] Aggregate costs by element type: terrain subtotal, plants subtotal, structures subtotal, paths subtotal, grand total
 - [ ] Optional layer breakdown: expandable per-type section showing cost per layer
-- [ ] Hidden layer toggle: checkbox per layer to include/exclude hidden layers from the calculation; default excluded
+- [ ] Hidden layer toggle: "Include hidden layers" checkbox (default ON — hidden-layer elements are included in cost by default per cost-tracking.md); unchecking excludes hidden-layer elements from the total
 - [ ] Grand total updates reactively as layer toggles change
 
 ---

@@ -119,7 +119,7 @@ grep -n "fixed.pivot\|edge propagation\|Yard Boundary" docs/frontend/spatial-mat
 - [ ] Implement vertex placement mode: activate during "New project" flow (registered route from PLAN-A welcome screen); click to place vertices; close by clicking within snap tolerance of start point or pressing "Done"
 - [ ] Implement edge length editing: click an edge label to type exact meter value; enforce minimum 10cm edge length
 - [ ] Implement fixed-pivot edge propagation: edited edge direction preserved; subsequent edges cascade — implement algorithm from spatial-math-specification.md § Yard Boundary
-- [ ] Implement arc edges: drag a straight edge midpoint to curve it using sagitta-based arc math (spatial-math-specification.md § Arc Geometry); consistent with the Arc tool in structures
+- [ ] Implement arc edges: click a straight edge, then drag perpendicular to it to set curvature (sagitta); consistent with the Arc tool interaction in structures; arc math: spatial-math-specification.md § Arc Geometry
 - [ ] Allow self-intersecting polygons with a persistent warning banner — do not block placement
 - [ ] Store yard boundary at `Project.yardBoundary` (not in `elements[]`) per data-schema.md
 - [ ] Make boundary selectable and editable on canvas as a special element after initial setup (move vertices, resize, delete)
@@ -170,12 +170,12 @@ grep -n "fixed.pivot\|edge propagation\|Yard Boundary" docs/frontend/spatial-mat
 - [ ] Implement visual rendering per `growthForm`:
   - `herb`: filled circle, radius = `spacingCm / 2`, min 4px screen-space
   - `tree`: outer semi-transparent circle = `canopyWidthCm / 2`; inner filled circle = `trunkWidthCm / 2`; min 4px screen-space
-  - `shrub`: filled circle = `spacingCm / 2`
+  - `shrub`: filled circle, diameter = `canopyWidthCm` if set, else `spacingCm`; min 4px screen-space
   - `groundcover`: hatched/textured fill across cell
-  - `climber`: directional arrow icon centered on cell
+  - `climber`: directional arrow icon pointing toward the nearest structure edge
 - [ ] Implement status lifecycle state machine: `planned → planted → growing → harvested → removed`; any state may transition to `removed`; backward transitions allowed; `plantedDate = null` when `planned`; auto-set to today's date when transitioning to `planted`; editable after
 - [ ] Implement quantity badge: integer overlay on icon; does not change icon size
-- [ ] Enforce spacing collision: center-to-center ≥ `spacingCm` for herbs/shrubs/groundcover; tree trunk blocks = `trunkWidthCm / 2` radius; canopy semi-transparent (visual only, non-blocking)
+- [ ] Enforce spacing collision: formula is `distance(centerA, centerB) < (spacingA + spacingB) / 2` — correctly handles cross-species pairs where each plant type has a different `spacingCm`; tree trunks additionally block non-plant ground-level elements at radius `trunkWidthCm / 2`; canopy is visual only, non-blocking
 - [ ] Enforce placement collision: blocked by structures with category `boundary`, `container` (wait — containers accept plants), `surface`, `feature`, `furniture`; allowed on terrain and paths; allowed inside `container` and under `overhead`
 - [ ] Call `pushHistory()` on each placement
 - [ ] Wire P shortcut; wire plant types to left palette
@@ -236,7 +236,7 @@ grep -n "fixed.pivot\|edge propagation\|Yard Boundary" docs/frontend/spatial-mat
 
 - [ ] Implement label tool (T): click to place text input at cursor; free placement by default (no snap); Alt enables snap (call `snapPoint()`)
 - [ ] Implement inline edit mode: active on placement; double-click to re-enter; Escape or click-outside saves and exits
-- [ ] Implement text box resize: drag corner/edge handles to resize; text wraps inside box
+- [ ] Implement text box resize: drag corner/edge handles to resize; text wraps inside box; snap ON during resize; Alt disables snap (snap-system.md § Alt Modifier Behavior)
 - [ ] Expose styling in inspector: font size (4–200px), color (hex), text alignment (left/center/right), bold, italic, font family
 - [ ] Labels have no rotation, no collision constraints (non-physical annotations)
 - [ ] Register in labels render layer slot

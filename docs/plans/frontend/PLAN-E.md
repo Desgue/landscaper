@@ -113,6 +113,7 @@ grep -n "." docs/frontend/keyboard-shortcuts.md   # read the whole file — it's
 - [ ] Draw a viewport indicator rectangle on the minimap representing the current pan/zoom state
 - [ ] Click on minimap: pan the main canvas so the clicked world point is centered
 - [ ] Drag on minimap: continuous pan of the main canvas
+- [ ] Double-click minimap: triggers fit-to-view (same behavior as Ctrl+Shift+1 — centers and scales to show all elements with padding)
 - [ ] Minimap updates in real time as user pans/zooms the main canvas
 
 ---
@@ -128,7 +129,7 @@ grep -n "." docs/frontend/keyboard-shortcuts.md   # read the whole file — it's
 - [ ] Audit all UI element colors against visual-design.md palette: blue accent `#1971c2`, gray UI tones, light canvas background — fix any deviations
 - [ ] Audit typography: verify font sizes, weights, and families for toolbar, palette, inspector, labels, tooltips against spec
 - [ ] Audit icon styles: verify all tool icons and UI icons match visual-design.md
-- [ ] Implement status bar content: current active tool name, cursor world coordinates (m), current zoom percentage, snap on/off indicator — all update in real time
+- [ ] Implement status bar content: cursor world coordinates (m, cm precision), current zoom percentage, snap on/off indicator, grid visibility on/off indicator — all update in real time (canvas-viewport.md § Status Bar)
 - [ ] Confirm light theme only (dark mode is explicitly deferred per spec — do not implement)
 - [ ] Confirm terrain uses solid colors only (textures are explicitly deferred — do not implement)
 - [ ] Verify scale bar renders correctly at all zoom levels (auto-adjusts displayed distance)

@@ -153,8 +153,8 @@ _Field names are normative per data-schema.md. Do not rename. Registry ID format
 - [x] Implement `toScreen(worldX, worldY)` and `toWorld(screenX, screenY)` — `screenX = worldX * zoom + panX`; never round world coordinates; export these functions for all other plans — done 2026-04-06
 - [x] Implement pan: Space+drag, middle-click+drag, two-finger drag (trackpad) — done 2026-04-06
 - [x] Implement Hand/Pan tool (H): when active, left-click drag pans the canvas; no elements selected or modified; cursor shows grab/hand icon; wire H shortcut — done 2026-04-06
-- [x] Implement zoom: scroll wheel and pinch; zoom-toward-cursor math (world point under cursor stays fixed — see spatial-math-specification.md § Zoom) — done 2026-04-06
-- [x] Implement fit-to-view: AABB of all elements + padding, centered and scaled — done 2026-04-06
+- [x] Implement zoom: Ctrl+scroll and trackpad pinch (pinch fires as ctrlKey+wheel on macOS/Chrome); zoom-toward-cursor math (world point under cursor stays fixed — see spatial-math-specification.md § Zoom) — done 2026-04-06
+- [x] Implement fit-to-view: AABB of all elements + padding, centered and scaled; wired to Ctrl+Shift+1 per keyboard-shortcuts.md — done 2026-04-06
 - [x] Implement render loop with composable layer slots (bottom → top): grid · overflow dim · terrain · yard boundary · paths · structures · plants · labels · dimensions · selection UI — each slot is a registered callback — done 2026-04-06
 - [x] Render major grid (1m, always visible) and minor grid (10cm, only when zoom ≥ 1.0) per visual-design.md styles — done 2026-04-06
 - [x] Implement overflow area dimming: area outside yard boundary rendered at reduced opacity; canvas remains functional — done 2026-04-06
@@ -164,6 +164,18 @@ _Field names are normative per data-schema.md. Do not rename. Registry ID format
 ##### Notes
 
 _Y-axis points down (Canvas convention). Internal unit: cm. Display unit: m with cm precision. Never mix units._
+
+---
+
+#### Feature: Canvas Rulers [ ]
+
+**Status:** `todo`
+**Spec:** `docs/frontend/canvas-viewport.md` → `## Rulers`
+
+##### Tasks
+
+- [ ] Render horizontal ruler along the top canvas edge and vertical ruler along the left edge; major markings at 1m, minor markings at 10cm (minor visible when zoom ≥ 1.0)
+- [ ] Rulers update in real-time with pan and zoom; coordinate zero aligns with the canvas origin
 
 ---
 
@@ -207,16 +219,16 @@ _Undo history lives in IndexedDB only — not in the JSON export. Import always 
 
 ---
 
-## Phase A2 — Snap System [x]
+## Phase A2 — Snap System [~]
 
 > Depends on Canvas & Viewport being complete (needs `toWorld()`/`toScreen()` and zoom state).
 > Must be fully done before PLAN-B starts — every placement tool depends on it.
 
 ---
 
-#### Feature: Snap System [x]
+#### Feature: Snap System [~]
 
-**Status:** `done`
+**Status:** `in-progress`
 **Spec:** `docs/frontend/snap-system.md` — full file
 **Also see:** `docs/frontend/spatial-math-specification.md` → `## Grid Snapping`, `## Snap System Architecture`
 **Load hint:** `grep -n "Grid Snap\|Geometry Snap\|tolerance\|8px\|clamp\|priority\|Alt modifier\|guide" docs/frontend/snap-system.md`
@@ -225,7 +237,8 @@ _Undo history lives in IndexedDB only — not in the JSON export. Import always 
 
 - [x] Implement grid snap formula: `snap(v, inc) = Math.round(v / inc) * inc`; read `inc` from `project.gridConfig.snapIncrementCm` (default `10`; configurable per project) — done 2026-04-06
 - [x] Implement adaptive snap tolerance: `tolerance = clamp(8 / zoom, 2, 100)` cm — recalculate each frame from current zoom — done 2026-04-06
-- [x] Implement geometry snap candidates: edge alignment (per-axis match to nearest element edge), midpoint alignment (perpendicular alignment deferred — edge + midpoint implemented) — done 2026-04-06
+- [x] Implement geometry snap candidates: edge alignment (per-axis match to nearest element edge), midpoint alignment — done 2026-04-06
+- [ ] Implement perpendicular alignment snap: project cursor onto the nearest element edge; if the perpendicular foot falls within snap tolerance, snap fires on that axis — required by snap-system.md (MVP); deferred from initial implementation
 - [x] Implement priority resolution: geometry snap wins over grid snap; among geometry candidates, closest (in world cm) wins; ties broken by element creation timestamp — done 2026-04-06
 - [x] Implement Alt modifier context rules: — done 2026-04-06
   - Placement tools (terrain, plants, structures): snap ON by default; Alt disables
