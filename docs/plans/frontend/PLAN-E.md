@@ -43,9 +43,9 @@
 | **Scope** | PNG export (functional render) · minimap · visual design audit · keyboard shortcut audit |
 | **Depends on** | PLAN-A, PLAN-B, PLAN-C, PLAN-D (all blocking) |
 | **Unblocks** | Nothing — this is the final plan |
-| **Status** | `todo` |
-| **Started** | — |
-| **Last updated** | 2026-04-06 |
+| **Status** | `done` |
+| **Started** | 2026-04-07 |
+| **Last updated** | 2026-04-07 |
 
 ---
 
@@ -77,81 +77,81 @@ grep -n "." docs/frontend/keyboard-shortcuts.md   # read the whole file — it's
 
 ---
 
-## Phase E1 — Delivery [ ]
+## Phase E1 — Delivery [x]
 
 ---
 
-#### Feature: PNG Export [ ]
+#### Feature: PNG Export [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/persistence-projects.md` → `## PNG Export`
 **Also see:** `docs/frontend/canvas-viewport.md` (render layer order, scale bar)
 **Load hint:** `grep -n "PNG\|offscreen\|1cm.*1px\|1920\|longest side\|scale bar\|chrome\|cost summary" docs/frontend/persistence-projects.md`
 
 ##### Tasks
 
-- [ ] Implement `exportToPNG()`: create an offscreen `<canvas>` sized to `yardWidthCm × yardHeightCm` pixels with minimum 1920px on the longest side (scale up proportionally if smaller)
-- [ ] Pass the offscreen canvas and a headless viewport (no UI chrome) to the existing PLAN-A render pipeline — render all visible elements in the correct layer order
-- [ ] Render the scale bar (auto-adjusted for the export resolution) in the bottom area of the image
-- [ ] Do NOT render: toolbar, palette panel, inspector panel, status bar, minimap, snap guides, selection UI, cost summary overlay
-- [ ] Trigger browser file download of the PNG
-- [ ] Replace the stub created in PLAN-A with this functional implementation
+- [x] Implement `exportToPNG()`: create an offscreen `<canvas>` sized to `yardWidthCm × yardHeightCm` pixels with minimum 1920px on the longest side (scale up proportionally if smaller) — done 2026-04-07
+- [x] Pass the offscreen canvas and a headless viewport (no UI chrome) to the existing PLAN-A render pipeline — render all visible elements in the correct layer order — done 2026-04-07
+- [x] Render the scale bar (auto-adjusted for the export resolution) in the bottom area of the image — done 2026-04-07
+- [x] Do NOT render: toolbar, palette panel, inspector panel, status bar, minimap, snap guides, selection UI, cost summary overlay — done 2026-04-07
+- [x] Trigger browser file download of the PNG — done 2026-04-07
+- [x] Replace the stub created in PLAN-A with this functional implementation — done 2026-04-07
 
 ---
 
-#### Feature: Minimap [ ]
+#### Feature: Minimap [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/visual-design.md` → `## Minimap`
 **Also see:** `docs/frontend/canvas-viewport.md` (viewport state)
 **Load hint:** `grep -n "minimap\|Minimap\|bottom.right\|viewport rect\|click.*pan\|drag.*pan" docs/frontend/visual-design.md`
 
 ##### Tasks
 
-- [ ] Replace the PLAN-A stub with a functional minimap rendered in the bottom-right corner
-- [ ] Minimap renders the full yard extent at a fixed small size (fit-to-minimap scale)
-- [ ] Draw a viewport indicator rectangle on the minimap representing the current pan/zoom state
-- [ ] Click on minimap: pan the main canvas so the clicked world point is centered
-- [ ] Drag on minimap: continuous pan of the main canvas
-- [ ] Double-click minimap: triggers fit-to-view (same behavior as Ctrl+Shift+1 — centers and scales to show all elements with padding)
-- [ ] Minimap updates in real time as user pans/zooms the main canvas
+- [x] Replace the PLAN-A stub with a functional minimap rendered in the bottom-right corner — done 2026-04-07
+- [x] Minimap renders the full yard extent at a fixed small size (fit-to-minimap scale) — done 2026-04-07
+- [x] Draw a viewport indicator rectangle on the minimap representing the current pan/zoom state — done 2026-04-07
+- [x] Click on minimap: pan the main canvas so the clicked world point is centered — done 2026-04-07
+- [x] Drag on minimap: continuous pan of the main canvas — done 2026-04-07
+- [x] Double-click minimap: triggers fit-to-view (same behavior as Ctrl+Shift+1 — centers and scales to show all elements with padding) — done 2026-04-07
+- [x] Minimap updates in real time as user pans/zooms the main canvas — done 2026-04-07
 
 ---
 
-#### Feature: Visual Polish [ ]
+#### Feature: Visual Polish [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/visual-design.md` — full file
 **Load hint:** `grep -n "^## \|color\|Color\|#1971\|font\|Font\|status bar\|scale bar\|icon\|dark mode\|texture" docs/frontend/visual-design.md`
 
 ##### Tasks
 
-- [ ] Audit all UI element colors against visual-design.md palette: blue accent `#1971c2`, gray UI tones, light canvas background — fix any deviations
-- [ ] Audit typography: verify font sizes, weights, and families for toolbar, palette, inspector, labels, tooltips against spec
-- [ ] Audit icon styles: verify all tool icons and UI icons match visual-design.md
-- [ ] Implement status bar content: cursor world coordinates (m, cm precision), current zoom percentage, snap on/off indicator, grid visibility on/off indicator — all update in real time (canvas-viewport.md § Status Bar)
-- [ ] Confirm light theme only (dark mode is explicitly deferred per spec — do not implement)
-- [ ] Confirm terrain uses solid colors only (textures are explicitly deferred — do not implement)
-- [ ] Verify scale bar renders correctly at all zoom levels (auto-adjusts displayed distance)
+- [x] Audit all UI element colors against visual-design.md palette: blue accent `#1971c2`, gray UI tones, light canvas background — fix any deviations — done 2026-04-07
+- [x] Audit typography: verify font sizes, weights, and families for toolbar, palette, inspector, labels, tooltips against spec — done 2026-04-07
+- [x] Audit icon styles: verify all tool icons and UI icons match visual-design.md — done 2026-04-07
+- [x] Implement status bar content: cursor world coordinates (m, cm precision), current zoom percentage, snap on/off indicator, grid visibility on/off indicator — all update in real time (canvas-viewport.md § Status Bar) — done 2026-04-07
+- [x] Confirm light theme only (dark mode is explicitly deferred per spec — do not implement) — done 2026-04-07
+- [x] Confirm terrain uses solid colors only (textures are explicitly deferred — do not implement) — done 2026-04-07
+- [x] Verify scale bar renders correctly at all zoom levels (auto-adjusts displayed distance) — done 2026-04-07
 
 ---
 
-#### Feature: Keyboard Shortcut Audit [ ]
+#### Feature: Keyboard Shortcut Audit [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/keyboard-shortcuts.md` — full file (this is an audit, read the whole file)
 **Load hint:** Read the entire file: `grep -n "." docs/frontend/keyboard-shortcuts.md`
 
 ##### Tasks
 
-- [ ] Test every tool shortcut: V (select), H (pan), B (terrain), P (plant), S (structure), A (arc), E (eraser), T (label), M (measurement)
-- [ ] Test navigation: Space+drag pan, middle-click+drag pan, scroll-wheel zoom, pinch-zoom
-- [ ] Test selection modifiers: Shift+click multi-select, Tab cycling, box-select, Shift+box for partial
-- [ ] Test manipulation: Delete/Backspace, Ctrl+C, Ctrl+V, Ctrl+Z, Ctrl+Shift+Z
-- [ ] Test group shortcuts: Ctrl+Shift+G (group), Ctrl+Shift+U (ungroup)
-- [ ] Test toggles: Ctrl+G (snap toggle), Ctrl+' (grid toggle) — verify they are independent
-- [ ] Test Alt modifier behavior for each tool: placement tools (Alt disables snap), move (Alt enables snap), labels/measurement (Alt enables snap)
-- [ ] File a blocker for any shortcut that is unwired or behaves incorrectly, naming the responsible plan
+- [x] Test every tool shortcut: V (select), H (pan), B (terrain), P (plant), S (structure), A (arc), E (eraser), T (label), M (measurement) — done 2026-04-07
+- [x] Test navigation: Space+drag pan, middle-click+drag pan, scroll-wheel zoom, pinch-zoom — done 2026-04-07
+- [x] Test selection modifiers: Shift+click multi-select, Tab cycling, box-select, Shift+box for partial — done 2026-04-07
+- [x] Test manipulation: Delete/Backspace, Ctrl+C, Ctrl+V, Ctrl+Z, Ctrl+Shift+Z — done 2026-04-07
+- [x] Test group shortcuts: Ctrl+Shift+G (group), Ctrl+Shift+U (ungroup) — done 2026-04-07
+- [x] Test toggles: Ctrl+G (snap toggle), Ctrl+' (grid toggle) — verify they are independent — done 2026-04-07
+- [x] Test Alt modifier behavior for each tool: placement tools (Alt disables snap), move (Alt enables snap), labels/measurement (Alt enables snap) — done 2026-04-07
+- [x] File a blocker for any shortcut that is unwired or behaves incorrectly, naming the responsible plan — done 2026-04-07 (no blockers found, all shortcuts properly wired)
 
 ---
 
@@ -160,6 +160,9 @@ grep -n "." docs/frontend/keyboard-shortcuts.md   # read the whole file — it's
 | Date | Decision | Rationale |
 |------|----------|-----------|
 | 2026-04-06 | PNG export reuses PLAN-A render pipeline with headless canvas | Avoids a second renderer; ensures PNG and canvas output are always in sync |
+| 2026-04-07 | Scale bar composited onto PNG via offscreen canvas post-export | ScaleBar is a DOM element outside Konva stage; compositing it after stage.toDataURL() ensures it appears in the export |
+| 2026-04-07 | Minimap uses HTML5 Canvas (not Konva Stage) for performance | A lightweight 160x120 canvas is more efficient than a second Konva stage for a simple overview |
+| 2026-04-07 | Cursor tracking throttled via rAF gating | Prevents 60fps Zustand set() calls and layout reflows from getBoundingClientRect() on every mousemove |
 
 ---
 
@@ -167,4 +170,5 @@ grep -n "." docs/frontend/keyboard-shortcuts.md   # read the whole file — it's
 
 ```
 2026-04-06 — PLAN-E initialized. Waiting on PLAN-A, PLAN-B, PLAN-C, PLAN-D completion before starting.
+2026-04-07 — Phase E1 implemented: PNG export (with scale bar compositing), functional minimap (HTML5 canvas, click/drag/double-click), status bar cursor coordinates (rAF-throttled), zoom +/- buttons, keyboard shortcut audit (all shortcuts verified wired). Code review, doc sync review, and security audit all passed unanimously.
 ```
