@@ -313,6 +313,8 @@ Registries define the available types for each element category. Built-in types 
 }
 ```
 
+The segmentation render maps terrain type IDs to fixed colors by exact ID match before falling back to `category`. Built-in terrain type IDs and their semantic mappings: `"grass"` → lawn/grass, `"soil"` / `"mulch"` / `"bark"` → soil/mulch, `"gravel"` / `"concrete"` → gravel/stone, `"wood-decking"` / `"decking-surface"` → wood decking, `"water"` → water. Custom terrain types without a matching built-in ID fall back to their `category`: `natural` → `#00AA00`, `hardscape` → `#AAAAAA`, `water` → `#4169E1`, `other` → `#8B4513`. See [segmentation-render.md "## Segmentation Color Table"].
+
 ### Plant Type
 
 ```json
@@ -345,7 +347,7 @@ Registries define the available types for each element category. Built-in types 
 - `groundcover`: fills area like terrain but placed as a plant element
 - `climber`: placed against structures, directional indicator
 
-`canopyWidthCm` is the mature canopy diameter for trees and shrubs. `heightCm` is the mature real-world height of the plant (informational metadata, shown in inspector only) — it has no effect on the 2D canvas rendering. The app is 2D only; there is no Z-axis, elevation, or 3D rendering. `trunkWidthCm` is the trunk diameter for trees (used for ground-level collision).
+`canopyWidthCm` is the mature canopy diameter for trees and shrubs. `heightCm` is the mature real-world height of the plant (informational metadata, shown in inspector only) — it has no effect on the 2D canvas rendering. The app is 2D only; there is no Z-axis, elevation, or 3D rendering. `trunkWidthCm` is the trunk diameter for trees (used for ground-level collision). Rendering fallbacks: when `canopyWidthCm` is `null`, tree and shrub canopy renders at `spacingCm` diameter. When `trunkWidthCm` is `null`, the tree trunk renders at a fixed 20cm diameter.
 
 `season` values are constrained to the four standard seasons. `companionPlants` references are informational — IDs that don't match a known plant type are kept as-is (they may reference user-defined types added later).
 
@@ -356,6 +358,7 @@ Registries define the available types for each element category. Built-in types 
   "id": "string (slug, e.g. 'brick-wall')",
   "name": "string (e.g. 'Brick Wall', max 100 chars)",
   "category": "string (e.g. 'boundary', 'container', 'surface', 'overhead', 'feature', 'furniture', max 50 chars)",
+  "material": "wood | metal | masonry | stone | other | null",
   "iconUrl": "string (URL or relative path)",
   "defaultWidthCm": "number (1-10000)",
   "defaultDepthCm": "number (1-10000)",
@@ -365,6 +368,8 @@ Registries define the available types for each element category. Built-in types 
 ```
 
 `defaultWidthCm` and `defaultDepthCm` are the 2D canvas footprint dimensions (X and Y axes in the top-down view) applied when a structure is first placed. They are **not** physical real-world height — the app is 2D only and has no Z-axis, elevation, or vertical dimension in its data model or rendering.
+
+`material` drives the segmentation render color [segmentation-render.md "## Segmentation Color Table"]. Allowed values: `"wood"`, `"metal"`, `"masonry"`, `"stone"`, `"other"`, or `null`. When `null` or omitted, the backend falls back to `#888888`. Special cases: structures with `category: "feature"` whose id contains `"water"` render as water (`#4169E1`); structures whose id contains `"fire"` render as fire (`#FF6633`) regardless of material.
 
 The `category` field has semantic meaning for collision rules [canvas-viewport.md "## Collision Rules"]:
 
@@ -382,12 +387,15 @@ The `category` field has semantic meaning for collision rules [canvas-viewport.m
   "id": "string (slug, e.g. 'brick-edging')",
   "name": "string (e.g. 'Brick Edging', max 100 chars)",
   "category": "string (e.g. 'edging', 'walkway', max 50 chars)",
+  "material": "stone | gravel | brick | wood | concrete | other | null",
   "defaultWidthCm": "number (1-500)",
   "color": "string (hex, 6-digit with hash, e.g. '#8B4513')",
   "costPerUnit": "number | null (cost per linear meter)",
   "description": "string (max 500 chars) | null"
 }
 ```
+
+`material` drives the segmentation render color [segmentation-render.md "## Segmentation Color Table"]. Allowed values: `"stone"`, `"gravel"`, `"brick"`, `"wood"`, `"concrete"`, `"other"`, or `null`. When `null` or omitted, the backend falls back to `#888888`. The `color` field drives the 2D canvas display only and has no effect on segmentation rendering.
 
 ### Registry ID Format
 
@@ -585,6 +593,8 @@ Note: if `plantedDate` is non-null and `status` is `"planned"`, the import keeps
 | `canopyWidthCm` (plant) | Positive number 1-5000 or null | `null` |
 | `heightCm` (plant) | Positive number 1-5000 or null | `null` |
 | `trunkWidthCm` (plant) | Positive number 1-500 or null | `null` |
+| `material` (structure) | One of: `"wood"`, `"metal"`, `"masonry"`, `"stone"`, `"other"`, or null | `null` |
+| `material` (path) | One of: `"stone"`, `"gravel"`, `"brick"`, `"wood"`, `"concrete"`, `"other"`, or null | `null` |
 | `costPerUnit` (all registries) | Positive number or null | `null` |
 | `description` (all) | String, max 500 chars, or null | `null` |
 
