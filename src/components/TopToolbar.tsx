@@ -18,6 +18,7 @@ import { useToolStore } from '../store/useToolStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { exportProjectAsJSON } from '../db/projectsDb'
+import { exportToPNG } from '../canvas/exportPNG'
 import { useRouter } from '@tanstack/react-router'
 
 // Design tokens
@@ -280,6 +281,18 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
               disabled={!currentProject}
             >
               Export JSON
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              onClick={() => {
+                if (currentProject) {
+                  exportToPNG(currentProject)
+                }
+                setMenuOpen(false)
+              }}
+              disabled={!currentProject}
+            >
+              Export PNG
             </button>
             <button
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
