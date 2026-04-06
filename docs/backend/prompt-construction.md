@@ -98,7 +98,6 @@ If a type ID does not resolve in the registry, exclude that element from the ele
 | Plants | 7 |
 | Structures | 3 |
 | Terrain | 2 |
-| **Total** | **12** |
 
 Priority order: plants first, then structures, then terrain. Trim each category to its cap before joining.
 
@@ -136,8 +135,16 @@ When `yard_photo` is absent, this preamble is omitted entirely — do not includ
 
 ## Full Prompt Assembly
 
+When `yard_photo` is absent:
+
 ```
 subject + ". " + elements + ". " + style + "."
+```
+
+When `yard_photo` is present:
+
+```
+preamble + " " + subject + ". " + elements + ". " + style + "."
 ```
 
 When elements are present:

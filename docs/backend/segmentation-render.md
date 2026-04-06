@@ -165,7 +165,7 @@ Segmentation colors are fixed constants — not derived from registry display co
 
 ### Fallback Rules
 
-- Terrain type not in table: use `terrainType.category` — `natural` → `#00AA00`, `hardscape` → `#AAAAAA`, `water` → `#4169E1`, `mulch` → `#6B3A2A`, `other` → `#8B4513`.
+- Terrain type not in table: use `terrainType.category` — `natural` → `#00AA00`, `hardscape` → `#AAAAAA`, `water` → `#4169E1`, `other` → `#8B4513`.
 - Path or structure with no `material` field: use `#888888`.
 - Unknown element type: exclude from the segmentation map entirely.
 
