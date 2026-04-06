@@ -8,6 +8,9 @@ import GridLayer from './GridLayer'
 import ScaleBar from './ScaleBar'
 import { useProjectStore } from '../store/useProjectStore'
 import SnapGuidesLayer from './SnapGuidesLayer'
+import YardBoundaryLayer, { OverflowDimLayer, YardBoundaryHTMLOverlays, getAABB } from './YardBoundaryLayer'
+import TerrainLayer from './TerrainLayer'
+import PlantLayer from './PlantLayer'
 
 interface CanvasRootProps {
   width: number
@@ -46,8 +49,20 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '1') {
         e.preventDefault()
-        // TODO: pass actual elements from project store when available
-        const vp = fitToView([], width, height)
+        const project = useProjectStore.getState().currentProject
+        const fitElements: Array<{ x: number; y: number; width: number; height: number }> = []
+        // Include yard boundary AABB if it exists
+        if (project?.yardBoundary && project.yardBoundary.vertices.length >= 3) {
+          const aabb = getAABB(project.yardBoundary)
+          fitElements.push({ x: aabb.x, y: aabb.y, width: aabb.w, height: aabb.h })
+        }
+        // Include canvas elements
+        if (project?.elements) {
+          for (const el of project.elements) {
+            fitElements.push({ x: el.x, y: el.y, width: el.width, height: el.height })
+          }
+        }
+        const vp = fitToView(fitElements, width, height)
         setViewport(vp)
       }
     }
@@ -103,6 +118,17 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
 
   const handleMouseUp = () => endPan()
 
+  // FIX 6: Window-level mouseup to reset pan state on missed mouseup
+  useEffect(() => {
+    const onWindowMouseUp = () => {
+      if (panStateRef.current.active) {
+        endPan()
+      }
+    }
+    window.addEventListener('mouseup', onWindowMouseUp)
+    return () => window.removeEventListener('mouseup', onWindowMouseUp)
+  }, [])
+
   const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault()
     const { clientX, clientY, deltaX, deltaY, ctrlKey } = e.evt
@@ -143,14 +169,14 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
         {/* 1. Grid (bottom) */}
         <GridLayer width={width} height={height} gridVisible={gridVisible} />
 
-        {/* 2. Overflow dim layer — stub */}
+        {/* 2. Empty slot (reserved for spec numbering) */}
         <Layer listening={false} />
 
-        {/* 3. Terrain layer — stub */}
-        <Layer listening={false} />
+        {/* 3. Terrain layer */}
+        <TerrainLayer width={width} height={height} />
 
-        {/* 4. Yard boundary layer — stub */}
-        <Layer listening={false} />
+        {/* 4. Yard boundary layer */}
+        <YardBoundaryLayer width={width} height={height} />
 
         {/* 5. Paths layer — stub */}
         <Layer listening={false} />
@@ -158,8 +184,8 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
         {/* 6. Structures layer — stub */}
         <Layer listening={false} />
 
-        {/* 7. Plants layer — stub */}
-        <Layer listening={false} />
+        {/* 7. Plants layer */}
+        <PlantLayer width={width} height={height} />
 
         {/* 8. Labels layer — stub */}
         <Layer listening={false} />
@@ -167,13 +193,17 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
         {/* 9. Dimensions layer — stub */}
         <Layer listening={false} />
 
-        {/* 10. Selection UI layer (top) — handles, snap guides */}
+        {/* 10. Overflow dim layer — above all content, below selection UI */}
+        <OverflowDimLayer width={width} height={height} />
+
+        {/* 11. Selection UI layer (top) — handles, snap guides */}
         <Layer>
           <SnapGuidesLayer width={width} height={height} />
         </Layer>
       </Stage>
 
       {/* HTML overlays (not part of Konva stage) */}
+      <YardBoundaryHTMLOverlays width={width} height={height} />
       <ScaleBar />
     </div>
   )
