@@ -561,10 +561,10 @@ Display with cm precision: `(distance / 100).toFixed(2)` — e.g., `3.47m`.
 
 ### Rectangle Area
 
-For terrain cells (always 100×100cm) and rectangular structures:
+For terrain cells (always 100×100cm) and rectangular structures (`width` = X-axis extent, `depth` = Y-axis extent, both 2D canvas dimensions):
 
 ```
-areaCm2 = width * height
+areaCm2 = width * depth
 areaM2 = areaCm2 / 10000
 ```
 

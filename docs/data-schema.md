@@ -345,7 +345,7 @@ Registries define the available types for each element category. Built-in types 
 - `groundcover`: fills area like terrain but placed as a plant element
 - `climber`: placed against structures, directional indicator
 
-`canopyWidthCm` is the mature canopy diameter for trees and shrubs. `heightCm` is the mature height (informational, shown in inspector). `trunkWidthCm` is the trunk diameter for trees (used for ground-level collision).
+`canopyWidthCm` is the mature canopy diameter for trees and shrubs. `heightCm` is the mature real-world height of the plant (informational metadata, shown in inspector only) — it has no effect on the 2D canvas rendering. The app is 2D only; there is no Z-axis, elevation, or 3D rendering. `trunkWidthCm` is the trunk diameter for trees (used for ground-level collision).
 
 `season` values are constrained to the four standard seasons. `companionPlants` references are informational — IDs that don't match a known plant type are kept as-is (they may reference user-defined types added later).
 
@@ -358,11 +358,13 @@ Registries define the available types for each element category. Built-in types 
   "category": "string (e.g. 'boundary', 'container', 'surface', 'overhead', 'feature', 'furniture', max 50 chars)",
   "iconUrl": "string (URL or relative path)",
   "defaultWidthCm": "number (1-10000)",
-  "defaultHeightCm": "number (1-10000)",
+  "defaultDepthCm": "number (1-10000)",
   "costPerUnit": "number | null (cost per structure)",
   "description": "string (max 500 chars) | null"
 }
 ```
+
+`defaultWidthCm` and `defaultDepthCm` are the 2D canvas footprint dimensions (X and Y axes in the top-down view) applied when a structure is first placed. They are **not** physical real-world height — the app is 2D only and has no Z-axis, elevation, or vertical dimension in its data model or rendering.
 
 The `category` field has semantic meaning for collision rules [canvas-viewport.md "## Collision Rules"]:
 
@@ -573,7 +575,7 @@ Note: if `plantedDate` is non-null and `status` is `"planned"`, the import keeps
 | `spacingCm` (plant) | Positive number, 1-500 | `30` |
 | `rowSpacingCm` (plant) | Positive number, 1-500 | Same as `spacingCm` |
 | `defaultWidthCm` (structure/path) | Positive number, 1-10000 | `100` |
-| `defaultHeightCm` (structure) | Positive number, 1-10000 | `100` |
+| `defaultDepthCm` (structure) | Positive number, 1-10000 | `100` |
 | `sunRequirement` (plant) | `"full"`, `"partial"`, or `"shade"` | `"full"` |
 | `waterNeed` (plant) | `"low"`, `"medium"`, or `"high"` | `"medium"` |
 | `season` (plant) | Array of: `"spring"`, `"summer"`, `"fall"`, `"winter"` | `[]` (invalid values silently dropped) |

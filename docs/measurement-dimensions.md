@@ -56,7 +56,7 @@ When a single element is selected, the inspector shows its area and perimeter wh
 | Element type | Area shown | Perimeter shown |
 |-------------|-----------|----------------|
 | Terrain cell | 1.00 m² (always) | 4.00 m (always) |
-| Structure | width × height in m² | 2 × (width + height) in m |
+| Structure | width × depth in m² | 2 × (width + depth) in m |
 | Closed path | Polygon area (Shoelace formula) in m² | Sum of segment lengths in m |
 | Yard boundary | Polygon area in m² | Sum of edge lengths in m |
 | Plant | Not shown | Not shown |

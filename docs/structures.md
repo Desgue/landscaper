@@ -4,7 +4,9 @@ Structures are placeable elements like walls, fences, and raised beds. They can 
 
 ## Placement
 
-Structure tool (S). Click to place at default dimensions (defined per type in the registry, e.g., brick-wall: 200×20cm, fence: 200×10cm, raised-bed: 200×100cm). Drag to define extent (start to end, edges snap to 10cm increments). Alt disables snap [snap-system.md "## Alt Modifier Behavior"]. Geometry snapping (edge, perpendicular, midpoint) is active during placement [snap-system.md "## Geometry Snap"].
+Structure tool (S). Click to place at default dimensions (defined per type in the registry as `defaultWidthCm` × `defaultDepthCm` — the 2D canvas footprint, e.g., brick-wall: 200×20cm, fence: 200×10cm, raised-bed: 200×100cm). Drag to define extent (start to end, edges snap to 10cm increments). Alt disables snap [snap-system.md "## Alt Modifier Behavior"]. Geometry snapping (edge, perpendicular, midpoint) is active during placement [snap-system.md "## Geometry Snap"].
+
+The app is 2D only. Structure dimensions are top-down footprint (X × Y on canvas). Physical real-world height (how tall a fence or wall is) is not modeled — there is no Z-axis or elevation in the data model or rendering.
 
 ## Straight vs Curved
 
