@@ -12,7 +12,7 @@ This is the single source of truth for all keyboard shortcuts. Other docs refere
 | P | Plant placement tool |
 | S | Structure tool |
 | A | Arc tool |
-| E | Eraser (removes any element on click/drag) |
+| E | Eraser (removes topmost element on click/drag) [selection-manipulation.md "## Eraser Tool"] |
 | T | Text/Label tool |
 
 Note: Path tool has no shortcut — activated via the Paths tab in the side palette.
@@ -61,3 +61,4 @@ Alt behavior is context-dependent:
 | Alt (while placing/painting with Terrain, Plant, Structure, Arc, Path, or Eraser) | Disable snapping (10cm + geometry) |
 | Alt (while moving selected elements) | Enable snapping (moves default to free) |
 | Alt (while placing with Text/Label tool) | Enable snapping (labels default to free placement) |
+| Alt (while using Hand/Pan tool) | No effect |

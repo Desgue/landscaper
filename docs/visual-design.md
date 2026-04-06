@@ -36,7 +36,11 @@ Left, collapsible. Tabs: Terrain | Plants | Structures | Paths. Search field fil
 
 ### Inspector Panel
 
-Right, collapsible. Type-specific properties for the selected element. Multi-select: shows primary (first) element. Empty: "Nothing selected."
+Right, collapsible. Type-specific properties for the selected element. Multi-select: shows the first-clicked (primary) element. Empty: "Nothing selected."
+
+### Minimap
+
+Bottom-right corner, collapsible. See [canvas-viewport.md "## Minimap"] for behavior.
 
 ### Tooltips
 
@@ -79,3 +83,14 @@ Desktop-first (1024px+). Tablet: side panels collapse to icons, toolbar remains.
 - Sufficient contrast ratios for all UI text
 - Screen reader labels for toolbar actions
 - Focus indicators on interactive elements
+
+## Design Rationale
+
+Key decisions and why they were made:
+
+- **Light theme only (MVP)**: Reduces design surface. Dark mode deferred to post-MVP.
+- **Semi-realistic visual style**: Stylized but somewhat realistic — not photographic, not hand-drawn. Balances recognizability with clean UI.
+- **Solid terrain colors (MVP)**: Tiling textures deferred to Phase 2 to reduce initial rendering complexity.
+- **Bounded canvas with overflow**: Users need to place elements outside the yard (staging area). Infinite canvas rejected — yard dimensions provide spatial grounding.
+- **Snap decoupled from grid display**: Users may want visual grid without snap constraint, or snap without visual clutter. Independent toggles serve both.
+- **Yard boundary as element-like object**: Behaves like a regular element (selectable, movable, editable, deletable) but stored at project level since there is exactly one per project [data-schema.md "### Yard Boundary Storage"]. Not locked — users may need to adjust after initial setup [yard-setup.md "## Boundary as Element"].

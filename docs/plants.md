@@ -42,16 +42,23 @@ planned → planted → growing → harvested → removed
 planned → removed (never planted)
 ```
 
-Any status can transition to `removed`. Forward transitions follow the lifecycle. Backward transitions are allowed (user corrects a mistake).
+Any status can transition to `removed`. Forward transitions follow the lifecycle. Backward transitions are allowed (user corrects a mistake). This is the canonical definition of plant lifecycle — [spatial-math-specification.md "## 10. Element Lifecycle (Plant Status)"] cross-references this section.
 
 ## Inspector
 
-Shows all type properties and instance properties, all editable. Changes apply immediately. See [spatial-math-specification.md "## 10. Element Lifecycle"] for lifecycle details.
+Shows all type properties and instance properties, all editable. Changes apply immediately. See [spatial-math-specification.md "## 10. Element Lifecycle"] for lifecycle details. All element types can be linked to journal entries [journal.md "## Element Linking"].
 
 ## Built-in Types
 
 cherry-tomato (45cm), tomato (60cm), onion (10cm), eggplant (60cm), pepper (45cm), basil (20cm), lettuce (25cm), carrot (5cm). Extensible via registry.
 
-## Overlap
+## Collision Rules
 
-Plants can be placed on top of terrain and inside structures. Both remain unchanged.
+Plants respect realistic placement constraints [canvas-viewport.md "## Collision Rules"]:
+
+- **Spacing enforcement**: `spacingCm` is the minimum center-to-center distance for a plant type. Each plant's collision radius is `spacingCm / 2`. Two plants violate spacing when `distance(centerA, centerB) < (spacingA + spacingB) / 2`
+- **Blocked by structures**: plants cannot be placed inside structures unless the structure has `category: "container"` (raised beds, garden beds, planters)
+- **Allowed on terrain**: plants can be placed on any terrain type
+- **Allowed on paths**: plants can be placed near or on paths (e.g., plants along a border)
+
+Invalid placement shows a red ghost preview. Placement is blocked until the cursor moves to a valid position.

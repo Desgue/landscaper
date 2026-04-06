@@ -2,7 +2,7 @@
 
 This document specifies the computational geometry underpinning the landscape planner. It fills the gap between the BDD behavioral spec (what the user sees) and the implementation (how the math works). Every algorithm decision here directly affects accuracy and usability.
 
-All coordinates are in **centimeters** internally. Display is in meters.
+All coordinates are in **centimeters** internally. Display is in meters. The coordinate system follows HTML Canvas conventions: y-axis points down. This affects arc direction flags — see Section 5.
 
 ---
 
@@ -10,7 +10,7 @@ All coordinates are in **centimeters** internally. Display is in meters.
 
 ### World ↔ Screen Transforms
 
-The viewport is defined by three values: `panX`, `panY` (world-space position of the viewport origin, in cm) and `zoom` (scale factor, 1.0 = 100%).
+The viewport is defined by three values: `panX`, `panY` (screen-space offset, in px) and `zoom` (scale factor, 1.0 = 100%). Positive `panX` shifts all content to the right on screen; positive `panY` shifts content down. This follows directly from the transform: increasing `panX` increases `screenX` for every world point.
 
 ```
 screenX = worldX * zoom + panX
@@ -79,15 +79,31 @@ When the user drags a terrain brush from point A to point B, all cells the curso
 Use the **Amanatides-Woo algorithm** (DDA-based grid traversal):
 
 ```
-1. Start cell = floor(A / cellSize)
-2. End cell = floor(B / cellSize)
-3. Compute step direction: stepX = sign(B.x - A.x), stepY = sign(B.y - A.y)
-4. Compute tMaxX, tMaxY = parameter t at which the ray crosses the next cell boundary
-5. Compute tDeltaX, tDeltaY = parameter t to cross one full cell
-6. Walk: at each step, advance in the axis with smaller tMax, paint that cell
+dx = B.x - A.x, dy = B.y - A.y
+cellX = floor(A.x / cellSize), cellY = floor(A.y / cellSize)
+endCellX = floor(B.x / cellSize), endCellY = floor(B.y / cellSize)
+stepX = sign(dx), stepY = sign(dy)
+
+tDeltaX = dx != 0 ? abs(cellSize / dx) : Infinity
+tDeltaY = dy != 0 ? abs(cellSize / dy) : Infinity
+
+tMaxX = dx > 0 ? ((cellX + 1) * cellSize - A.x) / dx
+       : dx < 0 ? (cellX * cellSize - A.x) / dx
+       : Infinity
+tMaxY = dy > 0 ? ((cellY + 1) * cellSize - A.y) / dy
+       : dy < 0 ? (cellY * cellSize - A.y) / dy
+       : Infinity
+
+paint(cellX, cellY)
+while cellX != endCellX or cellY != endCellY:
+  if tMaxX < tMaxY:
+    cellX += stepX; tMaxX += tDeltaX
+  else:
+    cellY += stepY; tMaxY += tDeltaY
+  paint(cellX, cellY)
 ```
 
-This guarantees every cell the line segment passes through is visited — no gaps. For brush sizes 2×2 or 3×3, expand each visited cell to the NxN region with the visited cell as top-left.
+This guarantees every cell the line segment passes through is visited — no gaps, where `cellSize = 100` (cm), matching the 1m × 1m terrain cell size. For brush sizes 2×2 or 3×3, expand each visited cell to a cursor-centered NxN region: paint from `(cellX - floor(N/2), cellY - floor(N/2))` to `(cellX + floor(N/2), cellY + floor(N/2))`. For even N, offset by `floor(N/2) - 1` on the negative side (top-left biased).
 
 ---
 
@@ -105,7 +121,7 @@ Geometry snaps take priority over grid snaps. Each axis (X, Y) is resolved indep
 3. Return snapped position + list of active guides
 ```
 
-This means an element can snap to a geometry edge on X and to the grid on Y simultaneously.
+**Edge-alignment** snaps are per-axis: an element can snap to a geometry edge on X and to the grid on Y simultaneously. **Perpendicular** and **midpoint** snaps are **point snaps** — they set both X and Y simultaneously to the projected/midpoint position, since the snap target is a specific point rather than an axis-aligned line.
 
 ### Snap Candidate Collection
 
@@ -137,13 +153,12 @@ For non-axis-aligned edges, project the cursor position onto the edge line and c
 Given existing line segment AB and the cursor position C:
 
 ```
-1. Project C onto line AB: projectionParam t = dot(C-A, B-A) / dot(B-A, B-A)
+1. Project C onto line AB: t = dot(C-A, B-A) / dot(B-A, B-A)
 2. If 0 <= t <= 1: projection point P = A + t*(B-A)
-3. Check if angle at P between AB and PC is close to 90° (it always is, by construction)
-4. The snap fires if distance(C, P) < tolerance AND the cursor is approaching from a ~perpendicular direction
+3. The snap fires if distance(C, P) < tolerance
 ```
 
-In practice: check if the cursor position projected onto the nearest existing edge forms a perpendicular, and if the perpendicular foot is within tolerance.
+The projection point P is always perpendicular to AB by construction. No direction-of-approach check is needed — the snap fires whenever the perpendicular foot from cursor to any nearby edge is within tolerance.
 
 ### Midpoint Snap
 
@@ -160,8 +175,9 @@ if distance < tolerance:
 
 When multiple geometry snaps fire simultaneously on the same axis:
 1. Pick the **closest** snap (smallest distance)
-2. If distances are equal (within 1cm), pick the snap from the **most recently interacted** element
-3. Show all active snap guides, not just the winning one
+2. If distances are equal (within 1cm), pick the snap from the **most recently added** element (creation order)
+
+See [snap-system.md "## Snap Guides"] for visual guide display rules.
 
 ### Adaptive Snap Tolerance
 
@@ -174,7 +190,7 @@ toleranceWorld = tolerancePx / zoom
 
 At zoom 1.0: tolerance = 8cm. At zoom 0.1 (zoomed out): tolerance = 80cm. At zoom 5.0 (zoomed in): tolerance = 1.6cm.
 
-Clamp to a reasonable world range: `min(200, max(2, tolerancePx / zoom))`.
+Clamp to a reasonable world range: `min(100, max(2, tolerancePx / zoom))`.
 
 This is the approach used by Excalidraw (`getSnapDistance()`) and Realtime Landscaping Architect.
 
@@ -230,7 +246,7 @@ r = B - A
 s = D - C
 denom = cross(r, s)
 
-if denom == 0: parallel (no intersection unless collinear)
+if abs(denom) < epsilon: parallel or collinear (see below)
 
 t = cross(C - A, s) / denom
 u = cross(C - A, r) / denom
@@ -238,7 +254,9 @@ u = cross(C - A, r) / denom
 intersection exists if 0 < t < 1 AND 0 < u < 1
 ```
 
-(Use strict inequality to exclude shared endpoints.)
+(Use strict inequality to exclude shared endpoints. Use `epsilon = 1e-10` for the parallel test to avoid floating-point fragility with exact zero.)
+
+**Collinear overlap detection**: When `abs(denom) < epsilon`, the segments are parallel. Check if they are also collinear: `abs(cross(C - A, r)) < epsilon`. If collinear, project C and D onto the line AB as parameters `t0 = dot(C-A, r) / dot(r, r)` and `t1 = dot(D-A, r) / dot(r, r)`. The segments overlap if `max(0, min(t0,t1)) < min(1, max(t0,t1))` (intervals intersect within [0,1]).
 
 ### Point-in-Polygon Test
 
@@ -246,7 +264,17 @@ To determine if an element is inside the yard boundary (for overflow dimming):
 
 **Ray casting algorithm**: cast a horizontal ray from the point to the right. Count edge crossings. Odd = inside, even = outside.
 
-For polygons with arc edges, also test intersection with arc segments.
+**Vertex and horizontal-edge handling**: When the ray passes exactly through a vertex, count that vertex as a crossing only if the *other* endpoint of the edge is strictly below the ray's Y coordinate. Skip horizontal edges entirely — the vertex rule handles their endpoints correctly. This prevents double-counting at shared vertices.
+
+For polygons with arc edges, also test ray-arc intersection. For a horizontal ray from point P to the right intersecting an arc with center C and radius R:
+
+```
+1. Check if the ray's Y is within the arc's Y range: |P.y - C.y| <= R
+2. If yes, compute X intersections: x = C.x ± sqrt(R² - (P.y - C.y)²)
+3. Keep only intersections where x > P.x (ray goes right)
+4. Keep only intersections whose angle from center falls within the arc's angular sweep
+5. Count these intersections toward the crossing total
+```
 
 ---
 
@@ -287,8 +315,10 @@ center = mid + perp * (sagitta - R)
 ```
 startAngle = atan2(P0.y - center.y, P0.x - center.x)
 endAngle = atan2(P1.y - center.y, P1.x - center.x)
-counterclockwise = sagitta > 0
+counterclockwise = sagitta > 0   // assumes Canvas/screen coords (y-axis down)
 ```
+
+> **Coordinate system note**: The `counterclockwise` flag is correct for HTML Canvas / screen coordinates where the y-axis points down. In a y-up coordinate system, the flag would be inverted.
 
 ### Rendering
 
@@ -366,7 +396,11 @@ Paths have a real-world width (e.g., brick edging = 10cm). Render by:
 4. Join consecutive offset segments with miter or round joins
 5. Fill the enclosed area
 
-For MVP, a simpler approach: render each segment as a thick stroked line (`context.lineWidth = widthInWorldUnits * zoom`).
+For MVP, a simpler approach: render each segment as a thick stroked line (`context.lineWidth = widthInWorldUnits`). The Konva stage transform (`scaleX/scaleY = zoom`) handles the conversion to screen pixels — do not multiply by zoom again or the width will be double-scaled.
+
+### Closed Paths
+
+When a path's `closed` flag is `true`, an implicit straight closing segment connects the last point back to the first. This segment is NOT stored in the data model — the `segments` array always has `points.length - 1` entries. See [data-schema.md "#### Closed Paths"] for storage details.
 
 ---
 
@@ -391,7 +425,29 @@ Konva has built-in hit detection (`getIntersection()`) that handles most of thes
 
 ### Selection Priority
 
-When multiple elements overlap at the click point, select the topmost in render order (labels > plants > structures > paths > terrain). Within the same layer, select the most recently added element.
+When elements occupy the same position, select the topmost in render order: labels > plants > structures > paths > terrain > yard boundary. Within the same layer, the element with the latest `createdAt` timestamp wins. **Tab** cycles through all elements at the click point, from topmost to bottommost.
+
+### Collision Detection
+
+Placement validation uses these geometric tests to enforce collision rules [canvas-viewport.md "## Collision Rules"]:
+
+**AABB overlap** (structures vs structures, structures vs paths): Two axis-aligned rectangles overlap if they overlap on both axes:
+
+```
+overlap = aLeft < bRight AND aRight > bLeft AND aTop < bBottom AND aBottom > bTop
+```
+
+For rotated structures, transform both shapes into one structure's local coordinate system, or use the AABB of the rotated shape as a conservative approximation.
+
+**Circle spacing** (plants vs plants): `spacingCm` is the minimum center-to-center distance for a plant type; each plant's collision radius is `spacingCm / 2`. Two plants violate spacing if:
+
+```
+violation = distance(centerA, centerB) < (spacingA + spacingB) / 2
+```
+
+**Point-in-structure** (plants vs structures): A plant is inside a structure if the plant's center point passes the structure's hit test (AABB or rotated AABB). Placement is blocked unless the structure has `category: "container"`.
+
+**Fully-enclosed boundary test**: An element is considered "inside" the yard boundary only if all corners of its AABB pass the point-in-polygon test. Elements with any corner outside are in the "outside" zone (dimmed background).
 
 ### Box Selection
 
@@ -462,25 +518,7 @@ renderSize = max(iconSizeScreen, 4)
 
 ## 10. Element Lifecycle (Plant Status)
 
-### Valid Statuses and Transitions
-
-```
-planned → planted → growing → harvested → removed
-                  → removed (skip harvest)
-planned → removed (never planted)
-```
-
-Any status can transition to `removed`. Forward transitions follow the lifecycle. Backward transitions are allowed (user corrects a mistake).
-
-### Planted Date
-
-- Auto-set to current date when status changes from `planned` to `planted`
-- Editable by user at any time via inspector
-- Null when status is `planned`
-
-### Quantity
-
-Quantity represents the number of plants in the same grid cell position. Visually, quantity > 1 could show a small badge or number overlay on the icon. The icon size does not change with quantity.
+This section is a cross-reference only. See [plants.md "## Status Lifecycle"] for the canonical definition of the plant lifecycle state machine, transition rules, planted date behavior, and quantity semantics.
 
 ---
 
@@ -499,6 +537,8 @@ When an element is deleted:
 - The element ID remains in journal entries' `linkedElementIds`
 - The UI shows the link as "deleted element" (grayed out, non-clickable)
 - The link is not automatically removed — it preserves journal history
+
+Element IDs are UUIDs [data-schema.md] and are never reused, so stale links in journal entries cannot collide with newly created elements.
 
 ### Canvas Visibility
 

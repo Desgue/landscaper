@@ -1,10 +1,10 @@
 # Snap System
 
-Snapping controls how elements align when placed, moved, or resized. Grid snap and geometry snap work together with a priority system. Snap is independently toggleable from grid visibility (Ctrl+G) [keyboard-shortcuts.md "## Toggles"].
+Snapping controls how elements align when placed, moved, or resized. Grid snap and geometry snap work together with a priority system. Snap toggle (Ctrl+G) and grid visibility toggle (Ctrl+') are independent [keyboard-shortcuts.md "## Toggles"].
 
 ## Grid Snap
 
-Default increment: 10cm (nearest-round). `snap(274) = 270`, `snap(276) = 280`, `snap(275) = 280`.
+Default increment: 10cm (nearest-round, configurable via `snapIncrementCm` in project settings [data-schema.md "### Project-level defaults"]). `snap(274) = 270`, `snap(276) = 280`, `snap(275) = 280`.
 
 See [spatial-math-specification.md "## 2. Grid Snapping"] for the formula, negative coordinate handling, and the symmetric rounding variant.
 
@@ -24,11 +24,11 @@ See [spatial-math-specification.md "## 3. Snap System Architecture"] for detecti
 
 Geometry snaps take priority over grid snaps. Each axis (X, Y) is resolved independently — an element can snap to a geometry edge on X and to the grid on Y.
 
-When multiple geometry snaps compete on the same axis, the closest one wins. If distances are equal (within 1cm), the most recently interacted element wins.
+When multiple geometry snaps compete on the same axis, the closest one wins. If distances are equal (within 1cm), the most recently added element wins (creation order).
 
 ## Adaptive Tolerance
 
-Tolerance is constant in screen pixels (8px), converted to world units: `toleranceWorld = 8 / zoom`. Clamped to [2cm, 200cm].
+Tolerance is constant in screen pixels (8px), converted to world units: `toleranceWorld = 8 / zoom`. Clamped to [2cm, 100cm].
 
 At zoom 1.0: 8cm tolerance. At zoom 5.0: 1.6cm (precise). At zoom 0.1: 80cm (easy targeting). See [spatial-math-specification.md "### Adaptive Snap Tolerance"] for the formula and practical values.
 
@@ -45,3 +45,5 @@ Alt is context-dependent:
 | Placing/painting (terrain, plant, structure, arc, path, eraser) | Snap ON | Snap OFF |
 | Moving selected elements | Snap OFF (free move) | Snap ON |
 | Placing labels | Snap OFF (free placement) | Snap ON |
+| Pasting (Ctrl+V) | Snap ON (grid only) | — (Alt has no effect on paste) |
+| Resizing (structures, labels) | Snap ON | Snap OFF |

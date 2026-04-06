@@ -8,7 +8,7 @@ Select a terrain type from the palette [visual-design.md "### Side Palette"], th
 
 ### Cell Mapping
 
-Terrain cells are 1m × 1m (100cm × 100cm). The cell containing a cursor position is `floor(worldPos / 100) * 100`. Cells always align to 100cm boundaries. The "10cm snap" from [snap-system.md "## Grid Snap"] applies to cell boundary positioning when the grid origin is offset, not to cell size.
+Terrain cells are 1m × 1m (100cm × 100cm). The cell containing a cursor position is `floor(worldPos / 100) * 100`. Cells always align to 100cm boundaries. Snap is always active during terrain placement (Alt disables it). Note: the "10cm snap" from [snap-system.md "## Grid Snap"] affects cell boundary positioning when the grid origin is offset from the default — it does not change cell size, which is always 100cm.
 
 ### Single Click
 
@@ -22,7 +22,7 @@ Between consecutive mouse events, the traversal runs from the previous position 
 
 ### Brush Size
 
-Configurable: 1×1 (default), 2×2, 3×3. The clicked/traversed cell is the top-left of the painted area. For a 2×2 brush, each traversed cell expands to a 2×2 region. For 3×3, a 3×3 region.
+Configurable: 1×1 (default), 2×2, 3×3. Brush size is a transient tool setting in the toolbar (not persisted in the data model). Each traversed cell is expanded to a cursor-centered NxN region. For a 2×2 brush, the region offsets top-left by 1 cell (top-left biased). For 3×3, the traversed cell is the center of the 3×3 region. See [spatial-math-specification.md "### Brush Drag Painting"] for the exact formula.
 
 ### Overwrite
 
@@ -34,11 +34,19 @@ Alt disables snap for terrain placement [snap-system.md "## Alt Modifier Behavio
 
 ## Eraser (Terrain)
 
-The Eraser tool (E) removes terrain from clicked cells. The cell returns to the default empty canvas background. The eraser also removes other element types — see [selection-manipulation.md "## Eraser Tool"].
+The Eraser tool (E) follows the standard topmost-element priority [selection-manipulation.md "## Eraser Tool"]. When terrain is the topmost element at the cursor position, the eraser removes that terrain cell (it returns to the default empty canvas background). When a higher-priority element (label, plant, structure, path) is above the terrain, the eraser removes that element instead.
+
+## Inspector
+
+When a terrain element is selected, the inspector shows: terrain type and dimensions (in meters). All element types can be linked to journal entries [journal.md "## Element Linking"].
 
 ## Built-in Types
 
 grass, soil, weed/wild, concrete, gravel, mulch. Extensible via registry (config file, not UI).
+
+## Collision Rules
+
+Terrain is the ground layer and has no collision constraints [canvas-viewport.md "## Collision Rules"]. Terrain can be painted anywhere, regardless of other elements. Painting over an existing terrain cell replaces its type.
 
 ## Rendering
 

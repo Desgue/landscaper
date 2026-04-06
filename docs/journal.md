@@ -4,7 +4,7 @@ The journal tracks the project's evolution over time with entries linked to canv
 
 ## Access
 
-Opening the journal replaces the canvas with a full-screen journal view. Closing it returns to the canvas with the project intact.
+Opening the journal replaces the canvas [canvas-viewport.md "## Bounded Canvas"] with a full-screen journal view. Closing it returns to the canvas with the project intact.
 
 ## Entries
 
@@ -18,7 +18,7 @@ Tags are freeform labels (e.g., "planting", "harvest", "observation"). When crea
 
 Entries can be linked to specific elements on the canvas. Two mechanisms:
 
-**Pre-selection**: if elements are selected on the canvas when the user opens the journal and creates a new entry, those elements are automatically linked. Links can be removed from within the entry.
+**Pre-selection**: if elements are selected on the canvas [selection-manipulation.md "## Select Tool (V)"] when the user opens the journal and creates a new entry, those elements are automatically linked. Links can be removed from within the entry.
 
 **In-entry linking**: while editing an entry, the user can search or pick elements from a list to add links.
 
@@ -28,7 +28,7 @@ When a linked element is deleted from the canvas, the link is preserved in the j
 
 ### Visibility
 
-Links are not visible on the canvas by default. They are visible in the inspector (selecting an element shows its linked journal entries) and in the journal view (each entry shows its linked elements).
+Links are not visible on the canvas by default. They are visible in the inspector [selection-manipulation.md "## Inspector Panel"] (selecting an element shows its linked journal entries) and in the journal view (each entry shows its linked elements).
 
 ## Timeline Views
 
@@ -44,7 +44,9 @@ Filter entries by text search or tag selection. Only matching entries are shown.
 
 ## Weather Integration
 
-Each journal entry has an optional weather snapshot: temperature (C), humidity (%), condition (sunny/cloudy/rainy).
+Each journal entry has an optional weather snapshot: temperature (C), humidity (%), condition (enum: sunny, partly-cloudy, cloudy, rainy, snowy, windy).
+
+For the data model and link behavior (deletion handling, bidirectional queries), see [spatial-math-specification.md "## 11. Journal Element Linking"].
 
 ### Fetch on Demand
 
