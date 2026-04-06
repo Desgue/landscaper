@@ -3,10 +3,11 @@ import { Stage, Layer } from 'react-konva'
 import type Konva from 'konva'
 import { useViewportStore } from '../store/useViewportStore'
 import { useToolStore } from '../store/useToolStore'
-import { fitToView } from './viewport'
+import { fitToView, toWorld } from './viewport'
 import GridLayer from './GridLayer'
 import ScaleBar from './ScaleBar'
 import { useProjectStore } from '../store/useProjectStore'
+import { useCursorStore } from '../store/useCursorStore'
 import SnapGuidesLayer from './SnapGuidesLayer'
 import YardBoundaryLayer, { OverflowDimLayer, YardBoundaryHTMLOverlays, getAABB } from './YardBoundaryLayer'
 import TerrainLayer from './TerrainLayer'
@@ -16,6 +17,7 @@ import LabelLayer, { LabelHTMLOverlays } from './LabelLayer'
 import PathLayer from './PathLayer'
 import { SelectionLayer } from './SelectionLayer'
 import DimensionLayer, { MeasurementHTMLOverlays } from './DimensionLayer'
+import { setStageRef } from './exportPNG'
 
 interface CanvasRootProps {
   width: number
@@ -39,6 +41,13 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
   )
 
   const [isDragging, setIsDragging] = useState(false)
+  const stageRef = useRef<Konva.Stage>(null)
+
+  // Expose stage ref for PNG export
+  useEffect(() => {
+    setStageRef(stageRef.current)
+    return () => setStageRef(null)
+  }, [])
 
   const panStateRef = useRef<PanState>({
     active: false,
@@ -117,8 +126,20 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
     }
   }
 
+  const setCursorWorld = useCursorStore((s) => s.setCursorWorld)
+  const cursorRafRef = useRef(0)
+
   const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
     if (panStateRef.current.active) movePan(e.evt.clientX, e.evt.clientY)
+    // Throttle cursor world position updates via rAF
+    const { clientX, clientY } = e.evt
+    if (!cursorRafRef.current) {
+      cursorRafRef.current = requestAnimationFrame(() => {
+        cursorRafRef.current = 0
+        const world = toWorld(clientX, clientY - (stageRef.current?.container().getBoundingClientRect().top ?? 0), panX, panY, zoom)
+        setCursorWorld(world.x, world.y)
+      })
+    }
   }
 
   const handleMouseUp = () => endPan()
@@ -158,6 +179,7 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
       }}
     >
       <Stage
+        ref={stageRef}
         width={width}
         height={height}
         x={panX}
