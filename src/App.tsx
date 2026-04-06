@@ -8,6 +8,7 @@ import {
 import LandingPage from './pages/LandingPage'
 import WelcomeScreen from './components/WelcomeScreen'
 import AppLayout from './components/AppLayout'
+import './components/registerInspectorSlots'
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,

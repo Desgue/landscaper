@@ -26,6 +26,10 @@ import {
   hitTest as labelHitTest,
   getAABB as labelGetAABB,
 } from './LabelLayer'
+import {
+  hitTest as dimensionHitTest,
+  getAABB as dimensionGetAABB,
+} from './DimensionLayer'
 
 export interface AABB {
   x: number
@@ -48,13 +52,7 @@ export function hitTestElement(element: CanvasElement, worldX: number, worldY: n
     case 'label':
       return labelHitTest(element, worldX, worldY)
     case 'dimension':
-      // Dimension elements use simple AABB hit test
-      return (
-        worldX >= element.x &&
-        worldX <= element.x + element.width &&
-        worldY >= element.y &&
-        worldY <= element.y + element.height
-      )
+      return dimensionHitTest(element, worldX, worldY)
     default:
       return false
   }
@@ -74,7 +72,7 @@ export function getElementAABB(element: CanvasElement): AABB {
     case 'label':
       return labelGetAABB(element)
     case 'dimension':
-      return { x: element.x, y: element.y, w: element.width, h: element.height }
+      return dimensionGetAABB(element)
     default:
       return { x: element.x, y: element.y, w: element.width, h: element.height }
   }

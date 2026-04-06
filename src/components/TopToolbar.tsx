@@ -56,7 +56,12 @@ function isInputFocused(): boolean {
   )
 }
 
-export default function TopToolbar() {
+interface TopToolbarProps {
+  onOpenJournal?: () => void
+  onOpenCostSummary?: () => void
+}
+
+export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopToolbarProps = {}) {
   const { activeTool, setTool, pushTemporaryTool, popTemporaryTool } = useToolStore()
   const undo = useHistoryStore((s) => s.undo)
   const redo = useHistoryStore((s) => s.redo)
@@ -243,6 +248,27 @@ export default function TopToolbar() {
             className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded shadow-lg py-1 z-50"
             style={{ minWidth: 180 }}
           >
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              onClick={() => {
+                onOpenJournal?.()
+                setMenuOpen(false)
+              }}
+              disabled={!currentProject}
+            >
+              Journal
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              onClick={() => {
+                onOpenCostSummary?.()
+                setMenuOpen(false)
+              }}
+              disabled={!currentProject}
+            >
+              Cost Summary
+            </button>
+            <div className="border-t border-gray-100 my-1" />
             <button
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               onClick={() => {

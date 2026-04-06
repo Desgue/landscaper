@@ -15,6 +15,7 @@ import StructureLayer from './StructureLayer'
 import LabelLayer, { LabelHTMLOverlays } from './LabelLayer'
 import PathLayer from './PathLayer'
 import { SelectionLayer } from './SelectionLayer'
+import DimensionLayer, { MeasurementHTMLOverlays } from './DimensionLayer'
 
 interface CanvasRootProps {
   width: number
@@ -194,8 +195,8 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
         {/* 8. Labels layer */}
         <LabelLayer width={width} height={height} />
 
-        {/* 9. Dimensions layer — stub */}
-        <Layer listening={false} />
+        {/* 9. Dimensions layer */}
+        <DimensionLayer width={width} height={height} />
 
         {/* 10. Overflow dim layer — above all content, below selection UI */}
         <OverflowDimLayer width={width} height={height} />
@@ -212,6 +213,7 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
       {/* HTML overlays (not part of Konva stage) */}
       <YardBoundaryHTMLOverlays width={width} height={height} />
       <LabelHTMLOverlays width={width} height={height} />
+      <MeasurementHTMLOverlays width={width} height={height} />
       <ScaleBar />
     </div>
   )

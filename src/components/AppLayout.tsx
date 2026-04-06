@@ -8,6 +8,8 @@ import StatusBar from './StatusBar'
 import MinimapStub from './MinimapStub'
 import CanvasRoot from '../canvas/CanvasRoot'
 import ZOrderContextMenu from './ZOrderContextMenu'
+import JournalView from './JournalView'
+import CostSummaryPanel from './CostSummaryPanel'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useProjectStore } from '../store/useProjectStore'
 import { getAllProjects } from '../db/projectsDb'
@@ -16,6 +18,8 @@ import { BUILTIN_REGISTRIES } from '../data/builtinRegistries'
 export default function AppLayout() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
+  const [showJournal, setShowJournal] = useState(false)
+  const [showCostSummary, setShowCostSummary] = useState(false)
   const router = useRouter()
   const currentProject = useProjectStore((s) => s.currentProject)
   const loadProject = useProjectStore((s) => s.loadProject)
@@ -55,35 +59,51 @@ export default function AppLayout() {
   return (
     <div className="flex flex-col" style={{ height: '100vh', overflow: 'hidden' }}>
       {/* Top toolbar */}
-      <TopToolbar />
+      <TopToolbar
+        onOpenJournal={() => setShowJournal(true)}
+        onOpenCostSummary={() => setShowCostSummary(true)}
+      />
 
-      {/* Main content area: palette + canvas + right panels */}
-      <div className="flex flex-1 overflow-hidden relative">
-        {/* Left: Side palette */}
-        <SidePalette />
-
-        {/* Center: Canvas area */}
-        <div
-          ref={containerRef}
-          className="flex-1 relative overflow-hidden"
-          style={{ background: '#f5f5f5' }}
-        >
-          <CanvasRoot width={canvasSize.width} height={canvasSize.height} />
-          <MinimapStub />
+      {/* Main content area */}
+      {showJournal ? (
+        <div className="flex-1 overflow-hidden">
+          <JournalView onClose={() => setShowJournal(false)} />
         </div>
+      ) : (
+        <>
+          <div className="flex flex-1 overflow-hidden relative">
+            {/* Left: Side palette */}
+            <SidePalette />
 
-        {/* Right: Inspector + Layer panels stacked */}
-        <div className="flex flex-col flex-shrink-0">
-          <InspectorPanel />
-          <LayerPanel />
-        </div>
-      </div>
+            {/* Center: Canvas area */}
+            <div
+              ref={containerRef}
+              className="flex-1 relative overflow-hidden"
+              style={{ background: '#f5f5f5' }}
+            >
+              <CanvasRoot width={canvasSize.width} height={canvasSize.height} />
+              <MinimapStub />
+            </div>
 
-      {/* Status bar */}
-      <StatusBar />
+            {/* Right: Inspector + Layer panels stacked */}
+            <div className="flex flex-col flex-shrink-0">
+              <InspectorPanel />
+              <LayerPanel />
+            </div>
+          </div>
+
+          {/* Status bar */}
+          <StatusBar onOpenCostSummary={() => setShowCostSummary(true)} />
+        </>
+      )}
 
       {/* Z-order context menu overlay */}
       <ZOrderContextMenu />
+
+      {/* Cost summary modal */}
+      {showCostSummary && (
+        <CostSummaryPanel onClose={() => setShowCostSummary(false)} />
+      )}
     </div>
   )
 }

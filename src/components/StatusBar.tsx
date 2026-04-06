@@ -1,7 +1,12 @@
+import { DollarSign } from 'lucide-react'
 import { useViewportStore } from '../store/useViewportStore'
 import { useProjectStore } from '../store/useProjectStore'
 
-export default function StatusBar() {
+interface StatusBarProps {
+  onOpenCostSummary?: () => void
+}
+
+export default function StatusBar({ onOpenCostSummary }: StatusBarProps = {}) {
   const zoom = useViewportStore((s) => s.zoom)
   const snapEnabled = useProjectStore((s) => s.currentProject?.uiState.snapEnabled ?? true)
   const gridVisible = useProjectStore((s) => s.currentProject?.uiState.gridVisible ?? true)
@@ -34,6 +39,16 @@ export default function StatusBar() {
         onClick={() => updateProject((p) => { p.uiState.gridVisible = !p.uiState.gridVisible })}
       >
         Grid: {gridVisible ? 'ON' : 'OFF'}
+      </button>
+      <div className="flex-1" />
+      <button
+        title="Cost Summary"
+        aria-label="Cost Summary"
+        className="flex items-center gap-1 hover:text-gray-900 cursor-pointer bg-transparent border-none p-0"
+        onClick={() => onOpenCostSummary?.()}
+      >
+        <DollarSign size={12} />
+        Cost
       </button>
     </div>
   )
