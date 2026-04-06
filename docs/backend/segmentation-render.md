@@ -73,6 +73,12 @@ When a path element's `strokeWidthCm` is zero (or absent), fall back to the reso
 
 When a path element has `closed: true`, the renderer must draw an implicit closing segment from the last point (`points[N]`) back to the first point (`points[0]`). This closing segment is always a straight line — it is NOT stored in the `segments` array. See [data-schema.md "### Path Element" → "#### Closed Paths"] for the data model rule.
 
+### Structure Rotation
+
+Straight structures: rotate the rectangle corners around the element's bounding box center by `element.rotation` degrees before drawing.
+
+Curved structures with rotation: compute the arc geometry first (arc band points from `arcSagitta`), then rotate all computed points around the bounding box center (`element.x + element.width / 2`, `element.y + element.height / 2`) by `element.rotation` degrees. The rotation is always applied as a post-transform — arc geometry is computed in axis-aligned space, then the entire shape is rotated.
+
 ### Tree Dual-Shape Rule
 
 Trees are drawn as two overlapping shapes at the same center point. The trunk circle is drawn first (smaller); the canopy circle is drawn on top (larger). Each shape uses its own segmentation color from the color table below.
@@ -159,7 +165,7 @@ Segmentation colors are fixed constants — not derived from registry display co
 
 ### Fallback Rules
 
-- Terrain type not in table: use `terrainType.category` — `natural` → `#00AA00`, `hardscape` → `#AAAAAA`, `water` → `#4169E1`, `other` → `#8B4513`.
+- Terrain type not in table: use `terrainType.category` — `natural` → `#00AA00`, `hardscape` → `#AAAAAA`, `water` → `#4169E1`, `mulch` → `#6B3A2A`, `other` → `#8B4513`.
 - Path or structure with no `material` field: use `#888888`.
 - Unknown element type: exclude from the segmentation map entirely.
 

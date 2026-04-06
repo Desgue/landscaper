@@ -320,7 +320,7 @@ Registries define the available types for each element category. Built-in types 
 {
   "id": "string (slug, e.g. 'grass')",
   "name": "string (e.g. 'Grass', max 100 chars)",
-  "category": "natural | hardscape | water | other",
+  "category": "natural | hardscape | water | mulch | other",
   "color": "string (hex, 6-digit with hash, e.g. '#4CAF50')",
   "textureUrl": "string (URL or relative path) | null",
   "costPerUnit": "number | null (cost per m²)",
@@ -328,7 +328,7 @@ Registries define the available types for each element category. Built-in types 
 }
 ```
 
-The segmentation render maps terrain type IDs to fixed colors by exact ID match before falling back to `category`. Built-in terrain type IDs and their semantic mappings: `"grass"` → lawn/grass, `"soil"` / `"mulch"` / `"bark"` → soil/mulch, `"gravel"` / `"concrete"` → gravel/stone, `"wood-decking"` / `"decking-surface"` → wood decking, `"water"` → water. Custom terrain types without a matching built-in ID fall back to their `category`: `natural` → `#00AA00`, `hardscape` → `#AAAAAA`, `water` → `#4169E1`, `other` → `#8B4513`. See [segmentation-render.md "## Segmentation Color Table"].
+The segmentation render maps terrain type IDs to fixed colors by exact ID match before falling back to `category`. Built-in terrain type IDs and their semantic mappings: `"grass"` → lawn/grass, `"soil"` / `"mulch"` / `"bark"` → soil/mulch, `"gravel"` / `"concrete"` → gravel/stone, `"wood-decking"` / `"decking-surface"` → wood decking, `"water"` → water. Custom terrain types without a matching built-in ID fall back to their `category`: `natural` → `#00AA00`, `hardscape` → `#AAAAAA`, `water` → `#4169E1`, `mulch` → `#6B3A2A`, `other` → `#8B4513`. See [segmentation-render.md "## Segmentation Color Table"].
 
 ### Plant Type
 
@@ -591,7 +591,7 @@ Note: if `plantedDate` is non-null and `status` is `"planned"`, the import keeps
 |-------|-----------|---------|
 | `id` | Non-empty string matching slug format, unique within registry | **Skip type** (no valid ID = unusable) |
 | `name` | Non-empty string, max 100 chars | Title-case from `id`: split on `-`, capitalize each word, join with space (e.g., `"cherry-tomato"` → `"Cherry Tomato"`) |
-| `category` (terrain) | One of: `"natural"`, `"hardscape"`, `"water"`, `"other"` | `"other"` |
+| `category` (terrain) | One of: `"natural"`, `"hardscape"`, `"water"`, `"mulch"`, `"other"` | `"other"` |
 | `category` (plant/structure/path) | String, max 50 chars | `"other"` |
 | `color` (terrain/path) | Valid hex (see Hex Color Format) | `"#999999"` |
 | `iconUrl` (plant/structure) | Non-empty string | **Skip type** (can't render without icon) |
