@@ -1,18 +1,100 @@
 # Image Generation
 
-Feature that produces photorealistic views of a garden plan by combining a 3D scene render from plan data (structural ground truth) with AI image generation (photorealistic output). This is a Feature Doc.
+Feature that produces photorealistic views of a garden plan by combining a 3D scene render from plan data (structural ground truth) with AI image generation (photorealistic output).
+
+This feature is developed as a **standalone API** that consumes a garden planner JSON export and returns an image. It will be integrated into the garden planner app in a future phase. See [## Future App Integration].
 
 ---
 
 ## Overview
 
-The image generation pipeline translates a 2D plan into a photorealistic image through three stages:
+The image generation pipeline translates a 2D plan into a photorealistic image through four stages:
 
-1. **3D Scene Construction** — build a Three.js scene from plan element data (positions, dimensions, types)
+1. **3D Scene Construction** — build a 3D scene from plan element data (positions, dimensions, types)
 2. **Structural Render** — render the scene to a depth map and a segmentation map
-3. **AI Generation** — POST both maps + a structured text prompt to an image generation API using ControlNet conditioning
+3. **Text Prompt Construction** — build a structured prompt from plan registry data
+4. **Image Generation API** — POST both maps + prompt to an image generation API using ControlNet conditioning
 
 The AI produces an image that is spatially constrained by the structural maps and visually realistic via diffusion. The plan layout is preserved; the AI fills in photorealistic texture, lighting, and atmosphere.
+
+---
+
+## Standalone API Contract
+
+This is the single source of truth for the standalone image generation API interface. Future app integration references this section.
+
+### Endpoint
+
+```
+POST /generate
+Content-Type: application/json
+Accept: image/png
+```
+
+### Request Body
+
+```json
+{
+  "project": { "...full JSON export per data-schema.md ## Export Format..." },
+  "options": {
+    "include_planned": "boolean (default: true — include plants with status 'planned')",
+    "garden_style": "cottage | formal | tropical | mediterranean | japanese | kitchen | native | contemporary | garden",
+    "season": "early spring | late spring | summer | late summer | autumn | winter",
+    "time_of_day": "morning | midday | golden hour | overcast",
+    "viewpoint": "eye-level | elevated | isometric",
+    "aspect_ratio": "square | landscape | portrait",
+    "seed": "integer | -1 (default: -1 = random)"
+  }
+}
+```
+
+All `options` fields are optional. Defaults:
+
+| Field | Default |
+|---|---|
+| `include_planned` | `true` |
+| `garden_style` | `"garden"` |
+| `season` | Derived from `project.location` + server date; falls back to `"summer"` if location is null |
+| `time_of_day` | `"golden hour"` |
+| `viewpoint` | `"eye-level"` |
+| `aspect_ratio` | `"square"` |
+| `seed` | `-1` |
+
+### Response
+
+```
+HTTP 200
+Content-Type: image/png
+Body: raw PNG image bytes
+```
+
+Output dimensions per `aspect_ratio`:
+
+| Value | Dimensions |
+|---|---|
+| `square` | 1024 × 1024 px |
+| `landscape` | 1024 × 576 px (16:9) |
+| `portrait` | 576 × 1024 px (9:16) |
+
+On error:
+
+```
+HTTP 4xx / 5xx
+Content-Type: application/json
+Body: { "error": "string" }
+```
+
+### Server Configuration
+
+These values are set in server environment variables, never in the request body:
+
+| Variable | Purpose |
+|---|---|
+| `IMAGE_API_KEY` | API key for the image generation backend |
+| `IMAGE_API_BASE_URL` | Base URL of the image generation backend |
+| `IMAGE_MODEL_ID` | Model identifier on the backend |
+
+The specific image generation backend is not specified in this document — it is a deployment decision. The API abstraction described in [## Stage 4: Image Generation API] defines what the server must send; the backend adapter translates it.
 
 ---
 
@@ -20,273 +102,277 @@ The AI produces an image that is spatially constrained by the structural maps an
 
 ### Stage 1: 3D Scene Construction
 
-Build a Three.js scene by iterating over `project.elements` and `project.yardBoundary`.
+Build a 3D scene by iterating over `project.elements` and `project.yardBoundary` from the JSON export.
 
-**Coordinate mapping:**
-- Plan coordinates are in centimeters. Map 1cm → 1 Three.js unit.
-- Y-axis in plan points down (HTML Canvas). Three.js Y-axis points up. Convert: `threeZ = -planY`, `threeX = planX`. Height (vertical) maps to Three.js Y.
+#### Coordinate Mapping
+
+- Plan coordinates are in centimeters. Map 1cm → 1 world unit.
+- Y-axis in plan points down (HTML Canvas). 3D Y-axis points up. Convert: `worldZ = -planY`, `worldX = planX`. Vertical height maps to world Y.
 - Yard boundary defines the ground plane at Y = 0.
 
-**Element-to-geometry mapping:**
+#### Element Filtering
 
-| Element type | 3D representation | Height source |
+Before building geometry, filter `project.elements`:
+
+| Condition | Action |
+|---|---|
+| Element on a hidden layer | Exclude — check `element.layerId` against `project.layers[].visible` |
+| Plant with `status: "removed"` | Always exclude |
+| Plant with `status: "planned"` and `include_planned: false` | Exclude |
+| All other elements | Include |
+
+Labels and dimensions are always excluded (no physical geometry).
+
+#### Element Center Position
+
+All elements store `x, y` as the **top-left corner** of their bounding box. Compute world center before placing geometry:
+
+```
+centerX = element.x + element.width / 2
+centerZ = -(element.y + element.height / 2)    // Y-flip
+```
+
+Exception — terrain cell: `x, y` is the cell's top-left corner aligned to 100cm boundaries. Center is always `x + 50, y + 50`.
+
+#### Element-to-Geometry Mapping
+
+| Element type | 3D representation | Notes |
 |---|---|---|
-| Terrain cell | 1m × 1m flat plane at Y = 0 | 0 (ground layer) |
-| Plant — herb/groundcover | Flat disc at Y = 1cm | `spacingCm` as diameter |
-| Plant — shrub | Hemisphere mesh | `heightCm` from plant type registry |
-| Plant — tree (trunk) | Cylinder | `trunkWidthCm` as diameter, `heightCm` from registry |
-| Plant — tree (canopy) | Sphere or flattened ellipsoid | `canopyWidthCm` as diameter, placed at `heightCm * 0.6` |
-| Plant — climber | Vertical plane or extruded outline | `heightCm` from registry |
-| Structure | Extruded footprint | Fixed height per structure category (see table below) |
-| Path | Extruded polyline/arc | 2cm above ground (Y = 2) |
-| Label | Not rendered | Excluded from 3D scene |
-| Dimension | Not rendered | Excluded from 3D scene |
+| Terrain cell | Flat 100×100cm plane at Y = 0 | Centered at cell center |
+| Plant — herb / groundcover / climber | Flat disc at Y = 1cm | Diameter = `spacingCm` |
+| Plant — shrub | Hemisphere | Diameter = `canopyWidthCm` if set, else `spacingCm` |
+| Plant — tree (trunk) | Cylinder | Diameter = `trunkWidthCm`; if null → exclude trunk mesh, AI infers from plant name |
+| Plant — tree (canopy) | Sphere | Diameter = `canopyWidthCm`; if null → exclude canopy mesh, AI infers from plant name |
+| Structure | Extruded footprint | Height from registry `heightCm` if set, else category default (see table below) |
+| Path | Extruded polyline / arc | 2cm above ground (Y = 2); width = `strokeWidthCm` |
 
-**Structure default heights (when registry does not specify):**
+Plant `quantity` is always rendered as **1 mesh** regardless of the quantity value. Quantity is informational.
+
+**Structure height defaults** (used when `structureType.heightCm` is null — see [## Pending Schema Changes]):
 
 | Structure category | Default height |
 |---|---|
-| boundary (wall, fence) | 180cm |
-| container (raised bed, planter) | 40cm |
-| surface (patio, deck) | 5cm |
-| overhead (pergola, arbor) | 240cm |
-| feature (fire pit, water feature) | 50cm |
-| furniture (bench, table) | 75cm |
+| boundary | 180cm |
+| container | 40cm |
+| surface | 5cm |
+| overhead | 240cm |
+| feature | 50cm |
+| furniture | 75cm |
 
-Structure rotation from `element.rotation` (degrees) applies to the extruded mesh around Three.js Y-axis.
+Structure `element.rotation` (degrees) applies to the extruded mesh around the vertical axis.
 
-Curved structures and curved path segments use arc geometry. Compute arc center and radius from sagitta [spatial-math-specification.md "## 5. Arc Geometry"], then extrude along the arc path.
+Curved structures and curved path segments use arc geometry. Compute arc center and radius from `arcSagitta` [spatial-math-specification.md "## 5. Arc Geometry"], then extrude along the arc path.
 
-**Elements on hidden layers are excluded** from scene construction [layers-groups.md "## Layer Visibility"].
+#### Yard Boundary Ground Fill
+
+The yard boundary polygon defines the ground extent. Areas inside the boundary where no terrain cell exists (unpainted ground) are rendered as **bare soil** in the 3D scene and segmentation map.
+
+Areas outside the boundary are not rendered (void — mapped to `#000000` in segmentation).
 
 ---
 
 ### Stage 2: Structural Render
 
-Render the Three.js scene to two off-screen targets at the same resolution (default: 1024 × 1024px).
+Render the 3D scene to two off-screen targets at the output resolution matching the requested `aspect_ratio`.
+
+**Render layer order:** when elements overlap, the element higher in the canvas render order paints over lower elements in both the depth map and segmentation map. Order (bottom to top): terrain → paths → structures → plants [canvas-viewport.md "## Render Layer Order (bottom to top)"].
 
 #### Depth Map
 
-- Use Three.js `MeshDepthMaterial` or read the WebGL depth buffer directly.
-- Normalize depth range: near plane = 0 (white), far plane = max yard diagonal (black).
-- Output: grayscale PNG.
-- White = closest to camera; black = furthest or sky.
+- Render using a depth material (grayscale from depth buffer).
+- Normalize depth: near = white, far / sky = black.
+- Output: grayscale PNG at output resolution.
 
 #### Segmentation Map
 
 - Assign each element a flat, unlit color based on its semantic category.
-- Render with `MeshBasicMaterial` (no lighting, no shadows).
-- Output: flat-color PNG with no anti-aliasing (nearest-neighbor sampling) to avoid color bleeding at boundaries.
+- Render with flat / unlit shading — no lighting, no shadows.
+- Output: flat-color PNG at output resolution. No anti-aliasing (nearest-neighbor sampling) to prevent color bleeding at boundaries.
 
 **Segmentation color assignments:**
 
 | Semantic category | Hex color | Applies to |
 |---|---|---|
-| sky / void | `#000000` | Background (outside yard boundary) |
+| void / sky | `#000000` | Outside yard boundary |
+| bare soil (default ground) | `#8B4513` | Unpainted ground inside yard boundary |
 | lawn / grass | `#00AA00` | Terrain type: grass |
-| bare soil | `#8B4513` | Terrain type: soil |
+| soil / mulch | `#6B3A2A` | Terrain type: soil, mulch, bark |
 | gravel / stone | `#AAAAAA` | Terrain type: gravel, concrete |
-| mulch / bark | `#6B3A2A` | Terrain type: mulch, bark |
-| hardscape — wood | `#C8A96E` | Terrain type: wood decking |
-| path — stone | `#999999` | Path type: stone, gravel |
-| path — brick | `#CC6644` | Path type: brick |
-| path — wood | `#B8860B` | Path type: wood |
+| wood decking | `#C8A96E` | Terrain type: wood decking |
+| water (terrain) | `#4169E1` | Terrain type: water |
+| path — stone / gravel | `#999999` | Path `material`: stone, gravel |
+| path — brick | `#CC6644` | Path `material`: brick |
+| path — wood | `#B8860B` | Path `material`: wood |
+| path — concrete | `#BBBBBB` | Path `material`: concrete |
+| path — other | `#888888` | Path `material`: other |
 | tree trunk | `#5C3317` | Plant growth form: tree (trunk mesh) |
 | tree canopy | `#228B22` | Plant growth form: tree (canopy mesh) |
 | shrub | `#3A7A3A` | Plant growth form: shrub |
 | herb / vegetable | `#66BB66` | Plant growth form: herb |
 | groundcover | `#558B55` | Plant growth form: groundcover |
 | climber | `#4A7A4A` | Plant growth form: climber |
-| structure — wood | `#DEB887` | Structure material: wood |
-| structure — metal | `#B0C4DE` | Structure material: metal |
-| structure — masonry | `#D2B48C` | Structure material: masonry, stone |
-| water | `#4169E1` | Terrain type: water; structure category: feature (water) |
-| fire feature | `#FF6633` | Structure category: feature (fire) |
+| structure — wood | `#DEB887` | Structure `material`: wood |
+| structure — metal | `#B0C4DE` | Structure `material`: metal |
+| structure — masonry | `#D2B48C` | Structure `material`: masonry |
+| structure — stone | `#C9A96E` | Structure `material`: stone |
+| structure — other | `#BBAA99` | Structure `material`: other |
+| water feature | `#4169E1` | Structure category: feature + material: other (water) |
+| fire feature | `#FF6633` | Structure category: feature + id contains "fire" |
 
-Color assignments are fixed constants — not derived from plant type registry colors. Registry colors drive the 2D canvas render [canvas-viewport.md "## Render Layer Order"]; segmentation colors are exclusively for AI conditioning.
+Segmentation colors are fixed constants — not derived from registry display colors. Registry colors drive the 2D canvas render only [canvas-viewport.md "## Render Layer Order"].
 
-Unknown terrain/structure/path types fall back to the closest category in the table. If no match: use `#888888` (neutral gray).
+**Fallback rules:**
+
+- Terrain type not in table → use `terrainType.category`: `natural` → `#00AA00`, `hardscape` → `#AAAAAA`, `water` → `#4169E1`, `other` → `#8B4513`
+- Path or structure with no `material` field (pending schema change) → use `#888888`
+- Unknown element type → exclude from segmentation map
 
 ---
 
 ### Stage 3: Text Prompt Construction
 
-Build the prompt programmatically from plan data. The prompt has three parts: **subject**, **elements**, and **style**.
+Build the prompt from `options` and `project.registries`. The prompt has three parts:
 
 ```
-{subject}. {elements}. {style directives}.
+{subject}. {elements}. {style}.
 ```
 
-**Subject:** Describe the overall garden type and setting.
+**Subject:**
 
 ```
-subject = "A {garden_style} garden, {season}, {time_of_day}"
+"A {garden_style} garden, {season}, {time_of_day}"
 ```
 
-- `garden_style`: user-selected enum — `cottage`, `formal`, `tropical`, `mediterranean`, `japanese`, `kitchen`, `native`, `contemporary`. Default: `garden`.
-- `season`: derived from `project.location` + generation date, or user-selected — `early spring`, `late spring`, `summer`, `late summer`, `autumn`, `winter`.
-- `time_of_day`: user-selected — `morning`, `midday`, `golden hour`, `overcast`. Default: `golden hour`.
+Values come directly from `options.garden_style`, `options.season`, `options.time_of_day`.
 
-**Elements:** One clause per notable element present in the plan.
+**Elements:** Collect from elements included in the scene (post-filtering from Stage 1):
 
 ```
 elements = comma-joined list of:
-  - Each unique plant species name from registry (plantType.commonName or plantType.botanicalName)
-  - Each terrain type present (e.g., "gravel path", "lawn", "raised vegetable beds")
-  - Each structure category present (e.g., "wooden pergola", "stone raised beds")
+  1. Unique plant names: plantType.name for each unique plantTypeId present
+  2. Unique structure descriptions: "{structureType.name}" for each unique structureTypeId present
+  3. Unique terrain descriptions: terrainType.name for each unique terrainTypeId present
 ```
 
-Cap element list at 12 items to avoid prompt dilution. Priority: plants first, then structures, then terrain.
+Registry lookup: `element.plantTypeId` → `project.registries.plants[]` where `id` matches. Same pattern for structures and terrain.
 
-**Style directives:** Fixed suffix appended to every prompt.
+Cap at 12 items total. Priority: plants first (up to 7), structures second (up to 3), terrain last (up to 2).
 
-```
-"photorealistic, natural lighting, high detail, garden photography"
-```
+**Style:** Fixed suffix per `options.viewpoint`:
+
+| Viewpoint | Style suffix |
+|---|---|
+| `eye-level` | `"photorealistic, eye-level view, garden photography, natural lighting, high detail"` |
+| `elevated` | `"photorealistic, elevated perspective view, garden photography, natural lighting, high detail"` |
+| `isometric` | `"photorealistic, isometric view, garden photography, natural lighting, high detail"` |
 
 **Full example:**
 
 ```
-A cottage garden, late summer, golden hour. apple tree, rosa 'Gertrude Jekyll',
-lavender, raised vegetable beds, gravel path, wooden pergola, lawn.
-photorealistic, natural lighting, high detail, garden photography.
+A cottage garden, late summer, golden hour. Cherry Tomato, Lavender, Rose Bush,
+Wooden Pergola, Raised Bed, Grass, Gravel.
+photorealistic, eye-level view, garden photography, natural lighting, high detail.
 ```
 
-Negative prompt (always sent):
+**Negative prompt** (always sent):
 
 ```
-"illustration, flat design, cartoon, aerial view, watercolor, pencil sketch,
- text, labels, grid lines, blurry, low quality"
+"illustration, flat design, cartoon, watercolor, pencil sketch, text, labels,
+ grid lines, blurry, low quality, aerial view, floor plan"
 ```
 
 ---
 
-### Stage 4: API Request
+### Stage 4: Image Generation API
 
-POST to the configured image generation API endpoint.
+Send depth map, segmentation map, and prompt to the configured image generation backend via ControlNet conditioning.
 
-**Request payload:**
+**Abstract request to backend:**
 
-```json
-{
-  "prompt": "{constructed prompt}",
-  "negative_prompt": "{negative prompt}",
-  "controlnet_units": [
-    {
-      "type": "depth",
-      "image": "{base64-encoded depth map PNG}",
-      "weight": 0.7,
-      "guidance_start": 0.0,
-      "guidance_end": 1.0
-    },
-    {
-      "type": "seg",
-      "image": "{base64-encoded segmentation map PNG}",
-      "weight": 0.9,
-      "guidance_start": 0.0,
-      "guidance_end": 0.8
-    }
-  ],
-  "width": 1024,
-  "height": 1024,
-  "steps": 30,
-  "cfg_scale": 7.5,
-  "seed": -1
-}
+```
+prompt:           {constructed prompt string}
+negative_prompt:  {negative prompt string}
+depth_image:      {depth map PNG — base64 or multipart}
+seg_image:        {segmentation map PNG — base64 or multipart}
+depth_weight:     0.7        // how strictly spatial depth is enforced
+seg_weight:       0.9        // how strictly segmentation categories are enforced
+width:            {from aspect_ratio table}
+height:           {from aspect_ratio table}
+steps:            30
+cfg_scale:        7.5
+seed:             {options.seed}
 ```
 
-ControlNet weights are defaults. User can adjust depth weight `[0.3, 1.0]` and segmentation weight `[0.5, 1.0]` via the generation panel (see [image-generation.md "## Generation Panel UI"]).
+The server-side backend adapter translates this abstract request into the concrete API schema of the configured backend. The adapter is an internal implementation detail — not part of this spec.
 
-**Supported API backends:**
-
-| Backend | ControlNet support | Auth |
-|---|---|---|
-| Replicate | Yes — SDXL + ControlNet models | API token |
-| Stability AI | Yes — Stable Diffusion API v2 | API key |
-| ComfyUI (local) | Yes — self-hosted | Base URL (no auth) |
-
-API backend and credentials are stored in project-level user settings (not in project JSON export). Credentials are never included in exported project files.
-
-If the API request fails: display error message with HTTP status and response body. Do not retry automatically.
+**Timeout:** 60 seconds. On timeout: return HTTP 504 with `{ "error": "image generation timed out" }`. No automatic retry.
 
 ---
 
 ## Camera / Viewpoint
 
-The viewpoint used for the 3D render determines the perspective of the generated image. The AI is conditioned on the structural render, so the viewpoint must be consistent between the render and the prompt.
+The viewpoint defines the 3D camera used for structural rendering. It must be consistent between the depth map render and the prompt style directive.
 
-**Viewpoint options:**
-
-| Mode | Description | Three.js camera type |
+| Viewpoint | Camera type | Position |
 |---|---|---|
-| Eye-level | Standing in or at the edge of the garden | PerspectiveCamera, FOV 60°, camera at 170cm height |
-| Elevated perspective | Looking down at ~45°, standing outside the yard | PerspectiveCamera, FOV 50°, camera elevated |
-| Isometric | Fixed orthographic 3/4 view | OrthographicCamera, 45° tilt, 30° rotation |
+| `eye-level` | Perspective, FOV 60° | Height 170cm (eye height), 3m behind yard boundary edge, facing yard center |
+| `elevated` | Perspective, FOV 50° | Height 600cm, 5m outside yard boundary, angled down ~45° toward yard center |
+| `isometric` | Orthographic | 45° tilt, camera angle 30° from north, framing full yard |
 
-Default viewpoint: Eye-level, camera positioned at the yard boundary edge facing the garden center.
-
-Camera position for eye-level:
+**Eye-level default camera position:**
 
 ```
-camera.position = {
-  x: yardCenter.x,
-  y: 170,                        // 170cm (eye height)
-  z: yardBoundary.maxZ + 300     // 3m behind the far boundary edge
-}
-camera.lookAt(yardCenter.x, 100, yardCenter.z)
+camera.x = yardCenter.x
+camera.y = 170
+camera.z = yardBoundary.maxZ + 300
+
+lookAt: (yardCenter.x, 100, yardCenter.z)
 ```
 
-User can orbit the camera within the 3D preview before triggering generation. The selected viewpoint and camera transform are sent with the generation request as metadata (not as a conditioning input).
-
-Prompt style directive appended per viewpoint:
-
-| Viewpoint | Appended directive |
-|---|---|
-| Eye-level | `"eye-level view, standing in garden"` |
-| Elevated perspective | `"elevated perspective, looking down into garden"` |
-| Isometric | `"isometric view, 45 degree angle"` |
-
----
-
-## Generation Panel UI
-
-Triggered from the top toolbar: **"Visualize"** button (or keyboard shortcut `V`). Opens a right-side panel without hiding the canvas inspector.
-
-**Panel sections:**
-
-1. **3D Preview** — interactive Three.js viewport (orbit, zoom). Shows the scene that will be used for structural rendering. "Render structural maps" button produces the depth + segmentation maps and shows them as thumbnails.
-
-2. **Prompt** — read-only constructed prompt with an optional free-text suffix the user can append. Segmentation and depth map thumbnails shown here.
-
-3. **Style** — controls for garden style, season, time of day, viewpoint.
-
-4. **API** — backend selector, API key/URL input (masked), model selector.
-
-5. **Controls** — depth weight slider `[0.3, 1.0]`, segmentation weight slider `[0.5, 1.0]`, steps `[10, 50]`, seed (empty = random).
-
-6. **Generate** button — triggers the full pipeline. Shows spinner during API call.
-
-7. **Result** — generated image displayed below controls. "Save to journal" button links the image to the current journal entry or creates a new one [journal.md "## Element Linking"]. "Download PNG" exports the image directly.
+**Aspect ratio framing:** the camera frustum is sized to frame the full yard with 10% padding on all sides. Unpainted sky above / ground below the yard fills the remaining frame.
 
 ---
 
 ## Integration with Existing Data
 
-### Plant Registry
+### Registry Lookups
 
-`plantType.commonName` and `plantType.botanicalName` are used in prompt construction. `plantType.heightCm` and `plantType.canopyWidthCm` drive 3D geometry. No new fields required in the registry schema [data-schema.md "### Plant Type Registry"].
+The standalone API resolves all element types via `project.registries` included in the JSON export. Lookup chain:
 
-### Structure Registry
+```
+element.plantTypeId     → registries.plants[].id     → geometry + prompt name
+element.structureTypeId → registries.structures[].id → geometry + prompt name
+element.terrainTypeId   → registries.terrain[].id    → segmentation color + prompt name
+element.pathTypeId      → registries.paths[].id      → segmentation color
+```
 
-`structureType.category` maps to default height (see Stage 1 table). No new fields required [data-schema.md "### Structure Type Registry"].
+If a registry type is not found for an element: exclude that element from the 3D scene and omit from prompt. Log a warning.
 
-### Layers
+### Layer Visibility
 
-Hidden layers are excluded from the 3D scene and structural renders. Locked layers are included. Behavior matches the PNG export rule [persistence-projects.md "## PNG Export"].
+Elements on hidden layers (`project.layers[n].visible === false`) are excluded from the 3D scene, structural renders, and prompt element list. Locked layers are included. This matches PNG export behavior [persistence-projects.md "## PNG Export"].
 
-### Journal
+### Plant Type Fields Used
 
-Generated images can be attached to journal entries as assets. The generation metadata (prompt, viewpoint, API backend, seed) is stored as a journal entry annotation — not in the project element data [journal.md "## Entries"].
+| Field | Used for |
+|---|---|
+| `name` | Prompt construction |
+| `growthForm` | Geometry selection |
+| `spacingCm` | Herb/groundcover/climber disc diameter; tree/shrub fallback diameter |
+| `canopyWidthCm` | Shrub and tree canopy diameter |
+| `trunkWidthCm` | Tree trunk cylinder diameter |
+| `heightCm` | Plant vertical height in 3D scene |
+
+`iconUrl` is not used. `heightCm` on plants is informational in the 2D app [data-schema.md "### Plant Type"] but is used as a geometry driver here — this is the only consumer of this field for computation.
+
+### Structure Type Fields Used
+
+| Field | Used for |
+|---|---|
+| `name` | Prompt construction |
+| `category` | Height default fallback; collision semantics |
+| `material` | Segmentation color (pending — see [## Pending Schema Changes]) |
+| `heightCm` | 3D extrusion height (pending — see [## Pending Schema Changes]) |
 
 ---
 
@@ -294,22 +380,75 @@ Generated images can be attached to journal entries as assets. The generation me
 
 | Condition | Handling |
 |---|---|
-| No API key configured | "Generate" button disabled; tooltip: "Configure an API backend in the API panel" |
-| Empty plan (no elements) | 3D scene renders yard boundary only; generation proceeds with terrain-only prompt |
-| Plant type missing `heightCm` | Default to growth-form height: herb 30cm, shrub 120cm, tree 600cm, groundcover 10cm, climber 200cm |
-| Structure type missing category | Treat as `feature`; default height 50cm |
-| Yard boundary has arc edges | Approximate arc with 12-segment polyline for 3D extrusion |
-| API timeout (> 60s) | Show timeout error; do not retry automatically |
-| Generated image dimensions differ from request | Display as-is; do not upscale or crop |
-| User denies camera orbit before generation | Use default camera position |
+| `project.yardBoundary` is null | Return HTTP 400: `"project has no yard boundary"` |
+| No elements after filtering | Render yard boundary ground only; generate with terrain-only prompt |
+| Plant type not found in registry | Exclude element; log warning |
+| Structure type not found in registry | Exclude element; log warning |
+| `heightCm` null on plant | Default by growth form: herb 30cm, shrub 120cm, tree 600cm, groundcover 5cm, climber 200cm |
+| `canopyWidthCm` null on tree | Exclude canopy mesh; AI infers canopy from plant name in prompt |
+| `trunkWidthCm` null on tree | Exclude trunk mesh; AI infers trunk from plant name in prompt |
+| `structureType.heightCm` null | Use category default from height table |
+| `structureType.material` null | Segmentation color `#888888`; no material term added to prompt |
+| `pathType.material` null | Segmentation color `#888888` |
+| Yard boundary has arc edges | Approximate arc with 12-segment polyline for 3D ground plane extrusion |
+| `options.season` not provided and location is null | Default to `"summer"` |
+| Plant `quantity > 1` | Render 1 mesh; quantity is ignored for geometry |
+| Image generation API timeout > 60s | Return HTTP 504 |
+| Image generation API returns error | Return HTTP 502 with upstream error message |
+
+---
+
+## Pending Schema Changes
+
+These changes to the main garden planner data schema are required for full image generation fidelity. Until they are implemented, fallback rules from [## Constraints and Edge Cases] apply.
+
+### 1. `material` field on StructureType
+
+Add to `data-schema.md "### Structure Type"`:
+
+```json
+"material": "wood | metal | masonry | stone | other"
+```
+
+Default on import: `"other"`. Affects: segmentation color assignment, prompt construction.
+
+Docs requiring update: `data-schema.md`, `structures.md`, `image-generation.md`.
+
+### 2. `material` field on PathType
+
+Add to `data-schema.md "### Path Type"`:
+
+```json
+"material": "stone | gravel | brick | wood | concrete | other"
+```
+
+Default on import: `"other"`. Affects: segmentation color assignment.
+
+Docs requiring update: `data-schema.md`, `paths-borders.md`, `image-generation.md`.
+
+### 3. Height across the app
+
+Adding real-world height to the garden planner is a significant change that spans the data model, rendering, and collision rules. It is tracked separately. Affected docs: `data-schema.md`, `structures.md`, `plants.md`, `spatial-math-specification.md`, `visual-design.md`, `image-generation.md`.
+
+Until height is implemented in the main app, `structureType.heightCm` and `plantType.heightCm` are used by the image generation API only. The 2D canvas is unaffected.
+
+---
+
+## Future App Integration
+
+When this API is integrated into the garden planner app, the following UI and integration points are needed. These are not part of the standalone API spec.
+
+- **Visualize panel**: right-side panel with 3D scene preview, prompt display, style controls, generate button, result display
+- **Journal attachment**: generated images saved to journal entries [journal.md "## Entries"]
+- **Keyboard shortcut**: `V` to open the Visualize panel [keyboard-shortcuts.md]
+- **API credentials**: stored in app user settings (not in project JSON export)
 
 ---
 
 ## Not in MVP — Deferred
 
-- **Inpainting**: re-generate only a selected region of the image after editing part of the plan. Requires mask generation from changed elements.
-- **Animation / timelapse**: generate a sequence of images across seasons or plant growth stages.
-- **Style transfer**: apply a reference photo's style to the generated image.
-- **Local GPU inference**: direct integration with a locally-running ComfyUI workflow via WebSocket API (beyond the base URL option).
-- **Multi-view generation**: generate front, side, and overhead views simultaneously.
-- **3D asset library**: replace procedural geometry with curated GLTF models per plant species.
+- **Inpainting**: re-generate only a region of the image after editing part of the plan
+- **Animation / timelapse**: sequence of images across seasons or plant growth stages
+- **Style transfer**: apply a reference photo's style to the generated image
+- **Multi-view generation**: generate front, side, and overhead views simultaneously
+- **3D asset library**: replace procedural geometry with curated models per plant species
