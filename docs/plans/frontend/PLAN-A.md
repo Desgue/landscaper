@@ -106,7 +106,8 @@ grep -n "IndexedDB\|debounce\|auto.save\|undo\|history\|ring buffer" docs/fronte
 
 ##### Tasks
 
-- [ ] Initialize project with chosen framework (React + Canvas or equivalent); configure build tooling, linting, TypeScript
+- [x] Initialize project with chosen framework (React + Canvas or equivalent); configure build tooling, linting, TypeScript — done 2026-04-06
+  - Stack: React 19, Vite 8, TypeScript, ESLint + typescript-eslint; Tailwind CSS v4 also installed (not in original plan)
 - [ ] Implement layout shell: top toolbar, left side palette, right inspector panel, bottom status bar, canvas fill area — exact positions per `visual-design.md`
 - [ ] Implement global tool activation state machine: active tool ID tracked; keyboard dispatch wired; individual tool handlers registered per-plan
 - [ ] Stub minimap in bottom-right corner (non-functional placeholder; functional render in PLAN-E)
@@ -247,4 +248,5 @@ _Undo history lives in IndexedDB only — not in the JSON export. Import always 
 
 ```
 2026-04-06 — PLAN-A initialized. Phase A1 and A2 both todo. Blocks all other plans.
+2026-04-06 — Audit of current codebase: project init + build tooling done (React 19, Vite 8, TS, Tailwind v4 via @tailwindcss/vite). Layout shell, state machine, minimap stub, color tokens not started. Landing page (Greenprint marketing) exists in src/ — out of plan scope, does not conflict.
 ```
