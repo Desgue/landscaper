@@ -5,7 +5,7 @@ import SidePalette from './SidePalette'
 import InspectorPanel from './InspectorPanel'
 import LayerPanel from './LayerPanel'
 import StatusBar from './StatusBar'
-import MinimapStub from './MinimapStub'
+import Minimap from './Minimap'
 import CanvasRoot from '../canvas/CanvasRoot'
 import ZOrderContextMenu from './ZOrderContextMenu'
 import JournalView from './JournalView'
@@ -82,7 +82,7 @@ export default function AppLayout() {
               style={{ background: '#f5f5f5' }}
             >
               <CanvasRoot width={canvasSize.width} height={canvasSize.height} />
-              <MinimapStub />
+              <Minimap canvasWidth={canvasSize.width} canvasHeight={canvasSize.height} />
             </div>
 
             {/* Right: Inspector + Layer panels stacked */}
