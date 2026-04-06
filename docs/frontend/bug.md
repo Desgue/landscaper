@@ -26,14 +26,27 @@ Partially fixed. One confirmed bug remains undiagnosed at runtime.
 3. `handleMouseDown` not firing — hit detection failing for unknown reason
 4. `handleMouseDown` fires but `updateProject` results in no re-render
 
-**To diagnose:** add to `handleMouseDown`:
+**Logs needed to diagnose — add temporarily to `TerrainLayer.tsx`:**
+
 ```ts
-console.log('[terrain] down', { isActive, selectedTerrainTypeId, isTerrainTool })
+// After line: const isActive = isTerrainTool || isEraserTool
+console.log('[terrain] render', { activeTool, isActive, selectedTerrainTypeId })
+
+// First line of handleMouseDown body:
+console.log('[terrain] mousedown', { isActive, isTerrainTool, selectedTerrainTypeId, button: e.evt.button })
+
+// After getWorldPos(e):
+console.log('[terrain] worldPos', worldPos, '→ cell', cellX, cellY)
+
+// Before updateProject call (terrain branch):
+console.log('[terrain] painting', cells)
 ```
-and to the render body:
-```ts
-console.log('[terrain] render', { isActive, activeTool, selectedTerrainTypeId })
-```
+
+**Interpreting results:**
+- Render log fires but mousedown never fires → hit detection not reaching this Rect (check `isActive` in render log)
+- Mousedown fires but worldPos is `{x:0, y:0}` → `stage.getRelativePointerPosition()` returning null
+- Mousedown fires but painting log never fires → `isTerrainTool || selectedTerrainTypeId` is false
+- Painting fires but canvas unchanged → `updateProject` / re-render broken
 
 ---
 
