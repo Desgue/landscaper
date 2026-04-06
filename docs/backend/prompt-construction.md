@@ -85,7 +85,7 @@ Resolve names from `project.registries` using the type ID on each element:
 - Structure name: `element.structureTypeId` → `registries.structures[]` where `id` matches → `structureType.name`. See [data-schema.md "### Structure Type"].
 - Terrain name: `element.terrainTypeId` → `registries.terrain[]` where `id` matches → `terrainType.name`. See [data-schema.md "### Terrain Type"].
 
-Paths are rendered in the segmentation map (Stage 1/2) but are intentionally excluded from prompt element collection. Path registry entries have no `name` field useful for the AI model — their material and color are already encoded in the segmentation map.
+Paths are rendered in the segmentation map (Stage 1/2) but are intentionally excluded from prompt element collection. Path types do have a `name` field, but listing path names (e.g., "Brick Edging") adds no useful scene information for the AI model — their material and color are already fully encoded in the segmentation map.
 
 Collect unique names only — if multiple elements share the same type ID, that name appears once.
 
