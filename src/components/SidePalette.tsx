@@ -3,6 +3,7 @@ import { useProjectStore } from '../store/useProjectStore'
 import { useToolStore } from '../store/useToolStore'
 import { useTerrainPaintStore } from '../canvas/TerrainLayer'
 import { usePlantToolStore } from '../canvas/PlantLayer'
+import { useStructureToolStore } from '../canvas/StructureLayer'
 
 type Tab = 'Terrain' | 'Plants' | 'Structures' | 'Paths'
 const TABS: Tab[] = ['Terrain', 'Plants', 'Structures', 'Paths']
@@ -21,6 +22,10 @@ export default function SidePalette() {
   const selectedPlantTypeId = usePlantToolStore((s) => s.selectedPlantTypeId)
   const setSelectedPlantTypeId = usePlantToolStore((s) => s.setSelectedPlantTypeId)
 
+  const structureTypes = useProjectStore((s) => s.registries.structures)
+  const selectedStructureTypeId = useStructureToolStore((s) => s.selectedStructureTypeId)
+  const setSelectedStructureTypeId = useStructureToolStore((s) => s.setSelectedStructureTypeId)
+
   function handleTerrainSwatchClick(id: string) {
     setSelectedTerrainTypeId(id)
     useToolStore.getState().setTool('terrain')
@@ -29,6 +34,20 @@ export default function SidePalette() {
   function handlePlantSwatchClick(id: string) {
     setSelectedPlantTypeId(id)
     useToolStore.getState().setTool('plant')
+  }
+
+  const STRUCTURE_CATEGORY_COLORS: Record<string, string> = {
+    boundary: '#6b7280',
+    container: '#92400e',
+    surface: '#d97706',
+    overhead: '#7c3aed',
+    feature: '#0891b2',
+    furniture: '#1d4ed8',
+  }
+
+  function handleStructureSwatchClick(id: string) {
+    setSelectedStructureTypeId(id)
+    useToolStore.getState().setTool('structure')
   }
 
   return (
@@ -183,6 +202,56 @@ export default function SidePalette() {
                         }}
                       >
                         {pt.name}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : activeTab === 'Structures' ? (
+            <div className="flex-1 overflow-y-auto p-3">
+              <div className="flex flex-wrap gap-2">
+                {structureTypes.map((st) => {
+                  const color = STRUCTURE_CATEGORY_COLORS[st.category] ?? '#6b7280'
+                  return (
+                    <button
+                      key={st.id}
+                      title={st.name}
+                      onClick={() => handleStructureSwatchClick(st.id)}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 4,
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 2,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 6,
+                          background: color,
+                          boxSizing: 'border-box',
+                          border: selectedStructureTypeId === st.id
+                            ? '2.5px solid #1971c2'
+                            : '2px solid rgba(0,0,0,0.12)',
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: 10,
+                          color: '#374151',
+                          maxWidth: 40,
+                          textAlign: 'center',
+                          lineHeight: '1.2',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {st.name}
                       </span>
                     </button>
                   )

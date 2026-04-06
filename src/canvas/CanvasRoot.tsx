@@ -11,6 +11,7 @@ import SnapGuidesLayer from './SnapGuidesLayer'
 import YardBoundaryLayer, { OverflowDimLayer, YardBoundaryHTMLOverlays, getAABB } from './YardBoundaryLayer'
 import TerrainLayer from './TerrainLayer'
 import PlantLayer from './PlantLayer'
+import StructureLayer from './StructureLayer'
 
 interface CanvasRootProps {
   width: number
@@ -181,8 +182,8 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
         {/* 5. Paths layer — stub */}
         <Layer listening={false} />
 
-        {/* 6. Structures layer — stub */}
-        <Layer listening={false} />
+        {/* 6. Structures layer */}
+        <StructureLayer width={width} height={height} />
 
         {/* 7. Plants layer */}
         <PlantLayer width={width} height={height} />
