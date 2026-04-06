@@ -2,7 +2,7 @@
 
 Entry point for navigating this specification. Every doc is listed with its type, role, and key sections. Start here to find where a concept lives.
 
-For writing conventions and doc structure, see [template.md].
+For writing conventions and doc structure, see [template.md](template.md).
 
 ---
 
@@ -12,12 +12,12 @@ Behavioral specs — one per canvas element type. All follow the same skeleton: 
 
 | Doc | Element | Key Sections |
 |-----|---------|--------------|
-| [terrain.md] | Terrain cells (ground layer) | Terrain Brush Tool, Cell Mapping, Drag Painting, Brush Size, Eraser |
-| [plants.md] | Plants (icons on canvas) | Placement, Visual Size, Growth Form, Status Lifecycle, Spacing Enforcement |
-| [structures.md] | Structures (walls, fences, beds) | Placement, Straight vs Curved, Arc Tool, Rotation, Resize |
-| [paths-borders.md] | Paths & borders (brick edging, curves) | Drawing Segments, Segment Model, Segment Conversion, Closed Paths |
-| [labels.md] | Labels & annotations (text) | Placement (free by default, Alt enables snap), Editing, Styling |
-| [measurement-dimensions.md] | Dimension annotations (persistent measurement lines) | Measurement Tool, Dimension Element, Element Linking, Offset, Area & Perimeter Display, Material Estimates |
+| [terrain.md](frontend/terrain.md) | Terrain cells (ground layer) | Terrain Brush Tool, Cell Mapping, Drag Painting, Brush Size, Eraser |
+| [plants.md](frontend/plants.md) | Plants (icons on canvas) | Placement, Visual Size, Growth Form, Status Lifecycle, Spacing Enforcement |
+| [structures.md](frontend/structures.md) | Structures (walls, fences, beds) | Placement, Straight vs Curved, Arc Tool, Rotation, Resize |
+| [paths-borders.md](frontend/paths-borders.md) | Paths & borders (brick edging, curves) | Drawing Segments, Segment Model, Segment Conversion, Closed Paths |
+| [labels.md](frontend/labels.md) | Labels & annotations (text) | Placement (free by default, Alt enables snap), Editing, Styling |
+| [measurement-dimensions.md](frontend/measurement-dimensions.md) | Dimension annotations (persistent measurement lines) | Measurement Tool, Dimension Element, Element Linking, Offset, Area & Perimeter Display, Material Estimates |
 
 ---
 
@@ -27,10 +27,10 @@ Cross-cutting mechanics shared by all element types. These own the rules — ele
 
 | Doc | Owns | Key Sections |
 |-----|------|--------------|
-| [canvas-viewport.md] | Coordinate system, render layer order, collision matrix, viewport | Bounded Canvas, Coordinate System, Pan, Zoom, Multi-Resolution Grid, Render Layer Order, Overflow Dimming, Collision Rules, Selection Priority |
-| [snap-system.md] | Snap behavior (grid + geometry), alt modifier rules | Grid Snap, Geometry Snap, Priority Resolution, Adaptive Tolerance, Snap Guides, Alt Modifier Behavior |
-| [selection-manipulation.md] | Select, move, delete, copy/paste, resize, rotate, eraser | Select Tool, Box Select, Move, Copy & Paste, Undo & Redo, Resize, Rotation, Eraser Tool, Inspector Panel |
-| [layers-groups.md] | Layer visibility/locking, grouping | Layer Model, Layer Panel, Layer Visibility, Layer Locking, Layer Operations, Grouping, Group Behavior, Ungroup |
+| [canvas-viewport.md](frontend/canvas-viewport.md) | Coordinate system, render layer order, collision matrix, viewport | Bounded Canvas, Coordinate System, Pan, Zoom, Multi-Resolution Grid, Render Layer Order, Overflow Dimming, Collision Rules, Selection Priority |
+| [snap-system.md](frontend/snap-system.md) | Snap behavior (grid + geometry), alt modifier rules | Grid Snap, Geometry Snap, Priority Resolution, Adaptive Tolerance, Snap Guides, Alt Modifier Behavior |
+| [selection-manipulation.md](frontend/selection-manipulation.md) | Select, move, delete, copy/paste, resize, rotate, eraser | Select Tool, Box Select, Move, Copy & Paste, Undo & Redo, Resize, Rotation, Eraser Tool, Inspector Panel |
+| [layers-groups.md](frontend/layers-groups.md) | Layer visibility/locking, grouping | Layer Model, Layer Panel, Layer Visibility, Layer Locking, Layer Operations, Grouping, Group Behavior, Ungroup |
 
 ---
 
@@ -40,9 +40,9 @@ Lookup tables, schemas, algorithms. These are SSoT — authoritative and rarely 
 
 | Doc | SSoT For | Key Sections |
 |-----|----------|--------------|
-| [keyboard-shortcuts.md] | All keyboard shortcuts | Tools, Canvas Navigation, Selection & Manipulation, Toggles, Modifiers, Groups |
-| [data-schema.md] | JSON data shape (export/import, registries, elements) | Export Format, Element Schema, Journal Entry Schema, Registry Schemas, Import Validation & Defaults, Duplicate ID Resolution |
-| [spatial-math-specification.md] | Computational geometry and algorithms | Coordinate System, Grid Snapping, Snap System Architecture, Yard Boundary Polygon, Arc Geometry, Path Segment Connectivity, Selection & Hit Testing, Rotation, Plant Visual Size, Journal Element Linking, Measurement & Area Calculations, Dimension Line Rendering |
+| [keyboard-shortcuts.md](frontend/keyboard-shortcuts.md) | All keyboard shortcuts | Tools, Canvas Navigation, Selection & Manipulation, Toggles, Modifiers, Groups |
+| [data-schema.md](frontend/data-schema.md) | JSON data shape (export/import, registries, elements) | Export Format, Element Schema, Journal Entry Schema, Registry Schemas, Import Validation & Defaults, Duplicate ID Resolution |
+| [spatial-math-specification.md](frontend/spatial-math-specification.md) | Computational geometry and algorithms | Coordinate System, Grid Snapping, Snap System Architecture, Yard Boundary Polygon, Arc Geometry, Path Segment Connectivity, Selection & Hit Testing, Rotation, Plant Visual Size, Journal Element Linking, Measurement & Area Calculations, Dimension Line Rendering |
 
 ---
 
@@ -52,12 +52,12 @@ Workflows, UI, and non-element features.
 
 | Doc | Feature | Key Sections |
 |-----|---------|--------------|
-| [yard-setup.md] | Yard boundary creation flow (new project) | Define Boundary, Edge Dimensions, Curved Edges, Boundary as Element, Boundary Deletion |
-| [journal.md] | Journal & weather tracking | Entries, Element Linking, Timeline Views, Search & Filter, Weather Integration |
-| [persistence-projects.md] | Project management (save/load/export/import) | Welcome Screen, New Project Flow, Auto-Save, JSON Export, JSON Import, PNG Export |
-| [visual-design.md] | Cross-cutting visual and interaction design | Design Principles, Layout, Color Palette, Typography, Icons, Responsive, Accessibility, Design Rationale |
-| [cost-tracking.md] | Project cost estimation | Cost Model, Currency Setting, Inspector Integration, Cost Summary Panel, Cost Calculation Rules |
-| [image-generation.md] | Photorealistic image generation from plan data (standalone parallel feature — consumes JSON export as input) | Pipeline Stages, 3D Scene Construction, Structural Render, Depth Map, Segmentation Map, Text Prompt Construction, API Request, Camera/Viewpoint, Generation Panel UI, Integration with Existing Data, Constraints and Edge Cases, Not in MVP |
+| [yard-setup.md](frontend/yard-setup.md) | Yard boundary creation flow (new project) | Define Boundary, Edge Dimensions, Curved Edges, Boundary as Element, Boundary Deletion |
+| [journal.md](frontend/journal.md) | Journal & weather tracking | Entries, Element Linking, Timeline Views, Search & Filter, Weather Integration |
+| [persistence-projects.md](frontend/persistence-projects.md) | Project management (save/load/export/import) | Welcome Screen, New Project Flow, Auto-Save, JSON Export, JSON Import, PNG Export |
+| [visual-design.md](frontend/visual-design.md) | Cross-cutting visual and interaction design | Design Principles, Layout, Color Palette, Typography, Icons, Responsive, Accessibility, Design Rationale |
+| [cost-tracking.md](frontend/cost-tracking.md) | Project cost estimation | Cost Model, Currency Setting, Inspector Integration, Cost Summary Panel, Cost Calculation Rules |
+| [image-generation.md](backend/image-generation.md) | Photorealistic image generation from plan data (standalone parallel feature — consumes JSON export as input) | Pipeline Stages, 3D Scene Construction, Structural Render, Depth Map, Segmentation Map, Text Prompt Construction, API Request, Camera/Viewpoint, Generation Panel UI, Integration with Existing Data, Constraints and Edge Cases, Not in MVP |
 
 ---
 
@@ -65,8 +65,10 @@ Workflows, UI, and non-element features.
 
 | Doc | Purpose |
 |-----|---------|
-| [template.md] | Writing conventions, doc type skeletons, cross-reference format, anti-patterns |
-| [INDEX.md] | This file — entry point and manifest |
+| [template.md](template.md) | Writing conventions, doc type skeletons, cross-reference format, anti-patterns |
+| [INDEX.md](INDEX.md) | This file — entry point and manifest |
+| [PLAN_TEMPLATE.md](plans/PLAN_TEMPLATE.md) | AI-first plan template — copy this to create a new implementation plan; includes agent protocol and context map structure |
+| [IMPLEMENTATION_PLAN.md](plans/frontend/IMPLEMENTATION_PLAN.md) | Full implementation plan for all features (image generation excluded); living document updated by agents throughout development |
 
 ---
 
