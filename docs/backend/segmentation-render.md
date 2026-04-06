@@ -65,6 +65,14 @@ centerY = element.y + element.height / 2
 | Structure (curved) | Filled arc band | Derived from `arcSagitta` [spatial-math-specification.md "## 5. Arc Geometry"] |
 | Path | Stroked polyline or arc | Width = `strokeWidthCm` |
 
+### strokeWidthCm Fallback
+
+When a path element's `strokeWidthCm` is zero (or absent), fall back to the resolved `PathType.DefaultWidthCm` from the registry. If the registry entry is also missing (element excluded by registry miss), this fallback does not apply. See [data-schema.md "### Path element defaults"] for the frontend's equivalent rule.
+
+### Closed Path Rendering
+
+When a path element has `closed: true`, the renderer must draw an implicit closing segment from the last point (`points[N]`) back to the first point (`points[0]`). This closing segment is always a straight line — it is NOT stored in the `segments` array. See [data-schema.md "### Path Element" → "#### Closed Paths"] for the data model rule.
+
 ### Tree Dual-Shape Rule
 
 Trees are drawn as two overlapping shapes at the same center point. The trunk circle is drawn first (smaller); the canopy circle is drawn on top (larger). Each shape uses its own segmentation color from the color table below.
