@@ -200,7 +200,7 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
         <OverflowDimLayer width={width} height={height} />
 
         {/* 11. Selection UI layer (top) — handles, snap guides */}
-        <Layer>
+        <Layer listening={false}>
           <SnapGuidesLayer width={width} height={height} />
         </Layer>
       </Stage>
