@@ -163,9 +163,32 @@ Segmentation colors are fixed constants — not derived from registry display co
 | water feature | `#4169E1` | Structure category: feature + material: other (water) |
 | fire feature | `#FF6633` | Structure category: feature + id contains "fire" |
 
-### Fallback Rules
+### Terrain Color Lookup
 
-- Terrain type not in table: use `terrainType.category` — `natural` → `#00AA00`, `hardscape` → `#AAAAAA`, `water` → `#4169E1`, `other` → `#8B4513`.
+Two-step resolution. First, match the terrain type's `id` against the built-in ID table:
+
+| Built-in ID(s) | Color row |
+|---|---|
+| `"grass"` | lawn / grass `#00AA00` |
+| `"soil"`, `"mulch"`, `"bark"` | soil / mulch `#6B3A2A` |
+| `"gravel"`, `"concrete"` | gravel / stone `#AAAAAA` |
+| `"wood-decking"`, `"decking-surface"` | wood decking `#C8A96E` |
+| `"water"` | water `#4169E1` |
+
+If the terrain type ID does not match any built-in, fall back to `terrainType.category`:
+
+| Category | Color |
+|---|---|
+| `"natural"` | `#00AA00` |
+| `"hardscape"` | `#AAAAAA` |
+| `"water"` | `#4169E1` |
+| `"mulch"` | `#6B3A2A` |
+| `"other"` | `#8B4513` |
+
+See [data-schema.md "### Terrain Type"] for the full list of built-in IDs and category values.
+
+### Other Fallback Rules
+
 - Path or structure with no `material` field: use `#888888`.
 - Unknown element type: exclude from the segmentation map entirely.
 

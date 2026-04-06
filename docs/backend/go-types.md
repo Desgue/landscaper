@@ -154,7 +154,7 @@ type Registries struct {
 type TerrainType struct {
     ID       string `json:"id"`
     Name     string `json:"name"`
-    Category string `json:"category"` // "natural" | "hardscape" | "water" | "other"
+    Category string `json:"category"` // "natural" | "hardscape" | "water" | "mulch" | "other"
 }
 
 // PlantType is a plant registry entry.
