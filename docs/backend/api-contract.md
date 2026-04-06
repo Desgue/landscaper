@@ -130,6 +130,7 @@ Exact error strings per case:
 | No image part in Gemini response | 502 | `"no image in Nano Banana response"` |
 | Gemini API returns error | 502 | `"Nano Banana error: {upstream message}"` |
 | `yard_photo` present but invalid base64 or wrong format | 400 | `"invalid yard_photo"` |
+| `options.include_planned` unrecognized | 400 | `"invalid include_planned"` |
 | Gemini API timeout (> 60s) | 504 | `"image generation timed out"` |
 
 Gemini error handling is defined in [gemini-client.md "## Error Handling"].

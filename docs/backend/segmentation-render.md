@@ -92,7 +92,7 @@ Elements are drawn bottom to top. When elements overlap, the higher step paints 
 3. Draw terrain cells (each as a filled 100×100cm rectangle)
 4. Draw paths (stroked polylines or arcs at `strokeWidthCm` width)
 5. Draw structures (filled rectangles or arc bands, with rotation)
-6. Draw plants — canopy circle first, then trunk circle on top for trees
+6. Draw plants — trunk circle first, then canopy circle on top for trees
 
 ### In-Memory Output
 
