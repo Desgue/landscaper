@@ -81,7 +81,8 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
       } else {
         set({ past: [], future: [] });
       }
-    } catch {
+    } catch (err) {
+      console.error('[historyStore] loadHistory failed: projectId=%s', projectId, err);
       set({ past: [], future: [] });
     }
   },
@@ -91,8 +92,8 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
       const { past } = get();
       const db = await getDB();
       await db.put('undoHistory', { projectId, actions: past });
-    } catch {
-      // Silently ignore persistence errors
+    } catch (err) {
+      console.error('[historyStore] persistHistory failed: projectId=%s', projectId, err);
     }
   },
 }));

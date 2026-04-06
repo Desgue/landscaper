@@ -51,8 +51,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       if (currentProject) {
         saveProject(currentProject).then(() => {
           set({ isDirty: false });
-        }).catch(() => {
-          // Silently ignore save errors
+        }).catch((err) => {
+          console.error('[projectStore] auto-save failed: id=%s', currentProject.id, err);
         });
       }
     }, 2000);

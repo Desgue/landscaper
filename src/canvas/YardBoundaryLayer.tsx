@@ -397,13 +397,18 @@ export default function YardBoundaryLayer({ width: _width, height: _height }: Ya
   const labelFontSize = 13 / zoom
   const hitPadding = 8 / zoom
 
+  // FIX: Only allow YardBoundaryLayer to intercept pointer events when the
+  // select tool is active. Other tools (terrain, plant, structure, path, etc.)
+  // must not be blocked by this layer sitting above TerrainLayer in the z-order.
+  const selectToolActive = activeTool === 'select'
+
   // ── Placement mode ─────────────────────────────────────────────────────────
   if (isPlacing) {
     const nearFirst = cursorWorld !== null && isNearFirstVertex(cursorWorld)
     const liveStart = placedVertices.length > 0 ? placedVertices[placedVertices.length - 1] : null
 
     return (
-      <Layer>
+      <Layer listening={selectToolActive}>
         {/* Placed polygon outline so far */}
         {placedVertices.length >= 2 && (
           <Line
@@ -461,16 +466,18 @@ export default function YardBoundaryLayer({ width: _width, height: _height }: Ya
           />
         )}
         {/* Full-stage invisible hit rect to capture pointer events */}
-        <Rect
-          x={-50000}
-          y={-50000}
-          width={100000}
-          height={100000}
-          fill="transparent"
-          listening={true}
-          onMouseMove={handlePlacementMove}
-          onClick={handlePlacementClick}
-        />
+        {selectToolActive && (
+          <Rect
+            x={-50000}
+            y={-50000}
+            width={100000}
+            height={100000}
+            fill="transparent"
+            listening={true}
+            onMouseMove={handlePlacementMove}
+            onClick={handlePlacementClick}
+          />
+        )}
       </Layer>
     )
   }
@@ -582,7 +589,7 @@ export default function YardBoundaryLayer({ width: _width, height: _height }: Ya
   ))
 
   return (
-    <Layer>
+    <Layer listening={selectToolActive}>
       {edges}
       {labelsAndHandles}
       {vertexHandles}

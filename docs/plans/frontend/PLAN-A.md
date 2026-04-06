@@ -53,8 +53,8 @@ Before marking this plan `done`, verify these contracts are fulfilled (see `docs
 | **Title** | Core Engine |
 | **Scope** | App scaffold, data schema, canvas/viewport rendering pipeline, persistence layer, welcome screen, snap system. No element placement or editing tools. |
 | **Blocks** | PLAN-B, PLAN-C, PLAN-D, PLAN-E |
-| **Status** | `in-progress` |
-| **Started** | — |
+| **Status** | `done` |
+| **Started** | 2026-04-06 |
 | **Last updated** | 2026-04-06 |
 
 ---

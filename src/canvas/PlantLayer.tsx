@@ -18,6 +18,7 @@ import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useToolStore } from '../store/useToolStore'
 import { useViewportStore } from '../store/useViewportStore'
+import { useInspectorStore } from '../store/useInspectorStore'
 import { snapPoint } from '../snap/snapSystem'
 import type { PlantElement, PlantType, StructureElement } from '../types/schema'
 
@@ -52,7 +53,7 @@ function getPlantColor(plantType: PlantType): string {
 // ─── PLAN-C/D interface contracts ────────────────────────────────────────────
 
 /** Effective visual radius for a plant element (world cm). */
-function effectiveRadius(element: PlantElement, plantType: PlantType): number {
+function effectiveRadius(_element: PlantElement, plantType: PlantType): number {
   switch (plantType.growthForm) {
     case 'tree':
       return (plantType.canopyWidthCm ?? plantType.spacingCm) / 2
@@ -116,7 +117,7 @@ function hasStructureCollision(
   structures: StructureElement[],
   structureRegistry: Array<{ id: string; category: string }>,
 ): boolean {
-  const BLOCKING_CATEGORIES = ['boundary', 'surface', 'feature', 'furniture']
+  const BLOCKING_CATEGORIES = ['boundary', 'feature', 'furniture']
   for (const s of structures) {
     const st = structureRegistry.find((r) => r.id === s.structureTypeId)
     if (!st) continue
@@ -174,13 +175,15 @@ export default function PlantLayer(_props: PlantLayerProps) {
       if (!worldPos) return
 
       // Snap: 10cm increment, snap ON by default, Alt disables
+      // Read zoom fresh from store to avoid stale closure after zoom changes
+      const currentZoom = useViewportStore.getState().zoom
       const altHeld = e.evt.altKey
       const snapped = snapPoint(
         worldPos.x,
         worldPos.y,
         'place',
         proj.elements,
-        zoom,
+        currentZoom,
         10,
         proj.uiState.snapEnabled,
         altHeld,
@@ -236,8 +239,9 @@ export default function PlantLayer(_props: PlantLayerProps) {
       })
 
       pushHistory(snapshot)
+      useInspectorStore.getState().setInspectedElementId(id)
     },
-    [isActive, selectedPlantTypeId, zoom, updateProject, pushHistory],
+    [isActive, selectedPlantTypeId, updateProject, pushHistory],
   )
 
   if (!project) return null

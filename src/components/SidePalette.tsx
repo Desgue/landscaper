@@ -4,6 +4,7 @@ import { useToolStore } from '../store/useToolStore'
 import { useTerrainPaintStore } from '../canvas/TerrainLayer'
 import { usePlantToolStore } from '../canvas/PlantLayer'
 import { useStructureToolStore } from '../canvas/StructureLayer'
+import { usePathToolStore } from '../canvas/PathLayer'
 
 type Tab = 'Terrain' | 'Plants' | 'Structures' | 'Paths'
 const TABS: Tab[] = ['Terrain', 'Plants', 'Structures', 'Paths']
@@ -25,6 +26,10 @@ export default function SidePalette() {
   const structureTypes = useProjectStore((s) => s.registries.structures)
   const selectedStructureTypeId = useStructureToolStore((s) => s.selectedStructureTypeId)
   const setSelectedStructureTypeId = useStructureToolStore((s) => s.setSelectedStructureTypeId)
+
+  const pathTypes = useProjectStore((s) => s.registries.paths)
+  const selectedPathTypeId = usePathToolStore((s) => s.selectedPathTypeId)
+  const setSelectedPathTypeId = usePathToolStore((s) => s.setSelectedPathTypeId)
 
   function handleTerrainSwatchClick(id: string) {
     setSelectedTerrainTypeId(id)
@@ -48,6 +53,11 @@ export default function SidePalette() {
   function handleStructureSwatchClick(id: string) {
     setSelectedStructureTypeId(id)
     useToolStore.getState().setTool('structure')
+  }
+
+  function handlePathSwatchClick(id: string) {
+    setSelectedPathTypeId(id)
+    useToolStore.getState().setTool('path')
   }
 
   return (
@@ -256,6 +266,53 @@ export default function SidePalette() {
                     </button>
                   )
                 })}
+              </div>
+            </div>
+          ) : activeTab === 'Paths' ? (
+            <div className="flex-1 overflow-y-auto p-3">
+              <div className="flex flex-wrap gap-2">
+                {pathTypes.map((pt) => (
+                  <button
+                    key={pt.id}
+                    title={pt.name}
+                    onClick={() => handlePathSwatchClick(pt.id)}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 4,
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 2,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 32,
+                        height: 8,
+                        borderRadius: 4,
+                        background: pt.color,
+                        boxSizing: 'border-box',
+                        border: selectedPathTypeId === pt.id
+                          ? '2.5px solid #1971c2'
+                          : '2px solid rgba(0,0,0,0.12)',
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: 10,
+                        color: '#374151',
+                        maxWidth: 48,
+                        textAlign: 'center',
+                        lineHeight: '1.2',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {pt.name}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           ) : (

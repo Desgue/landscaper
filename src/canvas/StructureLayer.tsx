@@ -19,6 +19,7 @@ import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useToolStore } from '../store/useToolStore'
 import { useViewportStore } from '../store/useViewportStore'
+import { useInspectorStore } from '../store/useInspectorStore'
 import { snapPoint } from '../snap/snapSystem'
 import type { StructureElement, StructureType } from '../types/schema'
 
@@ -147,20 +148,22 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
       const proj = useProjectStore.getState().currentProject
       if (!proj) return worldPos
 
+      // Read zoom fresh from store to avoid stale closure after zoom changes
+      const currentZoom = useViewportStore.getState().zoom
       const altHeld = e.evt.altKey
       const snapped = snapPoint(
         worldPos.x,
         worldPos.y,
         'place',
         proj.elements,
-        zoom,
+        currentZoom,
         proj.gridConfig.snapIncrementCm ?? 10,
         proj.uiState.snapEnabled,
         altHeld,
       )
       return { x: snapped.x, y: snapped.y }
     },
-    [zoom],
+    [],
   )
 
   /** Compute the placement rect from anchor + current point. */
@@ -264,6 +267,7 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
         })
 
         pushHistory(snapshot)
+        useInspectorStore.getState().setInspectedElementId(id)
         placingRef.current = null
         setGhost(null)
       }

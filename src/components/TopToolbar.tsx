@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   MousePointer2,
   Hand,
@@ -16,6 +16,9 @@ import {
 import type { ToolId } from '../types/schema'
 import { useToolStore } from '../store/useToolStore'
 import { useHistoryStore } from '../store/useHistoryStore'
+import { useProjectStore } from '../store/useProjectStore'
+import { exportProjectAsJSON } from '../db/projectsDb'
+import { useRouter } from '@tanstack/react-router'
 
 // Design tokens
 const ACCENT = '#1971c2'
@@ -57,6 +60,13 @@ export default function TopToolbar() {
   const { activeTool, setTool, pushTemporaryTool, popTemporaryTool } = useToolStore()
   const undo = useHistoryStore((s) => s.undo)
   const redo = useHistoryStore((s) => s.redo)
+  const currentProject = useProjectStore((s) => s.currentProject)
+  const registries = useProjectStore((s) => s.registries)
+  const closeProject = useProjectStore((s) => s.closeProject)
+  const router = useRouter()
+
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -87,6 +97,18 @@ export default function TopToolbar() {
       window.removeEventListener('keyup', onKeyUp)
     }
   }, [setTool, pushTemporaryTool, popTemporaryTool])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!menuOpen) return
+    const onClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [menuOpen])
 
   return (
     <div
@@ -208,13 +230,44 @@ export default function TopToolbar() {
       <div className="flex-1" />
 
       {/* Project menu */}
-      <button
-        className="flex items-center gap-1 px-3 py-1.5 rounded text-sm text-gray-700 hover:bg-gray-100 border border-gray-200"
-        title="Project menu"
-        onClick={() => { /* TODO: project menu dropdown */ }}
-      >
-        Project ▾
-      </button>
+      <div className="relative" ref={menuRef}>
+        <button
+          className="flex items-center gap-1 px-3 py-1.5 rounded text-sm text-gray-700 hover:bg-gray-100 border border-gray-200"
+          title="Project menu"
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          Project ▾
+        </button>
+        {menuOpen && (
+          <div
+            className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded shadow-lg py-1 z-50"
+            style={{ minWidth: 180 }}
+          >
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              onClick={() => {
+                if (currentProject) {
+                  exportProjectAsJSON(currentProject, registries)
+                }
+                setMenuOpen(false)
+              }}
+              disabled={!currentProject}
+            >
+              Export JSON
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              onClick={() => {
+                closeProject()
+                router.navigate({ to: '/' })
+                setMenuOpen(false)
+              }}
+            >
+              Back to Projects
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

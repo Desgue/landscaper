@@ -12,6 +12,8 @@ import YardBoundaryLayer, { OverflowDimLayer, YardBoundaryHTMLOverlays, getAABB 
 import TerrainLayer from './TerrainLayer'
 import PlantLayer from './PlantLayer'
 import StructureLayer from './StructureLayer'
+import LabelLayer, { LabelHTMLOverlays } from './LabelLayer'
+import PathLayer from './PathLayer'
 
 interface CanvasRootProps {
   width: number
@@ -179,8 +181,8 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
         {/* 4. Yard boundary layer */}
         <YardBoundaryLayer width={width} height={height} />
 
-        {/* 5. Paths layer — stub */}
-        <Layer listening={false} />
+        {/* 5. Paths layer */}
+        <PathLayer width={width} height={height} />
 
         {/* 6. Structures layer */}
         <StructureLayer width={width} height={height} />
@@ -188,8 +190,8 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
         {/* 7. Plants layer */}
         <PlantLayer width={width} height={height} />
 
-        {/* 8. Labels layer — stub */}
-        <Layer listening={false} />
+        {/* 8. Labels layer */}
+        <LabelLayer width={width} height={height} />
 
         {/* 9. Dimensions layer — stub */}
         <Layer listening={false} />
@@ -205,6 +207,7 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
 
       {/* HTML overlays (not part of Konva stage) */}
       <YardBoundaryHTMLOverlays width={width} height={height} />
+      <LabelHTMLOverlays width={width} height={height} />
       <ScaleBar />
     </div>
   )

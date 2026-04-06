@@ -18,6 +18,14 @@ interface SnapCandidate {
   elementCreatedAt: string
 }
 
+// Extract snap candidates from an element's geometry.
+//
+// Perpendicular alignment snap (per snap-system.md): For the current MVP,
+// all elements are axis-aligned rectangles. Perpendicular to a horizontal
+// edge is vertical and vice versa, so edge + midpoint candidates below
+// fully cover perpendicular alignment for this element set. A general
+// projection-based perpendicular snap (for rotated elements, arcs, and
+// non-rectangular shapes) is deferred — see PLAN-A Phase A2 decision log.
 function extractCandidates(element: CanvasElement): SnapCandidate[] {
   const { x, y, width, height, createdAt } = element
   const right = x + width
@@ -32,9 +40,9 @@ function extractCandidates(element: CanvasElement): SnapCandidate[] {
     // Edge alignment: top and bottom edges (y-axis candidates)
     { axis: 'y', value: y, elementCreatedAt: createdAt },
     { axis: 'y', value: bottom, elementCreatedAt: createdAt },
-    // Midpoints: left-mid and right-mid (y-axis: midY)
+    // Perpendicular bisector of left/right edges (horizontal midpoint line)
     { axis: 'y', value: midY, elementCreatedAt: createdAt },
-    // Midpoints: top-mid and bottom-mid (x-axis: midX)
+    // Perpendicular bisector of top/bottom edges (vertical midpoint line)
     { axis: 'x', value: midX, elementCreatedAt: createdAt },
   ]
 }

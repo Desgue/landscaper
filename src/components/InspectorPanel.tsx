@@ -1,7 +1,650 @@
-import { useState } from 'react'
+import { useState, useCallback, useRef } from 'react'
+import { useProjectStore } from '../store/useProjectStore'
+import { useHistoryStore } from '../store/useHistoryStore'
+import { useInspectorStore } from '../store/useInspectorStore'
+import type {
+  CanvasElement,
+  TerrainElement,
+  PlantElement,
+  StructureElement,
+  PathElement,
+  LabelElement,
+  DimensionElement,
+  PlantStatus,
+  StructureShape,
+  TextAlign,
+  Project,
+} from '../types/schema'
+
+// ─── Shared UI helpers ──────────────────────────────────────────────────────
+
+const labelCls = 'text-xs text-gray-500 font-medium mb-0.5'
+const inputCls = 'rounded border border-gray-200 px-2 py-1 text-sm w-full'
+const readonlyCls = 'rounded border border-gray-100 bg-gray-50 px-2 py-1 text-sm w-full text-gray-600'
+const dividerCls = 'border-t border-gray-100 my-3'
+
+function ReadonlyField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="mb-2">
+      <div className={labelCls}>{label}</div>
+      <div className={readonlyCls}>{value}</div>
+    </div>
+  )
+}
+
+// ─── Sub-inspectors ─────────────────────────────────────────────────────────
+
+function TerrainInspector({ element }: { element: TerrainElement }) {
+  const registries = useProjectStore((s) => s.registries)
+  const terrainType = registries.terrain.find((t) => t.id === element.terrainTypeId)
+
+  return (
+    <div>
+      <ReadonlyField label="Type" value={terrainType?.name ?? element.terrainTypeId} />
+      <div className={dividerCls} />
+      <ReadonlyField label="Position X (m)" value={(element.x / 100).toFixed(2)} />
+      <ReadonlyField label="Position Y (m)" value={(element.y / 100).toFixed(2)} />
+      <div className={dividerCls} />
+      <ReadonlyField label="Layer" value={element.layerId} />
+    </div>
+  )
+}
+
+function PlantInspector({ element }: { element: PlantElement }) {
+  const registries = useProjectStore((s) => s.registries)
+  const updateProject = useProjectStore((s) => s.updateProject)
+  const pushHistory = useHistoryStore((s) => s.pushHistory)
+  const plantType = registries.plants.find((p) => p.id === element.plantTypeId)
+
+  // Snapshot ref for debounced text edits (notes)
+  const snapshotRef = useRef<Project | null>(null)
+
+  const startEdit = useCallback(() => {
+    if (!snapshotRef.current) {
+      const proj = useProjectStore.getState().currentProject
+      if (proj) snapshotRef.current = structuredClone(proj)
+    }
+  }, [])
+
+  const commitEdit = useCallback(() => {
+    if (snapshotRef.current) {
+      pushHistory(snapshotRef.current)
+      snapshotRef.current = null
+    }
+  }, [pushHistory])
+
+  /** Immediate update with history push (for discrete controls). */
+  const update = useCallback(
+    (updater: (el: PlantElement) => void) => {
+      const proj = useProjectStore.getState().currentProject
+      if (!proj) return
+      const snapshot = structuredClone(proj)
+      updateProject((draft) => {
+        const el = draft.elements.find((e) => e.id === element.id)
+        if (el && el.type === 'plant') updater(el as PlantElement)
+      })
+      pushHistory(snapshot)
+    },
+    [element.id, updateProject, pushHistory],
+  )
+
+  /** Live preview update without history push (for text inputs). */
+  const updateLive = useCallback(
+    (updater: (el: PlantElement) => void) => {
+      updateProject((draft) => {
+        const el = draft.elements.find((e) => e.id === element.id)
+        if (el && el.type === 'plant') updater(el as PlantElement)
+      })
+    },
+    [element.id, updateProject],
+  )
+
+  return (
+    <div>
+      <ReadonlyField label="Plant Type" value={plantType?.name ?? element.plantTypeId} />
+      <div className={dividerCls} />
+
+      {/* Position (editable, meters ↔ cm) */}
+      <div className="mb-2">
+        <div className={labelCls}>Position X (m)</div>
+        <input
+          type="number"
+          step="0.01"
+          className={inputCls}
+          value={(element.x / 100).toFixed(2)}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value)
+            if (!isNaN(v)) update((el) => { el.x = v * 100 })
+          }}
+        />
+      </div>
+      <div className="mb-2">
+        <div className={labelCls}>Position Y (m)</div>
+        <input
+          type="number"
+          step="0.01"
+          className={inputCls}
+          value={(element.y / 100).toFixed(2)}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value)
+            if (!isNaN(v)) update((el) => { el.y = v * 100 })
+          }}
+        />
+      </div>
+
+      <div className={dividerCls} />
+
+      {/* Status */}
+      <div className="mb-2">
+        <div className={labelCls}>Status</div>
+        <select
+          className={inputCls}
+          value={element.status}
+          onChange={(e) => update((el) => { el.status = e.target.value as PlantStatus })}
+        >
+          <option value="planned">Planned</option>
+          <option value="planted">Planted</option>
+          <option value="growing">Growing</option>
+          <option value="harvested">Harvested</option>
+          <option value="removed">Removed</option>
+        </select>
+      </div>
+
+      {/* Planted Date (visible when status !== planned) */}
+      {element.status !== 'planned' && (
+        <div className="mb-2">
+          <div className={labelCls}>Planted Date</div>
+          <input
+            type="date"
+            className={inputCls}
+            value={element.plantedDate ?? ''}
+            onChange={(e) => update((el) => { el.plantedDate = e.target.value || null })}
+          />
+        </div>
+      )}
+
+      {/* Quantity */}
+      <div className="mb-2">
+        <div className={labelCls}>Quantity</div>
+        <input
+          type="number"
+          min={1}
+          step={1}
+          className={inputCls}
+          value={element.quantity}
+          onChange={(e) => {
+            const v = parseInt(e.target.value, 10)
+            if (!isNaN(v) && v >= 1) update((el) => { el.quantity = v })
+          }}
+        />
+      </div>
+
+      <div className={dividerCls} />
+
+      {/* Notes */}
+      <div className="mb-2">
+        <div className={labelCls}>Notes</div>
+        <textarea
+          className={inputCls + ' resize-y min-h-[60px]'}
+          value={element.notes ?? ''}
+          onFocus={startEdit}
+          onChange={(e) => updateLive((el) => { el.notes = e.target.value || null })}
+          onBlur={commitEdit}
+          rows={3}
+        />
+      </div>
+    </div>
+  )
+}
+
+function StructureInspector({ element }: { element: StructureElement }) {
+  const registries = useProjectStore((s) => s.registries)
+  const updateProject = useProjectStore((s) => s.updateProject)
+  const pushHistory = useHistoryStore((s) => s.pushHistory)
+  const structureType = registries.structures.find((s) => s.id === element.structureTypeId)
+
+  // Snapshot ref for debounced text edits (notes)
+  const snapshotRef = useRef<Project | null>(null)
+
+  const startEdit = useCallback(() => {
+    if (!snapshotRef.current) {
+      const proj = useProjectStore.getState().currentProject
+      if (proj) snapshotRef.current = structuredClone(proj)
+    }
+  }, [])
+
+  const commitEdit = useCallback(() => {
+    if (snapshotRef.current) {
+      pushHistory(snapshotRef.current)
+      snapshotRef.current = null
+    }
+  }, [pushHistory])
+
+  const update = useCallback(
+    (updater: (el: StructureElement) => void) => {
+      const proj = useProjectStore.getState().currentProject
+      if (!proj) return
+      const snapshot = structuredClone(proj)
+      updateProject((draft) => {
+        const el = draft.elements.find((e) => e.id === element.id)
+        if (el && el.type === 'structure') updater(el as StructureElement)
+      })
+      pushHistory(snapshot)
+    },
+    [element.id, updateProject, pushHistory],
+  )
+
+  /** Live preview update without history push (for text inputs). */
+  const updateLive = useCallback(
+    (updater: (el: StructureElement) => void) => {
+      updateProject((draft) => {
+        const el = draft.elements.find((e) => e.id === element.id)
+        if (el && el.type === 'structure') updater(el as StructureElement)
+      })
+    },
+    [element.id, updateProject],
+  )
+
+  return (
+    <div>
+      <ReadonlyField label="Structure Type" value={structureType?.name ?? element.structureTypeId} />
+      <div className={dividerCls} />
+
+      {/* Position (meters) */}
+      <div className="mb-2">
+        <div className={labelCls}>Position X (m)</div>
+        <input
+          type="number"
+          step="0.01"
+          className={inputCls}
+          value={(element.x / 100).toFixed(2)}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value)
+            if (!isNaN(v)) update((el) => { el.x = v * 100 })
+          }}
+        />
+      </div>
+      <div className="mb-2">
+        <div className={labelCls}>Position Y (m)</div>
+        <input
+          type="number"
+          step="0.01"
+          className={inputCls}
+          value={(element.y / 100).toFixed(2)}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value)
+            if (!isNaN(v)) update((el) => { el.y = v * 100 })
+          }}
+        />
+      </div>
+
+      <div className={dividerCls} />
+
+      {/* Dimensions (meters) */}
+      <div className="mb-2">
+        <div className={labelCls}>Width (m)</div>
+        <input
+          type="number"
+          step="0.01"
+          min="0.01"
+          className={inputCls}
+          value={(element.width / 100).toFixed(2)}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value)
+            if (!isNaN(v) && v > 0) update((el) => { el.width = v * 100 })
+          }}
+        />
+      </div>
+      <div className="mb-2">
+        <div className={labelCls}>Height (m)</div>
+        <input
+          type="number"
+          step="0.01"
+          min="0.01"
+          className={inputCls}
+          value={(element.height / 100).toFixed(2)}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value)
+            if (!isNaN(v) && v > 0) update((el) => { el.height = v * 100 })
+          }}
+        />
+      </div>
+
+      <div className={dividerCls} />
+
+      {/* Shape toggle */}
+      <div className="mb-2">
+        <div className={labelCls}>Shape</div>
+        <div className="flex gap-1">
+          <button
+            className={`flex-1 px-2 py-1 text-xs rounded border ${element.shape === 'straight' ? 'bg-blue-50 border-blue-300 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            onClick={() => update((el) => { el.shape = 'straight' as StructureShape })}
+          >
+            Straight
+          </button>
+          <button
+            className={`flex-1 px-2 py-1 text-xs rounded border ${element.shape === 'curved' ? 'bg-blue-50 border-blue-300 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            onClick={() => update((el) => { el.shape = 'curved' as StructureShape })}
+          >
+            Curved
+          </button>
+        </div>
+      </div>
+
+      {/* Arc Sagitta (only when curved) */}
+      {element.shape === 'curved' && (
+        <div className="mb-2">
+          <div className={labelCls}>Arc Sagitta (cm)</div>
+          <input
+            type="number"
+            step="1"
+            className={inputCls}
+            value={element.arcSagitta ?? 0}
+            onChange={(e) => {
+              const v = parseFloat(e.target.value)
+              if (!isNaN(v)) update((el) => { el.arcSagitta = v })
+            }}
+          />
+        </div>
+      )}
+
+      {/* Rotation */}
+      <div className="mb-2">
+        <div className={labelCls}>Rotation (deg)</div>
+        <input
+          type="number"
+          step="1"
+          min="0"
+          max="359"
+          className={inputCls}
+          value={element.rotation}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value)
+            if (!isNaN(v)) update((el) => { el.rotation = ((v % 360) + 360) % 360 })
+          }}
+        />
+      </div>
+
+      <div className={dividerCls} />
+
+      {/* Notes */}
+      <div className="mb-2">
+        <div className={labelCls}>Notes</div>
+        <textarea
+          className={inputCls + ' resize-y min-h-[60px]'}
+          value={element.notes ?? ''}
+          onFocus={startEdit}
+          onChange={(e) => updateLive((el) => { el.notes = e.target.value || null })}
+          onBlur={commitEdit}
+          rows={3}
+        />
+      </div>
+    </div>
+  )
+}
+
+function PathInspector({ element }: { element: PathElement }) {
+  const registries = useProjectStore((s) => s.registries)
+  const updateProject = useProjectStore((s) => s.updateProject)
+  const pushHistory = useHistoryStore((s) => s.pushHistory)
+  const pathType = registries.paths.find((p) => p.id === element.pathTypeId)
+
+  const update = useCallback(
+    (updater: (el: PathElement) => void) => {
+      const proj = useProjectStore.getState().currentProject
+      if (!proj) return
+      const snapshot = structuredClone(proj)
+      updateProject((draft) => {
+        const el = draft.elements.find((e) => e.id === element.id)
+        if (el && el.type === 'path') updater(el as PathElement)
+      })
+      pushHistory(snapshot)
+    },
+    [element.id, updateProject, pushHistory],
+  )
+
+  // Calculate total length from segments
+  const totalLengthCm = element.points.reduce((sum, pt, i) => {
+    if (i === 0) return 0
+    const prev = element.points[i - 1]
+    const dx = pt.x - prev.x
+    const dy = pt.y - prev.y
+    return sum + Math.sqrt(dx * dx + dy * dy)
+  }, 0)
+
+  return (
+    <div>
+      <ReadonlyField label="Path Type" value={pathType?.name ?? element.pathTypeId} />
+      <div className={dividerCls} />
+
+      {/* Width */}
+      <div className="mb-2">
+        <div className={labelCls}>Width (cm)</div>
+        <input
+          type="number"
+          step="1"
+          min="1"
+          className={inputCls}
+          value={element.strokeWidthCm}
+          onChange={(e) => {
+            const v = parseInt(e.target.value, 10)
+            if (!isNaN(v) && v >= 1) update((el) => { el.strokeWidthCm = v })
+          }}
+        />
+      </div>
+
+      <ReadonlyField label="Total Length (m)" value={(totalLengthCm / 100).toFixed(2)} />
+
+      {/* Closed */}
+      <div className="mb-2 flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={element.closed}
+          onChange={(e) => update((el) => { el.closed = e.target.checked })}
+          className="rounded border-gray-300"
+        />
+        <span className={labelCls + ' mb-0'}>Closed</span>
+      </div>
+
+      <ReadonlyField label="Points" value={String(element.points.length)} />
+    </div>
+  )
+}
+
+function LabelInspector({ element }: { element: LabelElement }) {
+  const updateProject = useProjectStore((s) => s.updateProject)
+  const pushHistory = useHistoryStore((s) => s.pushHistory)
+
+  // Snapshot ref for debounced text edits
+  const snapshotRef = useRef<Project | null>(null)
+
+  const startEdit = useCallback(() => {
+    if (!snapshotRef.current) {
+      const proj = useProjectStore.getState().currentProject
+      if (proj) snapshotRef.current = structuredClone(proj)
+    }
+  }, [])
+
+  const commitTextEdit = useCallback(() => {
+    if (snapshotRef.current) {
+      pushHistory(snapshotRef.current)
+      snapshotRef.current = null
+    }
+  }, [pushHistory])
+
+  /** Immediate update with history push (for discrete controls). */
+  const update = useCallback(
+    (updater: (el: LabelElement) => void) => {
+      const proj = useProjectStore.getState().currentProject
+      if (!proj) return
+      const snapshot = structuredClone(proj)
+      updateProject((draft) => {
+        const el = draft.elements.find((e) => e.id === element.id)
+        if (el && el.type === 'label') updater(el as LabelElement)
+      })
+      pushHistory(snapshot)
+    },
+    [element.id, updateProject, pushHistory],
+  )
+
+  /** Live preview update without history push (for text inputs). */
+  const updateLive = useCallback(
+    (updater: (el: LabelElement) => void) => {
+      updateProject((draft) => {
+        const el = draft.elements.find((e) => e.id === element.id)
+        if (el && el.type === 'label') updater(el as LabelElement)
+      })
+    },
+    [element.id, updateProject],
+  )
+
+  return (
+    <div>
+      {/* Text */}
+      <div className="mb-2">
+        <div className={labelCls}>Text</div>
+        <textarea
+          className={inputCls + ' resize-y min-h-[60px]'}
+          value={element.text}
+          onFocus={startEdit}
+          onChange={(e) => updateLive((el) => { el.text = e.target.value })}
+          onBlur={commitTextEdit}
+          rows={3}
+        />
+      </div>
+
+      <div className={dividerCls} />
+
+      {/* Font Size */}
+      <div className="mb-2">
+        <div className={labelCls}>Font Size</div>
+        <input
+          type="number"
+          min={4}
+          max={200}
+          step={1}
+          className={inputCls}
+          value={element.fontSize}
+          onChange={(e) => {
+            const v = parseInt(e.target.value, 10)
+            if (!isNaN(v) && v >= 4 && v <= 200) update((el) => { el.fontSize = v })
+          }}
+        />
+      </div>
+
+      {/* Font Color */}
+      <div className="mb-2">
+        <div className={labelCls}>Font Color</div>
+        <input
+          type="color"
+          className="w-full h-8 rounded border border-gray-200 cursor-pointer"
+          value={element.fontColor}
+          onChange={(e) => update((el) => { el.fontColor = e.target.value })}
+        />
+      </div>
+
+      <div className={dividerCls} />
+
+      {/* Text Align */}
+      <div className="mb-2">
+        <div className={labelCls}>Text Align</div>
+        <div className="flex gap-1">
+          {(['left', 'center', 'right'] as TextAlign[]).map((align) => (
+            <button
+              key={align}
+              className={`flex-1 px-2 py-1 text-xs rounded border ${element.textAlign === align ? 'bg-blue-50 border-blue-300 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              onClick={() => update((el) => { el.textAlign = align })}
+            >
+              {align.charAt(0).toUpperCase() + align.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className={dividerCls} />
+
+      {/* Bold */}
+      <div className="mb-2 flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={element.bold}
+          onChange={(e) => update((el) => { el.bold = e.target.checked })}
+          className="rounded border-gray-300"
+        />
+        <span className={labelCls + ' mb-0'}>Bold</span>
+      </div>
+
+      {/* Italic */}
+      <div className="mb-2 flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={element.italic}
+          onChange={(e) => update((el) => { el.italic = e.target.checked })}
+          className="rounded border-gray-300"
+        />
+        <span className={labelCls + ' mb-0'}>Italic</span>
+      </div>
+    </div>
+  )
+}
+
+function DimensionInspector({ element }: { element: DimensionElement }) {
+  return (
+    <div>
+      <ReadonlyField label="Type" value="Dimension" />
+      <div className={dividerCls} />
+      <ReadonlyField
+        label="Start Point"
+        value={`(${(element.startPoint.x / 100).toFixed(2)}, ${(element.startPoint.y / 100).toFixed(2)}) m`}
+      />
+      <ReadonlyField
+        label="End Point"
+        value={`(${(element.endPoint.x / 100).toFixed(2)}, ${(element.endPoint.y / 100).toFixed(2)}) m`}
+      />
+    </div>
+  )
+}
+
+// ─── Element type label ─────────────────────────────────────────────────────
+
+function elementTypeLabel(el: CanvasElement): string {
+  switch (el.type) {
+    case 'terrain': return 'Terrain'
+    case 'plant': return 'Plant'
+    case 'structure': return 'Structure'
+    case 'path': return 'Path'
+    case 'label': return 'Label'
+    case 'dimension': return 'Dimension'
+  }
+}
+
+// ─── Dispatcher ─────────────────────────────────────────────────────────────
+
+function ElementInspector({ element }: { element: CanvasElement }) {
+  switch (element.type) {
+    case 'terrain':
+      return <TerrainInspector element={element} />
+    case 'plant':
+      return <PlantInspector element={element} />
+    case 'structure':
+      return <StructureInspector element={element} />
+    case 'path':
+      return <PathInspector element={element} />
+    case 'label':
+      return <LabelInspector element={element} />
+    case 'dimension':
+      return <DimensionInspector element={element} />
+  }
+}
+
+// ─── Main panel ─────────────────────────────────────────────────────────────
 
 export default function InspectorPanel() {
   const [collapsed, setCollapsed] = useState(false)
+  const inspectedElementId = useInspectorStore((s) => s.inspectedElementId)
+  const project = useProjectStore((s) => s.currentProject)
+
+  const element = project?.elements.find((el) => el.id === inspectedElementId) ?? null
 
   return (
     <div
@@ -25,9 +668,21 @@ export default function InspectorPanel() {
           </div>
 
           {/* Content */}
-          <div className="flex-1 flex items-center justify-center text-sm text-gray-400">
-            Nothing selected.
-          </div>
+          {element ? (
+            <div className="flex-1 overflow-y-auto px-3 py-3">
+              {/* Element type badge */}
+              <div className="mb-3">
+                <span className="inline-block px-2 py-0.5 rounded bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  {elementTypeLabel(element)}
+                </span>
+              </div>
+              <ElementInspector element={element} />
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-sm text-gray-400">
+              Nothing selected.
+            </div>
+          )}
         </>
       )}
 

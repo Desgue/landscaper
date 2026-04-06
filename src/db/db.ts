@@ -35,7 +35,10 @@ export function getDB(): Promise<IDBPDatabase<LandscapePlannerDB>> {
       },
     });
     // Reset cache on failure so the next call retries (e.g. after private-browsing rejection)
-    dbPromise.catch(() => { dbPromise = null; });
+    dbPromise.catch((err) => {
+      console.error('[db] IndexedDB open failed:', err);
+      dbPromise = null;
+    });
   }
   return dbPromise;
 }

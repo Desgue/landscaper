@@ -18,8 +18,7 @@ import type Konva from 'konva'
 import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useToolStore } from '../store/useToolStore'
-import { useViewportStore } from '../store/useViewportStore'
-import { snapPoint } from '../snap/snapSystem'
+import { useInspectorStore } from '../store/useInspectorStore'
 import type { TerrainElement, Project } from '../types/schema'
 
 // ─── Terrain paint store (selected terrain type) ──────────────────────────────
@@ -208,7 +207,6 @@ export default function TerrainLayer({ width: _width, height: _height }: Terrain
   const { updateProject } = useProjectStore()
   const pushHistory = useHistoryStore((s) => s.pushHistory)
   const activeTool = useToolStore((s) => s.activeTool)
-  const { zoom } = useViewportStore()
 
   // Currently selected terrain type (managed by SidePalette via store)
   const selectedTerrainTypeId = useTerrainPaintStore((s) => s.selectedTerrainTypeId)
@@ -223,34 +221,21 @@ export default function TerrainLayer({ width: _width, height: _height }: Terrain
   const isEraserTool = activeTool === 'eraser'
   const isActive = isTerrainTool || isEraserTool
 
-  /** Convert a Konva event pointer to snapped world coordinates (FIX 1). */
+  /** Convert a Konva event pointer to raw world coordinates.
+   *  Terrain uses cell-based placement (worldToCell handles alignment),
+   *  so we do NOT snap to 100cm here — that would double-round and offset
+   *  the painted cell from the cursor. */
   const getWorldPos = useCallback((e: Konva.KonvaEventObject<MouseEvent>): { x: number; y: number } => {
     const stage = e.target.getStage()
     if (!stage) return { x: 0, y: 0 }
 
-    // Use getRelativePointerPosition which returns world-space coords directly
+    // getRelativePointerPosition returns world-space coords accounting for
+    // the Stage's pan/zoom transform — correct at any zoom level.
     const worldPos = stage.getRelativePointerPosition()
     if (!worldPos) return { x: 0, y: 0 }
 
-    const proj = useProjectStore.getState().currentProject
-    if (!proj) return worldPos
-
-    // Snap to 100cm grid for terrain placement
-    const snapIncrementCm = isTerrainTool ? 100 : (proj.gridConfig.snapIncrementCm ?? 10)
-    const altHeld = e.evt.altKey
-    const snapped = snapPoint(
-      worldPos.x,
-      worldPos.y,
-      'place',
-      proj.elements,
-      zoom,
-      snapIncrementCm,
-      proj.uiState.snapEnabled,
-      altHeld,
-    )
-
-    return { x: snapped.x, y: snapped.y }
-  }, [isTerrainTool, zoom])
+    return worldPos
+  }, [])
 
   const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     if (!isActive) return
@@ -267,6 +252,11 @@ export default function TerrainLayer({ width: _width, height: _height }: Terrain
 
     const { cellX, cellY } = worldToCell(worldPos.x, worldPos.y)
     const layerId = proj.layers[0]?.id ?? 'default'
+
+    if (isTerrainTool && !selectedTerrainTypeId) {
+      console.warn('[TerrainLayer] paint attempted with no terrain type selected')
+      return
+    }
 
     if (isTerrainTool && selectedTerrainTypeId) {
       const cells = brushCells(cellX, cellY, brushSize)
@@ -336,6 +326,15 @@ export default function TerrainLayer({ width: _width, height: _height }: Terrain
     // FIX 3: Push the pre-paint snapshot (captured in handleMouseDown)
     const snap = prePaintSnapRef.current
     if (snap) { pushHistory(snap); prePaintSnapRef.current = null }
+
+    // Set the last-painted terrain cell as inspected element
+    const proj = useProjectStore.getState().currentProject
+    if (proj) {
+      const terrainEls = proj.elements.filter((el) => el.type === 'terrain')
+      if (terrainEls.length > 0) {
+        useInspectorStore.getState().setInspectedElementId(terrainEls[terrainEls.length - 1].id)
+      }
+    }
   }, [isActive, pushHistory])
 
   // FIX 6: Window-level mouseup to reset drag state on missed mouseup
@@ -346,6 +345,14 @@ export default function TerrainLayer({ width: _width, height: _height }: Terrain
         lastWorldPosRef.current = null
         const snap = prePaintSnapRef.current
         if (snap) { pushHistory(snap); prePaintSnapRef.current = null }
+        // Set the last-painted terrain cell as inspected element
+        const proj = useProjectStore.getState().currentProject
+        if (proj) {
+          const terrainEls = proj.elements.filter((el) => el.type === 'terrain')
+          if (terrainEls.length > 0) {
+            useInspectorStore.getState().setInspectedElementId(terrainEls[terrainEls.length - 1].id)
+          }
+        }
       }
     }
     window.addEventListener('mouseup', onWindowMouseUp)
