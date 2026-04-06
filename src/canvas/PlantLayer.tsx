@@ -244,6 +244,9 @@ export default function PlantLayer(_props: PlantLayerProps) {
     [isActive, selectedPlantTypeId, updateProject, pushHistory],
   )
 
+  const layers = project?.layers ?? []
+  const layerMap = new Map(layers.map((l) => [l.id, l]))
+
   if (!project) return null
 
   const plantElements = project.elements.filter(
@@ -270,6 +273,7 @@ export default function PlantLayer(_props: PlantLayerProps) {
         const plantType = registries.plants.find((p) => p.id === el.plantTypeId)
         if (!plantType) return null
         const color = getPlantColor(plantType)
+        const isEffectivelyLocked = el.locked || (layerMap.get(el.layerId)?.locked ?? false)
 
         return (
           <PlantVisual
@@ -278,6 +282,7 @@ export default function PlantLayer(_props: PlantLayerProps) {
             plantType={plantType}
             color={color}
             zoom={zoom}
+            lockedOpacity={isEffectivelyLocked ? 0.5 : 1}
           />
         )
       })}
@@ -292,9 +297,10 @@ interface PlantVisualProps {
   plantType: PlantType
   color: string
   zoom: number
+  lockedOpacity: number
 }
 
-function PlantVisual({ element, plantType, color, zoom }: PlantVisualProps) {
+function PlantVisual({ element, plantType, color, zoom, lockedOpacity }: PlantVisualProps) {
   const minWorldRadius = 4 / zoom
 
   switch (plantType.growthForm) {
@@ -302,7 +308,7 @@ function PlantVisual({ element, plantType, color, zoom }: PlantVisualProps) {
       const canopyR = Math.max((plantType.canopyWidthCm ?? plantType.spacingCm) / 2, minWorldRadius)
       const trunkR = Math.max((plantType.trunkWidthCm ?? 20) / 2, minWorldRadius)
       return (
-        <Group x={element.x} y={element.y} listening={false}>
+        <Group x={element.x} y={element.y} listening={false} opacity={lockedOpacity}>
           {/* Canopy (semi-transparent) */}
           <Circle
             radius={canopyR}
@@ -332,7 +338,7 @@ function PlantVisual({ element, plantType, color, zoom }: PlantVisualProps) {
     case 'shrub': {
       const r = Math.max(((plantType.canopyWidthCm ?? plantType.spacingCm)) / 2, minWorldRadius)
       return (
-        <Group x={element.x} y={element.y} listening={false}>
+        <Group x={element.x} y={element.y} listening={false} opacity={lockedOpacity}>
           <Circle radius={r} fill={color} />
           {element.quantity > 1 && (
             <Text
@@ -351,7 +357,7 @@ function PlantVisual({ element, plantType, color, zoom }: PlantVisualProps) {
     case 'groundcover': {
       const r = Math.max(plantType.spacingCm / 2, minWorldRadius)
       return (
-        <Group x={element.x} y={element.y} listening={false}>
+        <Group x={element.x} y={element.y} listening={false} opacity={lockedOpacity}>
           <Circle radius={r} fill={color} opacity={0.6} />
           {element.quantity > 1 && (
             <Text
@@ -370,7 +376,7 @@ function PlantVisual({ element, plantType, color, zoom }: PlantVisualProps) {
     case 'climber': {
       const r = Math.max(15, minWorldRadius)
       return (
-        <Group x={element.x} y={element.y} listening={false}>
+        <Group x={element.x} y={element.y} listening={false} opacity={lockedOpacity}>
           <Circle radius={r} fill={color} />
           {element.quantity > 1 && (
             <Text
@@ -390,7 +396,7 @@ function PlantVisual({ element, plantType, color, zoom }: PlantVisualProps) {
     default: {
       const r = Math.max(plantType.spacingCm / 2, minWorldRadius)
       return (
-        <Group x={element.x} y={element.y} listening={false}>
+        <Group x={element.x} y={element.y} listening={false} opacity={lockedOpacity}>
           <Circle radius={r} fill={color} />
           {element.quantity > 1 && (
             <Text

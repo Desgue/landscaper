@@ -331,6 +331,9 @@ export default function PathLayer({ width: _width, height: _height }: PathLayerP
 
   if (!project) return null
 
+  const layers = project?.layers ?? []
+  const layerMap = new Map(layers.map((l) => [l.id, l]))
+
   // Render existing path elements
   const pathElements = project.elements.filter(
     (el): el is PathElement => el.type === 'path',
@@ -366,6 +369,8 @@ export default function PathLayer({ width: _width, height: _height }: PathLayerP
           ? [...el.points, el.points[0]]
           : el.points
 
+        const isEffectivelyLocked = el.locked || (layerMap.get(el.layerId)?.locked ?? false)
+
         return (
           <Line
             key={el.id}
@@ -374,6 +379,7 @@ export default function PathLayer({ width: _width, height: _height }: PathLayerP
             strokeWidth={el.strokeWidthCm}
             lineCap="round"
             lineJoin="round"
+            opacity={isEffectivelyLocked ? 0.5 : 1}
             listening={false}
           />
         )

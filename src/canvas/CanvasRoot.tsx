@@ -14,6 +14,7 @@ import PlantLayer from './PlantLayer'
 import StructureLayer from './StructureLayer'
 import LabelLayer, { LabelHTMLOverlays } from './LabelLayer'
 import PathLayer from './PathLayer'
+import { SelectionLayer } from './SelectionLayer'
 
 interface CanvasRootProps {
   width: number
@@ -199,7 +200,10 @@ export default function CanvasRoot({ width, height }: CanvasRootProps) {
         {/* 10. Overflow dim layer — above all content, below selection UI */}
         <OverflowDimLayer width={width} height={height} />
 
-        {/* 11. Selection UI layer (top) — handles, snap guides */}
+        {/* 11. Selection interaction layer — handles, box-select, move, resize, rotate, eraser */}
+        <SelectionLayer width={width} height={height} />
+
+        {/* 12. Snap guides layer (topmost visual) */}
         <Layer listening={false}>
           <SnapGuidesLayer width={width} height={height} />
         </Layer>

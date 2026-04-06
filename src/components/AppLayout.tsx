@@ -7,6 +7,7 @@ import LayerPanel from './LayerPanel'
 import StatusBar from './StatusBar'
 import MinimapStub from './MinimapStub'
 import CanvasRoot from '../canvas/CanvasRoot'
+import ZOrderContextMenu from './ZOrderContextMenu'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useProjectStore } from '../store/useProjectStore'
 import { getAllProjects } from '../db/projectsDb'
@@ -80,6 +81,9 @@ export default function AppLayout() {
 
       {/* Status bar */}
       <StatusBar />
+
+      {/* Z-order context menu overlay */}
+      <ZOrderContextMenu />
     </div>
   )
 }

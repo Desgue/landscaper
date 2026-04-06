@@ -311,6 +311,9 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
 
   if (!project) return null
 
+  const layers = project?.layers ?? []
+  const layerMap = new Map(layers.map((l) => [l.id, l]))
+
   const structureElements = project.elements.filter(
     (el): el is StructureElement => el.type === 'structure',
   )
@@ -339,8 +342,10 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
         const color = getCategoryColor(category)
         const isOverhead = category === 'overhead'
 
+        const isEffectivelyLocked = el.locked || (layerMap.get(el.layerId)?.locked ?? false)
+
         return (
-          <Group key={el.id} listening={false}>
+          <Group key={el.id} listening={false} opacity={isEffectivelyLocked ? 0.5 : 1}>
             <Rect
               x={el.x}
               y={el.y}

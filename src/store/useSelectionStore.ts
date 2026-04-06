@@ -10,6 +10,8 @@ interface SelectionStore {
   primaryId: string | null
   groupEditingId: string | null
   clipboard: ClipboardData | null
+  lastClickWorldPos: { x: number; y: number } | null
+  tabCycleIndex: number
 
   select(id: string): void
   toggleSelect(id: string): void
@@ -17,6 +19,8 @@ interface SelectionStore {
   deselectAll(): void
   setGroupEditing(groupId: string | null): void
   setClipboard(data: ClipboardData | null): void
+  setLastClickWorldPos(pos: { x: number; y: number } | null): void
+  setTabCycleIndex(index: number): void
 }
 
 export const useSelectionStore = create<SelectionStore>((set, get) => ({
@@ -24,6 +28,8 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
   primaryId: null,
   groupEditingId: null,
   clipboard: null,
+  lastClickWorldPos: null,
+  tabCycleIndex: 0,
 
   select(id: string) {
     console.debug('[SelectionStore] select', { id })
@@ -71,5 +77,13 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
 
   setClipboard(data: ClipboardData | null) {
     set({ clipboard: data })
+  },
+
+  setLastClickWorldPos(pos: { x: number; y: number } | null) {
+    set({ lastClickWorldPos: pos })
+  },
+
+  setTabCycleIndex(index: number) {
+    set({ tabCycleIndex: index })
   },
 }))

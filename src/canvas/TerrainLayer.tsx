@@ -363,6 +363,9 @@ export default function TerrainLayer({ width: _width, height: _height }: Terrain
     return () => window.removeEventListener('mouseup', onWindowMouseUp)
   }, [pushHistory])
 
+  const layers = project?.layers ?? []
+  const layerMap = new Map(layers.map((l) => [l.id, l]))
+
   if (!project) return null
 
   // Render terrain elements
@@ -393,6 +396,7 @@ export default function TerrainLayer({ width: _width, height: _height }: Terrain
       {terrainElements.map((el) => {
         const terrainType = registries.terrain.find((t) => t.id === el.terrainTypeId)
         if (!terrainType) return null
+        const isEffectivelyLocked = el.locked || (layerMap.get(el.layerId)?.locked ?? false)
         return (
           <Rect
             key={el.id}
@@ -401,6 +405,7 @@ export default function TerrainLayer({ width: _width, height: _height }: Terrain
             width={100}
             height={100}
             fill={terrainType.color}
+            opacity={isEffectivelyLocked ? 0.5 : 1}
             listening={false}
           />
         )

@@ -1,7 +1,11 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useContext } from 'react'
 import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore } from '../store/useHistoryStore'
-import { useInspectorStore } from '../store/useInspectorStore'
+import { useSelectionStore } from '../store/useSelectionStore'
+import {
+  inspectorSlotRegistry,
+  InspectorSlotsContext,
+} from './inspectorSlots'
 import type {
   CanvasElement,
   TerrainElement,
@@ -14,7 +18,12 @@ import type {
   StructureShape,
   TextAlign,
   Project,
+  Layer,
 } from '../types/schema'
+
+function useInspectorSlots() {
+  return useContext(InspectorSlotsContext)
+}
 
 // ─── Shared UI helpers ──────────────────────────────────────────────────────
 
@@ -32,6 +41,116 @@ function ReadonlyField({ label, value }: { label: string; value: string }) {
   )
 }
 
+// ─── Layer Dropdown ────────────────────────────────────────────────────────
+
+function LayerDropdown({ element }: { element: CanvasElement }) {
+  const project = useProjectStore((s) => s.currentProject)
+  const updateProject = useProjectStore((s) => s.updateProject)
+  const pushHistory = useHistoryStore((s) => s.pushHistory)
+  const selectedIds = useSelectionStore((s) => s.selectedIds)
+
+  const layers = project?.layers ?? []
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const newLayerId = e.target.value
+      const proj = useProjectStore.getState().currentProject
+      if (!proj) return
+
+      // Validate that the target layer actually exists
+      if (!proj.layers.some((l) => l.id === newLayerId)) return
+
+      const snapshot = structuredClone(proj)
+
+      // Apply to all selected elements (multi-select aware)
+      const idsToUpdate = new Set(selectedIds)
+      // Always include the current element
+      idsToUpdate.add(element.id)
+
+      updateProject((draft) => {
+        for (const el of draft.elements) {
+          if (idsToUpdate.has(el.id)) {
+            el.layerId = newLayerId
+          }
+        }
+      })
+      pushHistory(snapshot)
+      useProjectStore.getState().markDirty()
+    },
+    [element.id, selectedIds, updateProject, pushHistory],
+  )
+
+  return (
+    <div className="mb-2">
+      <div className={labelCls}>Layer</div>
+      <select className={inputCls} value={element.layerId} onChange={handleChange}>
+        {layers.map((layer: Layer) => (
+          <option key={layer.id} value={layer.id}>
+            {layer.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
+// ─── Locked Toggle ─────────────────────────────────────────────────────────
+
+function LockedToggle({ element }: { element: CanvasElement }) {
+  const updateProject = useProjectStore((s) => s.updateProject)
+  const pushHistory = useHistoryStore((s) => s.pushHistory)
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const locked = e.target.checked
+      const proj = useProjectStore.getState().currentProject
+      if (!proj) return
+      const snapshot = structuredClone(proj)
+      updateProject((draft) => {
+        const el = draft.elements.find((item) => item.id === element.id)
+        if (el) el.locked = locked
+      })
+      pushHistory(snapshot)
+      useProjectStore.getState().markDirty()
+    },
+    [element.id, updateProject, pushHistory],
+  )
+
+  return (
+    <div className="mb-2 flex items-center gap-2">
+      <input
+        type="checkbox"
+        checked={element.locked}
+        onChange={handleChange}
+        className="rounded border-gray-300"
+      />
+      <span className={labelCls + ' mb-0'}>Locked</span>
+    </div>
+  )
+}
+
+// ─── Extension Slot Renderer ───────────────────────────────────────────────
+
+function InspectorExtensionSlots({ element }: { element: CanvasElement }) {
+  const slots = useInspectorSlots()
+  const slotNames = ['inspector:cost', 'inspector:geometry', 'inspector:journal']
+
+  return (
+    <>
+      {slotNames.map((name) => {
+        const SlotComponent = slots.get(name)
+        if (!SlotComponent) return null
+        return (
+          <div key={name}>
+            <div className={dividerCls} />
+            <SlotComponent element={element} />
+          </div>
+        )
+      })}
+    </>
+  )
+}
+
 // ─── Sub-inspectors ─────────────────────────────────────────────────────────
 
 function TerrainInspector({ element }: { element: TerrainElement }) {
@@ -45,7 +164,9 @@ function TerrainInspector({ element }: { element: TerrainElement }) {
       <ReadonlyField label="Position X (m)" value={(element.x / 100).toFixed(2)} />
       <ReadonlyField label="Position Y (m)" value={(element.y / 100).toFixed(2)} />
       <div className={dividerCls} />
-      <ReadonlyField label="Layer" value={element.layerId} />
+      <LayerDropdown element={element} />
+      <LockedToggle element={element} />
+      <InspectorExtensionSlots element={element} />
     </div>
   )
 }
@@ -104,7 +225,7 @@ function PlantInspector({ element }: { element: PlantElement }) {
       <ReadonlyField label="Plant Type" value={plantType?.name ?? element.plantTypeId} />
       <div className={dividerCls} />
 
-      {/* Position (editable, meters ↔ cm) */}
+      {/* Position (editable, meters <-> cm) */}
       <div className="mb-2">
         <div className={labelCls}>Position X (m)</div>
         <input
@@ -193,6 +314,11 @@ function PlantInspector({ element }: { element: PlantElement }) {
           rows={3}
         />
       </div>
+
+      <div className={dividerCls} />
+      <LayerDropdown element={element} />
+      <LockedToggle element={element} />
+      <InspectorExtensionSlots element={element} />
     </div>
   )
 }
@@ -342,7 +468,7 @@ function StructureInspector({ element }: { element: StructureElement }) {
             value={element.arcSagitta ?? 0}
             onChange={(e) => {
               const v = parseFloat(e.target.value)
-              if (!isNaN(v)) update((el) => { el.arcSagitta = v })
+              if (isFinite(v)) update((el) => { el.arcSagitta = v })
             }}
           />
         </div>
@@ -360,7 +486,7 @@ function StructureInspector({ element }: { element: StructureElement }) {
           value={element.rotation}
           onChange={(e) => {
             const v = parseFloat(e.target.value)
-            if (!isNaN(v)) update((el) => { el.rotation = ((v % 360) + 360) % 360 })
+            if (isFinite(v)) update((el) => { el.rotation = ((v % 360) + 360) % 360 })
           }}
         />
       </div>
@@ -379,6 +505,11 @@ function StructureInspector({ element }: { element: StructureElement }) {
           rows={3}
         />
       </div>
+
+      <div className={dividerCls} />
+      <LayerDropdown element={element} />
+      <LockedToggle element={element} />
+      <InspectorExtensionSlots element={element} />
     </div>
   )
 }
@@ -447,6 +578,11 @@ function PathInspector({ element }: { element: PathElement }) {
       </div>
 
       <ReadonlyField label="Points" value={String(element.points.length)} />
+
+      <div className={dividerCls} />
+      <LayerDropdown element={element} />
+      <LockedToggle element={element} />
+      <InspectorExtensionSlots element={element} />
     </div>
   )
 }
@@ -584,6 +720,11 @@ function LabelInspector({ element }: { element: LabelElement }) {
         />
         <span className={labelCls + ' mb-0'}>Italic</span>
       </div>
+
+      <div className={dividerCls} />
+      <LayerDropdown element={element} />
+      <LockedToggle element={element} />
+      <InspectorExtensionSlots element={element} />
     </div>
   )
 }
@@ -601,6 +742,10 @@ function DimensionInspector({ element }: { element: DimensionElement }) {
         label="End Point"
         value={`(${(element.endPoint.x / 100).toFixed(2)}, ${(element.endPoint.y / 100).toFixed(2)}) m`}
       />
+      <div className={dividerCls} />
+      <LayerDropdown element={element} />
+      <LockedToggle element={element} />
+      <InspectorExtensionSlots element={element} />
     </div>
   )
 }
@@ -637,65 +782,105 @@ function ElementInspector({ element }: { element: CanvasElement }) {
   }
 }
 
+// ─── Multi-select Inspector ─────────────────────────────────────────────────
+
+function MultiSelectInspector({
+  primaryElement,
+  selectedCount,
+}: {
+  primaryElement: CanvasElement
+  selectedCount: number
+}) {
+  return (
+    <div>
+      <div className="mb-3 px-2 py-1.5 rounded bg-blue-50 text-xs font-semibold text-blue-700">
+        {selectedCount} elements selected
+      </div>
+
+      {/* Show primary element type badge */}
+      <div className="mb-3">
+        <span className="inline-block px-2 py-0.5 rounded bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+          Primary: {elementTypeLabel(primaryElement)}
+        </span>
+      </div>
+
+      {/* Show primary element's inspector (includes layer dropdown + locked toggle) */}
+      <ElementInspector element={primaryElement} />
+    </div>
+  )
+}
+
 // ─── Main panel ─────────────────────────────────────────────────────────────
 
 export default function InspectorPanel() {
   const [collapsed, setCollapsed] = useState(false)
-  const inspectedElementId = useInspectorStore((s) => s.inspectedElementId)
+  const selectedIds = useSelectionStore((s) => s.selectedIds)
+  const primaryId = useSelectionStore((s) => s.primaryId)
   const project = useProjectStore((s) => s.currentProject)
 
-  const element = project?.elements.find((el) => el.id === inspectedElementId) ?? null
+  // Derive element from selection store's primaryId
+  const element = project?.elements.find((el) => el.id === primaryId) ?? null
+  const selectedCount = selectedIds.size
 
   return (
-    <div
-      className="flex flex-col bg-white border-l border-gray-200 flex-shrink-0 overflow-hidden transition-all"
-      style={{ width: collapsed ? 0 : 280 }}
-    >
-      {!collapsed && (
-        <>
-          {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 flex-shrink-0">
-            <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-              Inspector
-            </span>
-            <button
-              onClick={() => setCollapsed(true)}
-              className="text-gray-400 hover:text-gray-600 text-sm"
-              title="Collapse inspector"
-            >
-              ›
-            </button>
-          </div>
+    <InspectorSlotsContext.Provider value={inspectorSlotRegistry}>
+      <div
+        className="flex flex-col bg-white border-l border-gray-200 flex-shrink-0 overflow-hidden transition-all"
+        style={{ width: collapsed ? 0 : 280 }}
+      >
+        {!collapsed && (
+          <>
+            {/* Header */}
+            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 flex-shrink-0">
+              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                Inspector
+              </span>
+              <button
+                onClick={() => setCollapsed(true)}
+                className="text-gray-400 hover:text-gray-600 text-sm"
+                title="Collapse inspector"
+              >
+                ›
+              </button>
+            </div>
 
-          {/* Content */}
-          {element ? (
-            <div className="flex-1 overflow-y-auto px-3 py-3">
-              {/* Element type badge */}
-              <div className="mb-3">
-                <span className="inline-block px-2 py-0.5 rounded bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                  {elementTypeLabel(element)}
-                </span>
+            {/* Content */}
+            {element && selectedCount > 1 ? (
+              <div className="flex-1 overflow-y-auto px-3 py-3">
+                <MultiSelectInspector
+                  primaryElement={element}
+                  selectedCount={selectedCount}
+                />
               </div>
-              <ElementInspector element={element} />
-            </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-sm text-gray-400">
-              Nothing selected.
-            </div>
-          )}
-        </>
-      )}
+            ) : element ? (
+              <div className="flex-1 overflow-y-auto px-3 py-3">
+                {/* Element type badge */}
+                <div className="mb-3">
+                  <span className="inline-block px-2 py-0.5 rounded bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    {elementTypeLabel(element)}
+                  </span>
+                </div>
+                <ElementInspector element={element} />
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-sm text-gray-400">
+                Nothing selected.
+              </div>
+            )}
+          </>
+        )}
 
-      {collapsed && (
-        <button
-          onClick={() => setCollapsed(false)}
-          className="flex items-center justify-center w-full bg-white border-l border-gray-200 text-gray-500 hover:bg-gray-50"
-          style={{ height: '100%', width: 16 }}
-          title="Expand inspector"
-        >
-          ‹
-        </button>
-      )}
-    </div>
+        {collapsed && (
+          <button
+            onClick={() => setCollapsed(false)}
+            className="flex items-center justify-center w-full bg-white border-l border-gray-200 text-gray-500 hover:bg-gray-50"
+            style={{ height: '100%', width: 16 }}
+            title="Expand inspector"
+          >
+            ‹
+          </button>
+        )}
+      </div>
+    </InspectorSlotsContext.Provider>
   )
 }

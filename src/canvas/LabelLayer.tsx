@@ -198,6 +198,9 @@ export default function LabelLayer({ width: _width, height: _height }: LabelLaye
 
   if (!project) return null
 
+  const layers = project?.layers ?? []
+  const layerMap = new Map(layers.map((l) => [l.id, l]))
+
   const labelElements = project.elements.filter(
     (el): el is LabelElement => el.type === 'label',
   )
@@ -230,6 +233,8 @@ export default function LabelLayer({ width: _width, height: _height }: LabelLaye
           .filter(Boolean)
           .join(' ') || 'normal'
 
+        const isEffectivelyLocked = el.locked || (layerMap.get(el.layerId)?.locked ?? false)
+
         return (
           <Text
             key={el.id}
@@ -244,6 +249,7 @@ export default function LabelLayer({ width: _width, height: _height }: LabelLaye
             fill={isValidHexColor(el.fontColor) ? el.fontColor : '#000000'}
             align={el.textAlign}
             wrap="word"
+            opacity={isEffectivelyLocked ? 0.5 : 1}
             listening={false}
           />
         )
