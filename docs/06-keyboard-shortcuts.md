@@ -11,6 +11,7 @@ This is the single source of truth for all keyboard shortcuts. Other docs refere
 | B | Terrain brush |
 | P | Plant placement tool |
 | S | Structure tool |
+| A | Arc tool |
 | E | Eraser |
 | T | Text/Label tool |
 
@@ -40,11 +41,18 @@ This is the single source of truth for all keyboard shortcuts. Other docs refere
 | Ctrl+V | Paste at cursor position |
 | Ctrl+Z | Undo |
 | Ctrl+Shift+Z | Redo |
-| Alt+drag (selected elements) | Move with grid snapping |
+| Alt+drag (selected elements) | Move with snapping (10cm + geometry) |
+
+## Toggles
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+G | Toggle snap on/off |
+| Ctrl+' | Toggle grid visibility on/off |
 
 ## Modifiers
 
 | Shortcut | Action |
 |----------|--------|
-| Alt (while placing/painting with Terrain, Plant, Structure, or Eraser) | Disable grid snapping |
-| Alt (while placing with Text/Label tool) | Enable grid snapping (labels default to free placement) |
+| Alt (while placing/painting with Terrain, Plant, Structure, Arc, Path, or Eraser) | Disable snapping (10cm + geometry) |
+| Alt (while placing with Text/Label tool) | Enable snapping (labels default to free placement) |

@@ -2,59 +2,90 @@
 
 ## Vision
 
-A web-based garden planner that combines the fluid, intuitive canvas experience of Excalidraw with domain-specific tools for garden design. Users can visually design their garden layout on a scaled grid, place terrain and plants, and maintain a journal to track their garden's evolution over time.
+A web-based garden and landscape planner with a fluid, intuitive canvas experience and domain-specific tools for yard design. Users can visually design their yard transformation on a scaled, accurate canvas — placing terrain, plants, structures, paths, and borders — and maintain a journal to track the project's evolution over time.
 
 ## Target Users
 
-- Home gardeners who want to plan and track their garden layout
-- People who want a visual, spatial tool — not a spreadsheet or note app
+- Home owners who want to plan and execute a DIY yard transformation
+- People who want a visual, spatial tool with accurate real-world proportions — not a spreadsheet or note app
 
 ## Core Features
 
-### F1: Infinite Canvas with Grid
+### F1: Bounded Canvas with Grid
 
+- User defines yard boundary in a setup step (click vertices, type edge dimensions)
+- Canvas is bounded to the yard dimensions with overflow (can place elements outside)
+- Multi-resolution grid: 1m major lines always visible, 10cm minor lines appear on zoom-in
+- All coordinates stored internally in centimeters, displayed in meters
 - Pan, zoom, fit-to-view
-- Grid overlay: 1m per square, configurable scale
-- Minimap for orientation on large gardens
+- Rulers along top and left edges (1m major, 10cm minor markings)
+- Minimap for orientation showing yard boundary and elements
 
-### F2: Terrain Painting
+### F2: Snap System
 
-- Paint terrain types onto grid cells (floor-based cell snapping)
-- Configurable brush size (1x1, 2x2, 3x3)
+- 10cm default snap increment (nearest-round)
+- Grid display and snap are independently toggleable
+- Geometry snapping in MVP: edge alignment, perpendicular alignment, midpoint alignment
+- Adaptive snap tolerance: tighter when zoomed in, looser when zoomed out
+- Alt modifier disables snapping for free placement (inverted for labels)
+- Visual snap guides show alignment feedback
+
+### F3: Terrain Painting
+
+- Paint terrain types onto grid cells (snap to 10cm increments)
+- Configurable brush size (1x1, 2x2, 3x3 in grid cells)
 - Built-in types: grass, soil, weed/wild, concrete, gravel, mulch
 - Extensible registry — add new terrain types via config
-- Alt modifier toggles grid snapping (disables for most tools; enables for labels which default to free placement)
+- Terrain fills cells completely, no gaps between adjacent cells
 
-### F3: Plant Placement
+### F4: Plant Placement
 
 - Place plants from a categorized sidebar palette (click-to-stamp or drag-and-drop)
 - Built-in plants: cherry tomatoes, tomatoes, onions, eggplant, peppers, basil, lettuce, carrots
 - Extensible registry — same pattern as terrain
-- Plant spacing (spacingCm) determines the visual size of the plant within the grid cell; the plant icon is centered in the cell
+- Plant spacing (spacingCm) determines the visual size within the grid cell; plant icon is centered in the cell
 - Each plant has: name, icon, spacing, season info, category, sun requirement, water need, days to harvest, companion plants
 
-### F4: Selection & Manipulation
+### F5: Selection & Manipulation
 
 - Select, move, delete elements
-- Multi-select (box select, shift-click)
+- Multi-select (box select fully enclosed by default, Shift for partial intersection)
 - Copy/paste, undo/redo
-- Resize terrain regions and structures (plants have fixed size from spacing)
+- Resize terrain regions and structures (snap to 10cm increments), plants have fixed size
+- Structure rotation (only structures can rotate)
 - Inspector panel for editing properties of the selected element
 
-### F4b: Structures
+### F5b: Structures
 
-- Place structure elements on the canvas (click for default size, or drag to define extent)
+- Place structure elements (click for default size, or drag to define extent)
+- Structures can be straight or curved (arc property)
 - Built-in structures: brick walls, fences, raised beds
 - Extensible registry — same pattern as terrain and plants
 - Structures, plants, and terrain can freely overlap
 
-### F4c: Labels & Annotations
+### F5c: Arc Tool
+
+- Draw arcs: click start point, click end point, drag to set radius
+- Used for curved structures and curved path/border segments
+- Snaps to 10cm increments with geometry snapping active
+- Editable after placement via handles (start, end, radius)
+
+### F5d: Paths & Borders
+
+- New element type for brick edging, curved borders, freeform paths
+- Each segment can independently be straight or curved
+- Place from Paths tab in side palette
+- Path type determines visual style and width
+- Extensible registry — same pattern as other element types
+
+### F5e: Labels & Annotations
 
 - Text/label tool to add annotations on the canvas
 - Labels are standalone elements: selectable, movable, resizable text boxes
+- Labels placed freely by default (Alt enables snapping — inverted behavior)
 - Font size, color, alignment, bold, italic configurable via inspector
 
-### F5: Garden Journal
+### F6: Garden Journal
 
 - Full-screen journal view (replaces canvas temporarily)
 - Each entry: date, title, text notes, tags
@@ -63,10 +94,12 @@ A web-based garden planner that combines the fluid, intuitive canvas experience 
 - Filter/search by text or tags
 - Weather snapshot per entry (fetched on demand via Open-Meteo API or entered manually)
 
-### F6: Project Management
+### F7: Project Management
 
 - Welcome screen on first launch (create new or import)
-- Create, save, load, rename, delete garden projects
+- New project flow: name → yard setup (boundary polygon) → canvas
+- Yard boundary is a regular editable element (not locked)
+- Create, save, load, rename, delete projects
 - Auto-save on every change (debounced)
 - Export as JSON or PNG image
 - Import from JSON (duplicate names get a suffix)
@@ -79,7 +112,8 @@ A web-based garden planner that combines the fluid, intuitive canvas experience 
 - Mobile-native app (responsive web is fine)
 - E-commerce / seed purchasing integration
 - Journal photo support (text only)
+- Expanded material library (additional pathway materials, paver patterns — future)
 
 ## Behavioral Specification
 
-For detailed interaction behaviors, grid snapping rules, placement mechanics, and edge cases, see `docs/03-behavior-specifications.md`.
+For detailed interaction behaviors, snap rules, placement mechanics, and edge cases, see `docs/03-behavior-specifications.md`.

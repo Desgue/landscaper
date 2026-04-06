@@ -2,11 +2,11 @@
 
 ## Design Principles
 
-1. **Canvas-first**: The garden canvas is the hero. Chrome (toolbars, panels) should be minimal and non-intrusive.
+1. **Canvas-first**: The yard canvas is the hero. Chrome (toolbars, panels) should be minimal and non-intrusive.
 2. **Direct manipulation**: Grab, drag, paint, place. Reduce modal dialogs and form-filling.
 3. **Progressive disclosure**: Show basic tools upfront, reveal advanced options on demand.
 4. **Forgiving**: Generous undo/redo. Hard to make irreversible mistakes.
-5. **Domain-appropriate**: Use garden-relevant visuals (textures, icons) but keep the UI framework clean and modern like Excalidraw.
+5. **Domain-appropriate**: Use landscape-relevant visuals (textures, icons) but keep the UI framework clean and modern.
 
 ## Layout Structure
 
@@ -20,34 +20,39 @@
 │        │                                    │ (context)  │
 │        │                                    │            │
 ├────────┴────────────────────────────────────┴────────────┤
-│  Status bar: zoom %, coordinates, grid scale             │
+│  Status bar: zoom %, coordinates, snap/grid toggles      │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ### Top Toolbar
 
-Inspired by Excalidraw's toolbar. Tools (left to right) — see `docs/06-keyboard-shortcuts.md` for shortcuts:
-- Select (V), Hand/Pan (H), Terrain Brush (B), Plant Tool (P), Structure Tool (S), Eraser (E), Text/Label (T), Undo/Redo
+Tools (left to right) — see `docs/06-keyboard-shortcuts.md` for shortcuts:
+- Select (V), Hand/Pan (H), Terrain Brush (B), Plant Tool (P), Structure Tool (S), Arc Tool (A), Eraser (E), Text/Label (T), Undo/Redo
 
 ### Side Palette (left, collapsible)
 
-- Tabs: Terrain | Plants | Structures
+- Tabs: Terrain | Plants | Structures | Paths
 - Search/filter across all tabs (auto-switches to matching tab)
 - Click item to activate stamp mode, or drag onto canvas
 
 ### Inspector Panel (right, collapsible)
 
 - Shows properties of the selected element (type-specific fields)
+- Structures: includes shape (straight/curved) and arc radius when curved
+- Paths: includes segment details (straight/curved per segment), width, total length
 - Multiple selection: shows primary (first) selected element
 - Empty state: "Nothing selected"
 
 ### Status Bar (bottom)
 
-- Current zoom %, cursor world coordinates in meters (updates in real-time)
+- Current zoom %, cursor world coordinates in meters (cm precision)
+- Snap toggle indicator (on/off)
+- Grid visibility toggle indicator (on/off)
 
 ### Minimap (bottom-right, collapsible)
 
-- Shows full garden extent with viewport indicator
+- Shows yard boundary outline and all elements
+- Viewport rectangle indicator
 - Click to navigate, double-click to fit-to-view
 
 ### Tooltips
@@ -63,21 +68,25 @@ Inspired by Excalidraw's toolbar. Tools (left to right) — see `docs/06-keyboar
 - UI chrome: white backgrounds, subtle gray borders
 - Accent color: blue (#1971c2) for active tool highlights, selection indicators, primary buttons
 - Canvas background: light gray or white with subtle grid lines
+- Yard boundary: distinct outline (e.g., dashed blue or dark gray)
+- Overflow area (outside boundary): subtly dimmed
 - Terrain textures: realistic but stylized (not photographic, not hand-drawn)
-- UI chrome: neutral, doesn't compete with garden content
+- UI chrome: neutral, doesn't compete with yard content
+- Snap guides: accent blue, thin lines appearing during placement
 
 ### Typography
 - Font: system font stack (`-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`)
 - Canvas labels: same system font stack, adjustable size
 
 ### Icons
-- Toolbar icons: outlined, monochrome (like Excalidraw)
+- Toolbar icons: outlined, monochrome
 - Plant icons: flat colored top-down illustrations
 - Terrain: solid colors in MVP, tiling texture patterns in Phase 2
 
 ### Grid Appearance
-- Default: subtle dotted grid (like Excalidraw)
-- Grid lines fade at low zoom, become prominent at high zoom
+- Major grid lines (1m): subtle dotted, always visible
+- Minor grid lines (10cm): lighter dotted, appear when zoomed in
+- Major and minor lines are visually distinguishable (weight or opacity)
 
 ## Responsive Behavior
 
@@ -94,7 +103,7 @@ Inspired by Excalidraw's toolbar. Tools (left to right) — see `docs/06-keyboar
 
 ## Interaction Behaviors
 
-For all interaction details (placement mechanics, grid snapping, selection, canvas navigation, etc.), see `docs/03-behavior-specifications.md`.
+For all interaction details (placement mechanics, snap system, selection, canvas navigation, etc.), see `docs/03-behavior-specifications.md`.
 
 ## Resolved Design Decisions
 
@@ -103,3 +112,10 @@ For all interaction details (placement mechanics, grid snapping, selection, canv
 - Terrain rendering: solid colors in MVP, textures in Phase 2
 - Plant icon style: flat colored top-down icons
 - Brush size (1x1, 2x2, 3x3) included in MVP as a UI-only tool setting
+- Grid: multi-resolution (1m major, 10cm minor) — not single resolution
+- Snap: decoupled from grid display, independently toggleable
+- Snap: 10cm default increment with geometry snapping (edge, perpendicular, midpoint)
+- Canvas: bounded with overflow, not infinite
+- Yard boundary: regular editable element, not locked
+- Arc tool: click-start, click-end, drag-radius interaction
+- Paths/borders: distinct element type with per-segment straight/curved
