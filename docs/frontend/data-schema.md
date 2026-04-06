@@ -46,6 +46,7 @@ Defines the JSON structure for project export/import and the registry format for
       ]
     },
     "currency": "string (display symbol, default '$')",
+    "yardPhoto": "string (base64-encoded JPEG or PNG of the real yard) | null",
     "layers": ["...see Layer Schema below"],
     "groups": ["...see Group Schema below"],
     "elements": ["...see Element Schema below"],
@@ -59,6 +60,20 @@ Defines the JSON structure for project export/import and the registry format for
   }
 }
 ```
+
+### Yard Photo Storage
+
+`yardPhoto` stores a base64-encoded JPEG or PNG image of the real yard. It is used as the reference photo input for AI image generation [image-generation.md "## Reference Photo"].
+
+**Storage**: `yardPhoto` is stored in the `Project` object in IndexedDB alongside all other project data.
+
+**Export exclusion**: `yardPhoto` is **excluded from JSON export** (the `.json` file download). Base64 images can be several megabytes and would bloat project files significantly. A project re-imported from a JSON file will have `yardPhoto: null`; the user will be prompted to re-upload if they want to include it in generation.
+
+**Import**: If `yardPhoto` is present in an imported JSON (e.g., a hand-crafted file), it is accepted and stored. Validation: must be a valid base64 string decoding to JPEG (`\xFF\xD8\xFF`) or PNG (`\x89PNG`) magic bytes. If invalid, it is set to `null` with a warning.
+
+**API usage**: When calling `POST /api/generate`, the frontend reads `project.yardPhoto` and sends it as the top-level `yard_photo` field in the request body — it is **not** nested inside the `project` field. See [api-contract.md "## yard_photo Field Disambiguation"].
+
+---
 
 ### Yard Boundary Storage
 
@@ -426,6 +441,7 @@ All hex color fields use the format `#RRGGBB` — 6-digit, lowercase or uppercas
 | `project.gridConfig.originX` | Finite number | `0` |
 | `project.gridConfig.originY` | Finite number | `0` |
 | `project.currency` | Non-empty string, max 10 chars | `"$"` |
+| `project.yardPhoto` | Valid base64 JPEG or PNG, or null | `null` (invalid value → `null` + warning) |
 | `project.layers` | Array of Layer objects | `[{ id: generated, name: "Default", visible: true, locked: false, order: 0 }]` |
 | `project.groups` | Array of Group objects | `[]` |
 

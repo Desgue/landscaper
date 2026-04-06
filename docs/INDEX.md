@@ -57,7 +57,7 @@ Workflows, UI, and non-element features.
 | [persistence-projects.md](frontend/persistence-projects.md) | Project management (save/load/export/import) | Welcome Screen, New Project Flow, Auto-Save, JSON Export, JSON Import, PNG Export |
 | [visual-design.md](frontend/visual-design.md) | Cross-cutting visual and interaction design | Design Principles, Layout, Color Palette, Typography, Icons, Responsive, Accessibility, Design Rationale |
 | [cost-tracking.md](frontend/cost-tracking.md) | Project cost estimation | Cost Model, Currency Setting, Inspector Integration, Cost Summary Panel, Cost Calculation Rules |
-| [image-generation.md](backend/image-generation.md) | Photorealistic image generation from plan data (standalone parallel feature — consumes JSON export as input) | Pipeline Stages, 3D Scene Construction, Structural Render, Depth Map, Segmentation Map, Text Prompt Construction, API Request, Camera/Viewpoint, Generation Panel UI, Integration with Existing Data, Constraints and Edge Cases, Not in MVP |
+| [image-generation.md](frontend/image-generation.md) | AI image generation UI — Generate button, options panel, loading state, result modal, error handling, request construction | Entry Point, Generate Options Panel, Request Construction, Loading State, Result Modal, Error Handling, Reference Photo |
 
 ---
 
@@ -102,10 +102,12 @@ When looking for where a concept is canonically defined, use this table. The **o
 | Cost model & calculation rules | cost-tracking.md | data-schema.md |
 | Dimension element | measurement-dimensions.md | data-schema.md "### Dimension Element", spatial-math-specification.md "## 13" |
 | Measurement tool | measurement-dimensions.md | keyboard-shortcuts.md |
-| Image generation pipeline | image-generation.md | Uses: persistence-projects.md (JSON export as input), data-schema.md (element schema), journal.md (result attachment), layers-groups.md (layer visibility) |
-| 3D scene construction rules | image-generation.md "### Stage 1: 3D Scene Construction" | spatial-math-specification.md "## 5. Arc Geometry" (arc extrusion) |
-| Segmentation color assignments | image-generation.md "## Stage 2: Structural Render" | (standalone — not referenced by other docs) |
-| Image generation text prompt | image-generation.md "### Stage 3: Text Prompt Construction" | (standalone — not referenced by other docs) |
-| Image generation API request format | image-generation.md "### Stage 4: API Request" | (standalone — not referenced by other docs) |
-| Camera / viewpoint rules | image-generation.md "## Camera / Viewpoint" | (standalone — not referenced by other docs) |
-| Generation panel UI | image-generation.md "## Generation Panel UI" | keyboard-shortcuts.md (V shortcut) |
+| Image generation UI (frontend) | frontend/image-generation.md | api-contract.md (request shape), data-schema.md (yardPhoto storage), persistence-projects.md (markDirty) |
+| Segmentation render pipeline | backend/segmentation-render.md | backend/api-contract.md, backend/go-types.md |
+| Image generation text prompt | backend/prompt-construction.md | backend/api-contract.md |
+| Image generation API request format | backend/api-contract.md "## Request Body" | frontend/image-generation.md "## Request Construction", backend/go-types.md |
+| Segmentation color assignments | backend/segmentation-render.md "## Segmentation Color Table" | backend/prompt-construction.md |
+| Gemini API client | backend/gemini-client.md | backend/api-contract.md |
+| Generation panel UI | frontend/image-generation.md | (standalone) |
+| Go request types (backend model) | backend/go-types.md | backend/server.md, backend/segmentation-render.md, backend/prompt-construction.md, backend/gemini-client.md |
+| yard_photo field (request vs stored) | backend/api-contract.md "## yard_photo Field Disambiguation" | data-schema.md "### Yard Photo Storage", frontend/image-generation.md "## Reference Photo" |

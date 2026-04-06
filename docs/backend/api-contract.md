@@ -82,6 +82,63 @@ Body: { "error": "string" }
 
 ---
 
+## Project Field Shape
+
+The `project` field in the request body is **not** the raw JSON export file. The frontend constructs it by merging the project object and registries before sending:
+
+```
+JSON export file shape:          API request project field shape:
+{                                {
+  "version": "1.0",               "id": "...",
+  "exportedAt": "...",            "location": { ... },
+  "project": {          ──►      "yardBoundary": { ... },
+    "id": "...",                  "layers": [ ... ],
+    "location": { ... },          "elements": [ ... ],
+    "yardBoundary": { ... },      "registries": {         ◄── merged in from top-level
+    "layers": [ ... ],              "terrain": [ ... ],
+    "elements": [ ... ]             "plants": [ ... ],
+  },                               "structures": [ ... ],
+  "registries": {                  "paths": [ ... ]
+    "terrain": [ ... ],          }
+    "plants": [ ... ],         }
+    ...
+  }
+}
+```
+
+The frontend reads `project` and `registries` from app state and merges them into one object for the request. Fields not needed by the backend (`version`, `exportedAt`, `gridConfig`, `viewport`, `uiState`, `groups`, `journalEntries`, etc.) may be included or omitted — the backend ignores them.
+
+See [go-types.md "## File: internal/model/request.go"] for the exact Go struct that defines what the backend reads.
+
+---
+
+## yard_photo Field Disambiguation
+
+`yard_photo` appears in two places. They are related but distinct:
+
+| Context | Field path | Type | Lifecycle |
+|---|---|---|---|
+| **API request** | `request.yard_photo` | top-level string (base64) | Per-request; sent by frontend when calling generate |
+| **Project storage** | `project.yardPhoto` (frontend schema) | stored in IndexedDB | Persisted with the project; excluded from JSON export |
+
+The frontend reads `project.yardPhoto` from app state and copies it to the top-level `yard_photo` field when building the API request. The backend only sees `request.yard_photo` — it never reads `project.yardPhoto` (that field, if present in the project JSON, is inside the project object and the backend ignores it).
+
+```
+Frontend app state                     API request body
+──────────────────                     ────────────────
+project.yardPhoto  ──(read + copy)──►  yard_photo: "..."    ← top-level
+project.elements                       project: {
+project.layers                           elements: [...],
+...                                      layers: [...],
+registries                               registries: {...},
+                                         ...
+                                       }
+```
+
+See [data-schema.md "### Yard Photo Storage"] for how `project.yardPhoto` is stored and why it is excluded from JSON export.
+
+---
+
 ## Request Validation
 
 Validated before any rendering begins. All invalid requests return HTTP 400 immediately unless stated otherwise.
