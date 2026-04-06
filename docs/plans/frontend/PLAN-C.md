@@ -150,7 +150,7 @@ grep -n "Inspector\|inspector\|layer dropdown\|cost\|area\|perimeter\|journal" d
 - [ ] Render inspector panel in right sidebar when one or more elements are selected; collapse when nothing selected
 - [ ] Single-select: show all editable properties for the selected element type (name, type-specific fields from data-schema.md)
 - [ ] Show layer dropdown: list all layers; changing layer updates `element.layerId`; call `pushHistory()`
-- [ ] Multi-select inspector: show only shared properties (e.g., layer); support bulk-edit for those fields
+- [ ] Multi-select inspector: show properties of the first-clicked (primary) element; the layer dropdown is always shown and applies to all selected elements (bulk layer reassignment)
 - [ ] Implement `registerInspectorSection(slotName, component)` API — registers a React component (or equivalent) into a named slot rendered below core properties
 - [ ] Pre-create named slots: `inspector:cost`, `inspector:geometry`, `inspector:journal` — render as empty until PLAN-D registers implementations
 - [ ] Call `markDirty()` on every inspector edit

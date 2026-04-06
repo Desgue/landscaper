@@ -151,7 +151,8 @@ _Field names are normative per data-schema.md. Do not rename. Registry ID format
 
 - [ ] Implement viewport state: `{ panX, panY, zoom }` with zoom range `[0.05, 10.0]`
 - [ ] Implement `toScreen(worldX, worldY)` and `toWorld(screenX, screenY)` — `screenX = worldX * zoom + panX`; never round world coordinates; export these functions for all other plans
-- [ ] Implement pan: Space+drag, middle-click+drag
+- [ ] Implement pan: Space+drag, middle-click+drag, two-finger drag (trackpad)
+- [ ] Implement Hand/Pan tool (H): when active, left-click drag pans the canvas; no elements selected or modified; cursor shows grab/hand icon; wire H shortcut
 - [ ] Implement zoom: scroll wheel and pinch; zoom-toward-cursor math (world point under cursor stays fixed — see spatial-math-specification.md § Zoom)
 - [ ] Implement fit-to-view: AABB of all elements + padding, centered and scaled
 - [ ] Implement render loop with composable layer slots (bottom → top): grid · overflow dim · terrain · yard boundary · paths · structures · plants · labels · dimensions · selection UI — each slot is a registered callback
@@ -222,7 +223,7 @@ _Undo history lives in IndexedDB only — not in the JSON export. Import always 
 
 ##### Tasks
 
-- [ ] Implement grid snap formula: `snap(v, inc) = Math.round(v / inc) * inc`; default `inc = 10` (10cm in cm units)
+- [ ] Implement grid snap formula: `snap(v, inc) = Math.round(v / inc) * inc`; read `inc` from `project.gridConfig.snapIncrementCm` (default `10`; configurable per project)
 - [ ] Implement adaptive snap tolerance: `tolerance = clamp(8 / zoom, 2, 100)` cm — recalculate each frame from current zoom
 - [ ] Implement geometry snap candidates: edge alignment (per-axis match to nearest element edge), midpoint alignment, perpendicular alignment (90° to nearest edge)
 - [ ] Implement priority resolution: geometry snap wins over grid snap; among geometry candidates, closest (in world cm) wins; ties broken by element creation timestamp

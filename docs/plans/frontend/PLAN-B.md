@@ -196,7 +196,7 @@ grep -n "fixed.pivot\|edge propagation\|Yard Boundary" docs/frontend/spatial-mat
 - [ ] Resize snap: 10cm on edge drag; Alt disables
 - [ ] Implement rotation: drag rotation handle; free rotation (no angle snap); apply 2D rotation matrix around AABB center; call `pushHistory()`
 - [ ] Implement straight vs curved toggle in inspector (post-placement); curved uses `arcSagitta` field
-- [ ] Implement Arc tool (A) for curved structures during placement: click start point, click end point, then drag midpoint to set curvature (sagitta); derive radius and center per spatial-math-specification.md § Arc Geometry
+- [ ] Implement Arc tool (A) for curved structures during placement: click start point, click end point, then drag midpoint to set curvature (sagitta); derive radius and center per spatial-math-specification.md § Arc Geometry. Note: A is also context-sensitive during path drawing (paths-borders.md "## Curved Segment") — pressing A while a path is active switches the next segment to curved mode; that behavior is wired in the Path Drawing feature below
 - [ ] Implement collision per category: `boundary` — blocks all element placement; `container` — accepts plants, allows terrain inside; `surface` — blocks terrain painting; `overhead` — non-blocking, plants and paths pass through; `feature`/`furniture` — blocks structures and paths
 - [ ] Register in structures render layer slot; render per type appearance
 - [ ] Call `pushHistory()` on placement, resize, rotate
@@ -215,7 +215,7 @@ grep -n "fixed.pivot\|edge propagation\|Yard Boundary" docs/frontend/spatial-mat
 
 - [ ] Implement path tool: activated from side palette (no keyboard shortcut)
 - [ ] Implement polyline drawing: click to place start, click to add points, click near start or press "Done" to close
-- [ ] Implement arc segment on placement: while placing a new point, drag to set curvature of the incoming segment (sagitta-based); straight by default
+- [ ] Implement arc segment on placement: while placing a new point, drag to set curvature of the incoming segment (sagitta-based); straight by default. Wire A key to toggle the next segment into curved mode when path drawing is active (A is context-sensitive: structure tool when idle, curved-segment switch when path drawing is in progress)
 - [ ] Implement post-placement segment toggle: click a segment in inspector to toggle straight↔curved
 - [ ] Store segments: ordered points array with shared endpoints (no duplicate point storage); `closed` boolean flag for implicit closing segment (not a stored segment)
 - [ ] Implement path width rendering: `strokeWidthCm` rendered proportionally in world coordinates; use thick stroke or offset curve approach per spatial-math-specification.md § Path Width Rendering

@@ -61,6 +61,8 @@ Placed against structures. Icon includes a directional indicator (arrow pointing
 
 name, icon, category, growthForm, spacingCm, rowSpacingCm, canopyWidthCm, heightCm, trunkWidthCm, sunRequirement (full/partial/shade), waterNeed (low/medium/high), season[], daysToHarvest, companionPlants[], costPerUnit, description. See [data-schema.md "### Plant Type"] for field details.
 
+`rowSpacingCm` is informational metadata (the recommended row spacing for row-planted vegetables). It has no effect on collision detection or canvas placement — `spacingCm` drives all spacing calculations. `rowSpacingCm` is displayed in the inspector only. `companionPlants` is likewise informational — IDs that don't resolve to a known plant type are stored as-is.
+
 ## Instance Properties (per placement)
 
 - **plantedDate**: null when status is "planned". Auto-set to current date when status changes to "planted". Editable via inspector.

@@ -117,14 +117,14 @@ grep -n "Open.Meteo\|API\|geolocation\|tempC\|condition\|humidity\|fetch" docs/f
 
 ##### Tasks
 
-- [ ] Implement `DimensionElement` data model: `startPoint`, `endPoint`, `offsetCm` (signed perpendicular offset for leader line position), optional `linkedElementIds[]`
+- [ ] Implement `DimensionElement` data model: `startPoint`, `endPoint`, `offsetCm` (signed perpendicular offset for leader line position), optional `startElementId` (UUID | null) and `endElementId` (UUID | null) — two separate fields, not an array
 - [ ] Render dimension annotation per spatial-math-specification.md § Dimension Line Rendering:
   - Leader line: from startPoint to endPoint, offset perpendicularly by `offsetCm`
   - Extension lines: perpendicular from each original point to the leader line
   - Arrowheads: isosceles triangles at each leader line end
   - Text label: distance value centered on the leader line
-- [ ] Implement optional element linking: when `linkedElementIds` is set, recalculate `startPoint`/`endPoint` whenever linked elements move or resize (use their AABB anchor points)
-- [ ] Handle stale links: when a linked element is deleted, preserve the `linkedElementId` but show a "deleted element" indicator in the dimension tooltip
+- [ ] Implement optional element linking: when `startElementId` or `endElementId` is non-null, recalculate the corresponding point whenever the linked element moves or resizes (use its nearest AABB edge or corner)
+- [ ] Handle stale links: when a linked element is deleted, preserve the stale `startElementId`/`endElementId` but show a "deleted element" indicator in the dimension tooltip; the endpoint becomes a fixed world point at its last known position
 - [ ] Dimensions are selectable/movable/deletable like other elements; registered in the dimensions render layer slot (topmost, above all other elements)
 - [ ] Call `pushHistory()` on creation and edits; call `markDirty()`
 
@@ -161,7 +161,7 @@ grep -n "Open.Meteo\|API\|geolocation\|tempC\|condition\|humidity\|fetch" docs/f
 
 ##### Tasks
 
-- [ ] Implement `JournalEntry` in app state: `{ id, date, title, body (markdown), tags[], linkedElementIds[], weather? }`; `date` defaults to today
+- [ ] Implement `JournalEntry` in app state: `{ id, date, title, content (markdown), tags[], linkedElementIds[], weather? }`; `date` defaults to today
 - [ ] Implement journal panel UI: toggleable side panel or modal; entry list newest-first, scrollable; create/edit/delete entry actions
 - [ ] Tags: freeform text array; auto-complete suggestions from all tags used in the project
 - [ ] Body: render markdown (bold, italic, lists, links at minimum); edit in a textarea or inline editor
@@ -250,7 +250,7 @@ grep -n "Open.Meteo\|API\|geolocation\|tempC\|condition\|humidity\|fetch" docs/f
 
 ##### Tasks
 
-- [ ] Implement cost summary panel (accessible from toolbar menu or dedicated button)
+- [ ] Implement cost summary panel (accessible from Project Menu → "Cost Summary" and via a dedicated button in the status bar)
 - [ ] Aggregate costs by element type: terrain subtotal, plants subtotal, structures subtotal, paths subtotal, grand total
 - [ ] Optional layer breakdown: expandable per-type section showing cost per layer
 - [ ] Hidden layer toggle: checkbox per layer to include/exclude hidden layers from the calculation; default excluded
