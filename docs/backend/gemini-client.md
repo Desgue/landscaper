@@ -28,6 +28,8 @@ if err != nil {
 defer client.Close()
 ```
 
+> The parent context must be `r.Context()` (the HTTP request context), not `context.Background()`. This ensures client disconnection cancels the Gemini call. See [server.md "### Request Context Propagation"].
+
 ## Request Construction
 
 The request is assembled from a text prompt, the segmentation map, and an optional yard photo. All parts are sent via `client.Models.GenerateContent`. The segmentation map is always first; the yard photo, when present, is second. Gemini receives them in this order and the prompt preamble (see [prompt-construction.md "## Yard Photo Preamble"]) references them by position.

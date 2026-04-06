@@ -42,7 +42,7 @@ When a terrain element is selected, the inspector shows: terrain type and dimens
 
 ## Built-in Types
 
-**Natural**: grass, soil, weed/wild, sand. **Hardscape**: concrete, gravel, pebbles, decking-surface. **Organic**: mulch, bark-chips. Extensible via registry (config file, not UI).
+**Natural**: grass, soil, weed/wild, sand. **Hardscape**: concrete, gravel, pebbles, decking-surface. **Mulch**: mulch, bark-chips. Extensible via registry (config file, not UI).
 
 ## Collision Rules
 

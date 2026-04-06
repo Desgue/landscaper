@@ -7,7 +7,7 @@ Go project structure, HTTP routing, embedded SPA, environment variables, timeout
 ## Go Project Structure
 
 ```
-garden-planner/
+greenprint/
 ├── cmd/
 │   └── server/
 │       └── main.go              # Entry point: env config, server start
@@ -124,6 +124,10 @@ srv := &http.Server{
 | `WriteTimeout` | 90s | Must exceed the 60s Gemini context deadline to allow the PNG response to be fully written before the connection is cut |
 | `IdleTimeout` | 120s | Keeps alive connections from the browser SPA without holding sockets indefinitely |
 
+### Request Context Propagation
+
+The generate handler uses `r.Context()` as the parent context for all downstream operations, including the Gemini API call. This means client disconnection (e.g., browser abort via `AbortController`) automatically cancels the in-flight Gemini request and frees resources. Handlers must never use `context.Background()` for pipeline operations.
+
 ---
 
 ## Health Check
@@ -171,3 +175,15 @@ The Go binary embeds the React app. The build must run in this order:
 `frontend/dist/` is git-ignored. CI is responsible for running step 1 before step 2. Running `go build` without the Vite output produces a binary that serves an empty embedded filesystem — the API routes still work, but the SPA is absent.
 
 In local development, run `npm run build` once (or `npm run dev` separately against the Go server on a different port) before `go run ./cmd/server`.
+
+---
+
+## Deployment Model
+
+Greenprint is designed as a **self-hosted single-instance service** — one deployment per user or household, typically on a VPS or home server. There is no multi-tenant authentication, no user accounts, and no shared state between instances.
+
+The operator provides their own `GEMINI_API_KEY` and is responsible for network access control (firewall, reverse proxy, etc.).
+
+### Timezone Handling
+
+Season derivation requires a calendar date. The frontend sends the user's local date in the request. If absent, the backend falls back to the server's current date in **UTC**. This avoids timezone misconfiguration on the server affecting season selection.
