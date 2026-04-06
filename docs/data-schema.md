@@ -542,7 +542,7 @@ Note: if `plantedDate` is non-null and `status` is `"planned"`, the import keeps
 | `startElementId` | Valid UUID or null | `null` |
 | `endElementId` | Valid UUID or null | `null` |
 | `offsetCm` | Finite number | `50` |
-| `displayUnit` | `"m"` | `"m"` |
+| `displayUnit` | Must be `"m"` (only supported value) | `"m"` |
 | `precision` | Integer 0-4 | `2` |
 
 ### Journal entry defaults

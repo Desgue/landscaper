@@ -99,8 +99,8 @@ Extensible via registry.
 Plants respect realistic placement constraints [canvas-viewport.md "## Collision Rules"]:
 
 - **Spacing enforcement** (herbs, shrubs, groundcovers, climbers): `spacingCm` is the minimum center-to-center distance for a plant type. Each plant's collision radius is `spacingCm / 2`. Two plants violate spacing when `distance(centerA, centerB) < (spacingA + spacingB) / 2`
-- **Tree trunk collision**: tree trunks block at ground level using `trunkWidthCm / 2` as the collision radius. Other elements cannot overlap the trunk circle. Tree canopy does NOT participate in collision detection [canvas-viewport.md "## Collision Rules"]
-- **Tree spacing**: trees use `spacingCm` for plant-to-plant spacing (minimum distance between tree trunks and other plants), not `canopyWidthCm`
+- **Tree spacing**: trees also use `spacingCm / 2` as their plant-to-plant spacing radius (same formula as herbs). `canopyWidthCm` is NOT used for spacing. So two trees violate spacing when `distance(centerA, centerB) < (spacingA + spacingB) / 2`, where spacingA/B are the trees' `spacingCm` values.
+- **Tree trunk collision** (separate from spacing): tree trunks additionally block ground-level elements using `trunkWidthCm / 2` as the collision radius. Non-plant elements (structures, paths) cannot overlap the trunk circle. Tree canopy does NOT participate in collision detection [canvas-viewport.md "## Collision Rules"]
 - **Blocked by structures**: plants cannot be placed inside structures unless the structure has `category: "container"` (raised beds, garden beds, planters) or `category: "overhead"` (pergolas — plants allowed beneath)
 - **Allowed on terrain**: plants can be placed on any terrain type
 - **Allowed on paths**: plants can be placed near or on paths (e.g., plants along a border)

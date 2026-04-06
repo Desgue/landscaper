@@ -51,7 +51,7 @@ Deleting a layer moves all its elements to the default layer. The default layer 
 
 ### Merge Down
 
-Merges the selected layer into the layer below it in the panel. All elements are moved to the target layer. The merged layer is removed.
+Merges the selected layer into the layer below it in the panel. All elements are moved to the target layer. The merged layer is removed. Groups whose members are on the source layer are preserved — the group's `layerId` is updated to the target layer along with its members (since groups require all members to share a layer [## Grouping]).
 
 ### Select All on Layer
 
