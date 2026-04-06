@@ -27,12 +27,12 @@ A web-based garden and landscape planner with a fluid, intuitive canvas experien
 - Grid display and snap are independently toggleable
 - Geometry snapping in MVP: edge alignment, perpendicular alignment, midpoint alignment
 - Adaptive snap tolerance: tighter when zoomed in, looser when zoomed out
-- Alt modifier disables snapping for free placement (inverted for labels)
+- Alt modifier is context-dependent: disables snapping during placement, enables snapping during moves (inverted for labels which default to free placement)
 - Visual snap guides show alignment feedback
 
 ### F3: Terrain Painting
 
-- Paint terrain types onto grid cells (snap to 10cm increments)
+- Paint terrain types onto 1m grid cells (cell boundaries can be positioned at 10cm snap increments)
 - Configurable brush size (1x1, 2x2, 3x3 in grid cells)
 - Built-in types: grass, soil, weed/wild, concrete, gravel, mulch
 - Extensible registry — add new terrain types via config
@@ -44,7 +44,9 @@ A web-based garden and landscape planner with a fluid, intuitive canvas experien
 - Built-in plants: cherry tomatoes, tomatoes, onions, eggplant, peppers, basil, lettuce, carrots
 - Extensible registry — same pattern as terrain
 - Plant spacing (spacingCm) determines the visual size within the grid cell; plant icon is centered in the cell
-- Each plant has: name, icon, spacing, season info, category, sun requirement, water need, days to harvest, companion plants
+- Each plant has: name, icon, category, spacing, season, sun requirement, water need, days to harvest, companion plants
+- Per-instance properties: planted date, status (planned/planted/growing/harvested/removed), quantity, notes
+- Default status on placement: "planned"
 
 ### F5: Selection & Manipulation
 

@@ -46,6 +46,7 @@ Tools (left to right) — see `docs/06-keyboard-shortcuts.md` for shortcuts:
 ### Status Bar (bottom)
 
 - Current zoom %, cursor world coordinates in meters (cm precision)
+- Zoom +/- buttons
 - Snap toggle indicator (on/off)
 - Grid visibility toggle indicator (on/off)
 
@@ -70,7 +71,7 @@ Tools (left to right) — see `docs/06-keyboard-shortcuts.md` for shortcuts:
 - Canvas background: light gray or white with subtle grid lines
 - Yard boundary: distinct outline (e.g., dashed blue or dark gray)
 - Overflow area (outside boundary): subtly dimmed
-- Terrain textures: realistic but stylized (not photographic, not hand-drawn)
+- Terrain: solid colors in MVP; Phase 2 target is realistic but stylized textures (not photographic, not hand-drawn)
 - UI chrome: neutral, doesn't compete with yard content
 - Snap guides: accent blue, thin lines appearing during placement
 

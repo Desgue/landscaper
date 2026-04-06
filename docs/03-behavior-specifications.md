@@ -143,6 +143,15 @@ When the user double-clicks the minimap
 Then the viewport adjusts to show all elements with padding
 ```
 
+### Scenario: Hand/Pan tool
+```gherkin
+Given the Hand/Pan tool is active (H key)
+When the user clicks and drags on the canvas
+Then the canvas viewport moves in the same direction as the drag
+And no elements are selected or modified
+And the cursor shows a grab/hand icon
+```
+
 ---
 
 ## Feature: Rulers
@@ -334,6 +343,20 @@ And the Eraser tool is active
 When the user clicks on that grid cell
 Then the terrain is removed from that cell
 And the cell returns to the default empty canvas background
+```
+
+### Scenario: Erase any element
+```gherkin
+Given the Eraser tool is active
+When the user clicks on any element (plant, structure, path, or label)
+Then that element is removed from the canvas
+```
+
+### Scenario: Erase by dragging
+```gherkin
+Given the Eraser tool is active
+When the user clicks and drags across the canvas
+Then all elements the cursor passes over are removed
 ```
 
 ### Scenario: Terrain fills cell completely
@@ -807,6 +830,15 @@ And subsequent clicks on the canvas place that item
 Until the user presses Escape or switches tools
 ```
 
+### Scenario: Path tool activation via palette only
+```gherkin
+Given the side palette is showing the Paths tab
+When the user clicks on a path type
+Then the path tool is activated
+And the user can draw path segments on the canvas
+Note: the path tool has no toolbar button or keyboard shortcut — it is activated only via the palette
+```
+
 ### Scenario: Drag palette item to canvas
 ```gherkin
 Given the side palette is visible
@@ -946,6 +978,14 @@ Then a high-resolution image is downloaded
 And the image includes all visible elements but not the UI chrome
 ```
 
+### Scenario: Rename project
+```gherkin
+Given the user has a project open or is on the welcome screen project list
+When the user renames a project
+Then they can type a new name
+And the project is saved with the new name
+```
+
 ### Scenario: Delete project
 ```gherkin
 Given the user has multiple saved projects
@@ -979,6 +1019,7 @@ Given the journal view is displayed
 When the user creates a new entry
 Then a new entry is created with today's date
 And the user can enter a title, text content, and tags
+And the entry includes an optional weather snapshot section
 ```
 
 ### Scenario: Link elements to journal entry via pre-selection

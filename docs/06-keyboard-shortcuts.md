@@ -7,13 +7,15 @@ This is the single source of truth for all keyboard shortcuts. Other docs refere
 | Shortcut | Action |
 |----------|--------|
 | V | Select tool |
-| H | Hand/Pan tool |
+| H | Hand/Pan tool (click+drag to pan) |
 | B | Terrain brush |
 | P | Plant placement tool |
 | S | Structure tool |
 | A | Arc tool |
-| E | Eraser |
+| E | Eraser (removes any element on click/drag) |
 | T | Text/Label tool |
+
+Note: Path tool has no shortcut — activated via the Paths tab in the side palette.
 
 ## Canvas Navigation
 
@@ -52,7 +54,10 @@ This is the single source of truth for all keyboard shortcuts. Other docs refere
 
 ## Modifiers
 
+Alt behavior is context-dependent:
+
 | Shortcut | Action |
 |----------|--------|
 | Alt (while placing/painting with Terrain, Plant, Structure, Arc, Path, or Eraser) | Disable snapping (10cm + geometry) |
+| Alt (while moving selected elements) | Enable snapping (moves default to free) |
 | Alt (while placing with Text/Label tool) | Enable snapping (labels default to free placement) |
