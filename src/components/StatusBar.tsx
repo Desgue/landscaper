@@ -1,6 +1,7 @@
-import { DollarSign } from 'lucide-react'
+import { DollarSign, Plus, Minus } from 'lucide-react'
 import { useViewportStore } from '../store/useViewportStore'
 import { useProjectStore } from '../store/useProjectStore'
+import { useCursorStore } from '../store/useCursorStore'
 
 interface StatusBarProps {
   onOpenCostSummary?: () => void
@@ -8,20 +9,56 @@ interface StatusBarProps {
 
 export default function StatusBar({ onOpenCostSummary }: StatusBarProps = {}) {
   const zoom = useViewportStore((s) => s.zoom)
+  const applyZoomTowardCursor = useViewportStore((s) => s.applyZoomTowardCursor)
   const snapEnabled = useProjectStore((s) => s.currentProject?.uiState.snapEnabled ?? true)
   const gridVisible = useProjectStore((s) => s.currentProject?.uiState.gridVisible ?? true)
   const updateProject = useProjectStore((s) => s.updateProject)
+  const worldX = useCursorStore((s) => s.worldX)
+  const worldY = useCursorStore((s) => s.worldY)
 
   const zoomPct = Math.round(zoom * 100)
+  // Display in meters with cm precision
+  const cursorXm = (worldX / 100).toFixed(2)
+  const cursorYm = (worldY / 100).toFixed(2)
+
+  const handleZoomIn = () => {
+    // Zoom toward center of viewport
+    const cx = window.innerWidth / 2
+    const cy = window.innerHeight / 2
+    applyZoomTowardCursor(cx, cy, zoom * 1.2)
+  }
+
+  const handleZoomOut = () => {
+    const cx = window.innerWidth / 2
+    const cy = window.innerHeight / 2
+    applyZoomTowardCursor(cx, cy, zoom / 1.2)
+  }
 
   return (
     <div
       className="flex items-center gap-6 px-4 bg-white border-t border-gray-200 text-xs text-gray-600 flex-shrink-0"
       style={{ height: 32 }}
     >
-      <span>Zoom: {zoomPct}%</span>
-      {/* Cursor coords updated by CanvasRoot via a future shared atom; static for now */}
-      <span>0.00m, 0.00m</span>
+      <span className="flex items-center gap-1">
+        <button
+          title="Zoom out (-)"
+          aria-label="Zoom out"
+          className="hover:text-gray-900 cursor-pointer bg-transparent border-none p-0"
+          onClick={handleZoomOut}
+        >
+          <Minus size={12} />
+        </button>
+        Zoom: {zoomPct}%
+        <button
+          title="Zoom in (+)"
+          aria-label="Zoom in"
+          className="hover:text-gray-900 cursor-pointer bg-transparent border-none p-0"
+          onClick={handleZoomIn}
+        >
+          <Plus size={12} />
+        </button>
+      </span>
+      <span>{cursorXm}m, {cursorYm}m</span>
       <button
         title="Toggle snap (Ctrl+G)"
         aria-label="Toggle snap"
