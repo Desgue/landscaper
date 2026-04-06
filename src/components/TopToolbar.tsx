@@ -1,4 +1,18 @@
 import { useEffect } from 'react'
+import {
+  MousePointer2,
+  Hand,
+  Mountain,
+  Leaf,
+  Building2,
+  Spline,
+  Eraser,
+  Type,
+  Ruler,
+  Undo2,
+  Redo2,
+  type LucideIcon,
+} from 'lucide-react'
 import type { ToolId } from '../types/schema'
 import { useToolStore } from '../store/useToolStore'
 import { useHistoryStore } from '../store/useHistoryStore'
@@ -11,18 +25,19 @@ interface ToolButton {
   key: string
   id: ToolId
   label: string
+  Icon: LucideIcon
 }
 
 const TOOLS: ToolButton[] = [
-  { key: 'v', id: 'select',      label: 'Select'    },
-  { key: 'h', id: 'hand',        label: 'Hand'      },
-  { key: 'b', id: 'terrain',     label: 'Terrain'   },
-  { key: 'p', id: 'plant',       label: 'Plant'     },
-  { key: 's', id: 'structure',   label: 'Structure' },
-  { key: 'a', id: 'arc',         label: 'Arc'       },
-  { key: 'e', id: 'eraser',      label: 'Eraser'    },
-  { key: 't', id: 'label',       label: 'Label'     },
-  { key: 'm', id: 'measurement', label: 'Measure'   },
+  { key: 'v', id: 'select',      label: 'Select',    Icon: MousePointer2 },
+  { key: 'h', id: 'hand',        label: 'Hand',      Icon: Hand          },
+  { key: 'b', id: 'terrain',     label: 'Terrain',   Icon: Mountain      },
+  { key: 'p', id: 'plant',       label: 'Plant',     Icon: Leaf          },
+  { key: 's', id: 'structure',   label: 'Structure', Icon: Building2     },
+  { key: 'a', id: 'arc',         label: 'Arc',       Icon: Spline        },
+  { key: 'e', id: 'eraser',      label: 'Eraser',    Icon: Eraser        },
+  { key: 't', id: 'label',       label: 'Label',     Icon: Type          },
+  { key: 'm', id: 'measurement', label: 'Measure',   Icon: Ruler         },
 ]
 
 const KEY_TO_TOOL: Record<string, ToolId> = Object.fromEntries(
@@ -60,7 +75,6 @@ export default function TopToolbar() {
     }
 
     const onKeyUp = (e: KeyboardEvent) => {
-      // Guard matches keydown: only fire if not in an input
       if (e.code === 'Space' && !isInputFocused()) {
         popTemporaryTool()
       }
@@ -92,29 +106,56 @@ export default function TopToolbar() {
         {TOOLS.map(tool => {
           const isActive = activeTool === tool.id
           return (
-            <button
-              key={tool.id}
-              onClick={() => setTool(tool.id)}
-              title={`${tool.label} (${tool.key.toUpperCase()})`}
-              aria-label={`${tool.label} (${tool.key.toUpperCase()})`}
-              aria-pressed={isActive}
-              className="flex flex-col items-center justify-center rounded px-2 py-0.5 text-xs gap-0.5 transition-colors"
-              style={{
-                minWidth: 40,
-                height: 36,
-                background: isActive ? ACCENT_BG : 'transparent',
-                color: isActive ? ACCENT : '#374151',
-                fontWeight: isActive ? 600 : 400,
-                border: isActive ? `1px solid ${ACCENT}` : '1px solid transparent',
-              }}
-            >
-              <span className="text-sm font-mono leading-none">
-                {tool.key.toUpperCase()}
-              </span>
-              <span className="leading-none" style={{ fontSize: 10 }}>
-                {tool.label}
-              </span>
-            </button>
+            <div key={tool.id} className="relative group">
+              <button
+                onClick={() => setTool(tool.id)}
+                aria-label={`${tool.label} (${tool.key.toUpperCase()})`}
+                aria-pressed={isActive}
+                className="flex flex-col items-center justify-center rounded px-2 py-0.5 gap-0.5 transition-colors"
+                style={{
+                  minWidth: 40,
+                  height: 36,
+                  background: isActive ? ACCENT_BG : 'transparent',
+                  color: isActive ? ACCENT : '#374151',
+                  border: isActive ? `1px solid ${ACCENT}` : '1px solid transparent',
+                }}
+              >
+                <tool.Icon
+                  size={14}
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
+                <span
+                  className="leading-none select-none"
+                  style={{ fontSize: 10, fontWeight: isActive ? 600 : 400 }}
+                >
+                  {tool.label}
+                </span>
+              </button>
+
+              {/* Tooltip */}
+              <div
+                className="pointer-events-none absolute top-full left-1/2 mt-1.5 hidden group-hover:flex flex-col items-center"
+                style={{ transform: 'translateX(-50%)', zIndex: 9999 }}
+              >
+                {/* Arrow */}
+                <div
+                  style={{
+                    width: 0,
+                    height: 0,
+                    borderLeft: '4px solid transparent',
+                    borderRight: '4px solid transparent',
+                    borderBottom: '4px solid #1f2937',
+                  }}
+                />
+                <div
+                  className="rounded px-2 py-1 text-white whitespace-nowrap shadow-md"
+                  style={{ background: '#1f2937', fontSize: 11 }}
+                >
+                  {tool.label}
+                  <span className="ml-1.5 opacity-60">{tool.key.toUpperCase()}</span>
+                </div>
+              </div>
+            </div>
           )
         })}
       </div>
@@ -122,21 +163,46 @@ export default function TopToolbar() {
       {/* Divider */}
       <div className="w-px bg-gray-200 self-stretch my-2 mx-2" />
 
-      {/* Undo / Redo — wired in Phase 2 via useHistoryStore */}
-      <button
-        className="px-2 py-1 rounded text-xs text-gray-600 hover:bg-gray-100 border border-transparent"
-        title="Undo (Ctrl+Z)"
-        onClick={undo}
-      >
-        ↩ Undo
-      </button>
-      <button
-        className="px-2 py-1 rounded text-xs text-gray-600 hover:bg-gray-100 border border-transparent"
-        title="Redo (Ctrl+Shift+Z)"
-        onClick={redo}
-      >
-        ↪ Redo
-      </button>
+      {/* Undo / Redo */}
+      <div className="relative group">
+        <button
+          className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-600 hover:bg-gray-100 border border-transparent transition-colors"
+          aria-label="Undo (Ctrl+Z)"
+          onClick={undo}
+        >
+          <Undo2 size={13} />
+          <span>Undo</span>
+        </button>
+        <div
+          className="pointer-events-none absolute top-full left-1/2 mt-1.5 hidden group-hover:flex flex-col items-center"
+          style={{ transform: 'translateX(-50%)', zIndex: 9999 }}
+        >
+          <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderBottom: '4px solid #1f2937' }} />
+          <div className="rounded px-2 py-1 text-white whitespace-nowrap shadow-md" style={{ background: '#1f2937', fontSize: 11 }}>
+            Undo <span className="opacity-60">Ctrl+Z</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative group">
+        <button
+          className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-600 hover:bg-gray-100 border border-transparent transition-colors"
+          aria-label="Redo (Ctrl+Shift+Z)"
+          onClick={redo}
+        >
+          <Redo2 size={13} />
+          <span>Redo</span>
+        </button>
+        <div
+          className="pointer-events-none absolute top-full left-1/2 mt-1.5 hidden group-hover:flex flex-col items-center"
+          style={{ transform: 'translateX(-50%)', zIndex: 9999 }}
+        >
+          <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderBottom: '4px solid #1f2937' }} />
+          <div className="rounded px-2 py-1 text-white whitespace-nowrap shadow-md" style={{ background: '#1f2937', fontSize: 11 }}>
+            Redo <span className="opacity-60">Ctrl+Shift+Z</span>
+          </div>
+        </div>
+      </div>
 
       {/* Spacer */}
       <div className="flex-1" />
