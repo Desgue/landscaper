@@ -43,8 +43,8 @@
 | **Scope** | Measurement tool · persistent dimension elements · area/perimeter/volume · journal (entries, linking, timeline, weather) · cost derivation · cost summary panel |
 | **Depends on** | PLAN-A (blocking), PLAN-B (blocking), PLAN-C inspector hooks (soft) |
 | **Unblocks** | PLAN-E (full dependency) |
-| **Status** | `todo` |
-| **Started** | — |
+| **Status** | `done` |
+| **Started** | 2026-04-06 |
 | **Last updated** | 2026-04-06 |
 
 ---
@@ -84,179 +84,179 @@ grep -n "Open.Meteo\|API\|geolocation\|tempC\|condition\|humidity\|fetch" docs/f
 
 ---
 
-## Phase D1 — Measurement & Dimensions [ ]
+## Phase D1 — Measurement & Dimensions [x]
 
 > Measurement tool, persistent annotations, and all area/perimeter/volume calculations.
 > Area/perimeter values are exposed in the inspector's `inspector:geometry` slot (PLAN-C).
 
 ---
 
-#### Feature: Measurement Tool [ ]
+#### Feature: Measurement Tool [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/measurement-dimensions.md` → `## Measurement Tool`
 **Also see:** `docs/frontend/spatial-math-specification.md` → `## Measurement & Area Calculations`
 **Load hint:** `grep -n "Measurement Tool\|two.point\|live.*tooltip\|dismiss\|keep\|persistent" docs/frontend/measurement-dimensions.md`
 
 ##### Tasks
 
-- [ ] Implement measurement tool (M): click first point, click second point; show live distance tooltip attached to midpoint of the drawn line during placement
-- [ ] Distance formula: `sqrt((x2-x1)² + (y2-y1)²)` formatted as meters with cm precision
-- [ ] Snap: free placement by default (no grid snap) — same inversion as labels; Alt ENABLES snap (snap-system.md § Alt Modifier Behavior); geometry snap fires on element edges and corners within tolerance regardless of Alt
-- [ ] On second click: show inline options "Dismiss" (discard) and "Keep" (save as persistent dimension element)
-- [ ] Wire M shortcut to measurement tool
+- [x] Implement measurement tool (M): click first point, click second point; show live distance tooltip attached to midpoint of the drawn line during placement
+- [x] Distance formula: `sqrt((x2-x1)² + (y2-y1)²)` formatted as meters with cm precision
+- [x] Snap: free placement by default (no grid snap) — same inversion as labels; Alt ENABLES snap (snap-system.md § Alt Modifier Behavior); geometry snap fires on element edges and corners within tolerance regardless of Alt
+- [x] On second click: show inline options "Dismiss" (discard) and "Keep" (save as persistent dimension element)
+- [x] Wire M shortcut to measurement tool
 
 ---
 
-#### Feature: Persistent Dimension Elements [ ]
+#### Feature: Persistent Dimension Elements [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/measurement-dimensions.md` → `## Dimension Element`, `## Element Linking`
 **Also see:** `docs/frontend/spatial-math-specification.md` → `## Dimension Line Rendering`, `## Linked Dimension Updates`
 **Load hint:** `grep -n "Dimension Line Rendering\|leader line\|extension line\|arrowhead\|isosceles\|offsetCm\|perpendicular" docs/frontend/spatial-math-specification.md`
 
 ##### Tasks
 
-- [ ] Implement `DimensionElement` data model: `startPoint`, `endPoint`, `offsetCm` (signed perpendicular offset for leader line position), optional `startElementId` (UUID | null) and `endElementId` (UUID | null) — two separate fields, not an array
-- [ ] Render dimension annotation per spatial-math-specification.md § Dimension Line Rendering:
+- [x] Implement `DimensionElement` data model: `startPoint`, `endPoint`, `offsetCm` (signed perpendicular offset for leader line position), optional `startElementId` (UUID | null) and `endElementId` (UUID | null) — two separate fields, not an array
+- [x] Render dimension annotation per spatial-math-specification.md § Dimension Line Rendering:
   - Leader line: from startPoint to endPoint, offset perpendicularly by `offsetCm`
   - Extension lines: perpendicular from each original point to the leader line
   - Arrowheads: isosceles triangles at each leader line end
   - Text label: distance value centered on the leader line
-- [ ] Implement optional element linking: when `startElementId` or `endElementId` is non-null, recalculate the corresponding point whenever the linked element moves or resizes (use its nearest AABB edge or corner)
-- [ ] Handle stale links: when a linked element is deleted, preserve the stale `startElementId`/`endElementId` but show a "deleted element" indicator in the dimension tooltip; the endpoint becomes a fixed world point at its last known position
-- [ ] Dimensions are selectable/movable/deletable like other elements; registered in the dimensions render layer slot (topmost, above all other elements)
-- [ ] Call `pushHistory()` on creation and edits; call `markDirty()`
+- [x] Implement optional element linking: when `startElementId` or `endElementId` is non-null, recalculate the corresponding point whenever the linked element moves or resizes (use its nearest AABB edge or corner)
+- [x] Handle stale links: when a linked element is deleted, preserve the stale `startElementId`/`endElementId` but show a "deleted element" indicator in the dimension tooltip; the endpoint becomes a fixed world point at its last known position
+- [x] Dimensions are selectable/movable/deletable like other elements; registered in the dimensions render layer slot (topmost, above all other elements)
+- [x] Call `pushHistory()` on creation and edits; call `markDirty()`
 
 ---
 
-#### Feature: Area / Perimeter / Volume [ ]
+#### Feature: Area / Perimeter / Volume [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/measurement-dimensions.md` → `## Area & Perimeter Display`, `## Material Estimates`
 **Also see:** `docs/frontend/spatial-math-specification.md` → `## Area`, `## Perimeter`, `## Material Volume`
 **Load hint:** `grep -n "Shoelace\|area\|arc.*area\|perimeter\|arc length\|volume\|depth.*area" docs/frontend/spatial-math-specification.md`
 
 ##### Tasks
 
-- [ ] Implement Shoelace formula for polygon area: applies to terrain cell groups, straight-edged structures, closed straight paths, yard boundary
-- [ ] Implement arc segment area contribution: integrate arc sector area into Shoelace for shapes with arc edges
-- [ ] Implement perimeter: sum of edge lengths — straight edges use Euclidean distance; arc edges use `radius × angle` (arc length)
-- [ ] Implement terrain material estimate in inspector: Area (cell count × 1 m²), editable Depth field (cm, transient — defaults to a per-type sensible value such as mulch: 8cm, gravel: 5cm — resets on selection change, not stored), and Volume (`area × depth / 100` in m³)
-- [ ] Implement path material estimate in inspector: Length (sum of segment lengths in m), Width (`strokeWidthCm`), and Area (`length × width` in m²) — paths have no depth or volume field
-- [ ] Register these values into the inspector's `inspector:geometry` slot via `registerInspectorSection('inspector:geometry', GeometryPanel)` — applicable for terrain, structures, closed paths, yard boundary
+- [x] Implement Shoelace formula for polygon area: applies to terrain cell groups, straight-edged structures, closed straight paths, yard boundary
+- [x] Implement arc segment area contribution: integrate arc sector area into Shoelace for shapes with arc edges
+- [x] Implement perimeter: sum of edge lengths — straight edges use Euclidean distance; arc edges use `radius × angle` (arc length)
+- [x] Implement terrain material estimate in inspector: Area (cell count × 1 m²), editable Depth field (cm, transient — defaults to a per-type sensible value such as mulch: 8cm, gravel: 5cm — resets on selection change, not stored), and Volume (`area × depth / 100` in m³)
+- [x] Implement path material estimate in inspector: Length (sum of segment lengths in m), Width (`strokeWidthCm`), and Area (`length × width` in m²) — paths have no depth or volume field
+- [x] Register these values into the inspector's `inspector:geometry` slot via `registerInspectorSection('inspector:geometry', GeometryPanel)` — applicable for terrain, structures, closed paths, yard boundary
 
 ---
 
-## Phase D2 — Journal [ ]
+## Phase D2 — Journal [x]
 
 > Project timeline with element linking and weather. Independent from Phase D1 — can run in parallel.
 
 ---
 
-#### Feature: Journal Entry CRUD [ ]
+#### Feature: Journal Entry CRUD [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/journal.md` → `## Journal Entries`, `## Tags`
 **Load hint:** `grep -n "Entry\|date\|title\|markdown\|tag\|auto.complete\|newest.first\|panel" docs/frontend/journal.md`
 
 ##### Tasks
 
-- [ ] Implement `JournalEntry` in app state: `{ id, date, title, content (markdown), tags[], linkedElementIds[], weather? }`; `date` defaults to today
-- [ ] Implement journal full-screen view: opening the journal replaces the canvas (full-screen takeover); a "Back to canvas" action returns to the canvas with the project intact and the current state unchanged; within the view: entry list newest-first, scrollable, create/edit/delete entry actions
-- [ ] Tags: freeform text array; auto-complete suggestions from all tags used in the project
-- [ ] Body: render markdown (bold, italic, lists, links at minimum); edit in a textarea or inline editor
-- [ ] Implement search and filter: text search field filters entries by title/content; tag selector filters by tag; only matching entries shown; filters are additive
+- [x] Implement `JournalEntry` in app state: `{ id, date, title, content (markdown), tags[], linkedElementIds[], weather? }`; `date` defaults to today
+- [x] Implement journal full-screen view: opening the journal replaces the canvas (full-screen takeover); a "Back to canvas" action returns to the canvas with the project intact and the current state unchanged; within the view: entry list newest-first, scrollable, create/edit/delete entry actions
+- [x] Tags: freeform text array; auto-complete suggestions from all tags used in the project
+- [x] Body: render markdown (bold, italic, lists, links at minimum); edit in a textarea or inline editor
+- [x] Implement search and filter: text search field filters entries by title/content; tag selector filters by tag; only matching entries shown; filters are additive
 
 ---
 
-#### Feature: Element Linking [ ]
+#### Feature: Element Linking [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/journal.md` → `## Element Linking`
 **Also see:** `docs/frontend/spatial-math-specification.md` → `## Journal Element Linking`
 **Load hint:** `grep -n "linkedElementIds\|pre.selection\|type.to.search\|deleted element\|stale\|bidirectional" docs/frontend/journal.md`
 
 ##### Tasks
 
-- [ ] Implement pre-selection linking: when a user opens "new entry" with elements selected, pre-populate `linkedElementIds` with those element IDs
-- [ ] Implement in-entry element search: type-to-search by element type name or position to add links while editing an entry
-- [ ] Handle deleted elements: if a `linkedElementId` no longer exists in `Project.elements`, show "deleted element" label (grayed, non-interactive) in the entry's linked elements list
-- [ ] Register linked entries display in inspector's `inspector:journal` slot: for the selected element, show matching journal entries (titles, dates, clickable to open the entry)
-- [ ] No bidirectional storage: links live only on journal entries; query by iterating entries to find those containing an element ID
+- [x] Implement pre-selection linking: when a user opens "new entry" with elements selected, pre-populate `linkedElementIds` with those element IDs
+- [x] Implement in-entry element search: type-to-search by element type name or position to add links while editing an entry
+- [x] Handle deleted elements: if a `linkedElementId` no longer exists in `Project.elements`, show "deleted element" label (grayed, non-interactive) in the entry's linked elements list
+- [x] Register linked entries display in inspector's `inspector:journal` slot: for the selected element, show matching journal entries (titles, dates, clickable to open the entry)
+- [x] No bidirectional storage: links live only on journal entries; query by iterating entries to find those containing an element ID
 
 ---
 
-#### Feature: Timeline & Calendar Views [ ]
+#### Feature: Timeline & Calendar Views [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/journal.md` → `## Timeline Views`
 **Load hint:** `grep -n "timeline\|calendar\|list view\|month grid\|click.*date\|filter" docs/frontend/journal.md`
 
 ##### Tasks
 
-- [ ] Implement list view: all entries in newest-first order, scrollable, default view
-- [ ] Implement calendar view: month grid; click a date cell to filter visible entries to that date; navigate months
-- [ ] Toggle between list and calendar views (button or tab in journal panel)
+- [x] Implement list view: all entries in newest-first order, scrollable, default view
+- [x] Implement calendar view: month grid; click a date cell to filter visible entries to that date; navigate months
+- [x] Toggle between list and calendar views (button or tab in journal panel)
 
 ---
 
-#### Feature: Weather Snapshot [ ]
+#### Feature: Weather Snapshot [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/journal.md` → `## Weather Integration`
 **Load hint:** `grep -n "Open.Meteo\|geolocation\|tempC\|condition\|humidity\|manual\|prompt\|fallback\|settings" docs/frontend/journal.md`
 
 ##### Tasks
 
-- [ ] Implement optional weather field per entry: `{ tempC: number, condition: string, humidity: number }`
-- [ ] Implement geolocation: browser `navigator.geolocation` prompt on first use; persist coordinates in `Project.uiState.location`; show manual entry fallback in settings if prompt denied
-- [ ] Add "Fetch weather" button in the entry form; on click, fetch current weather from the Open-Meteo API using stored or prompted coordinates (free API, no key required); populate `tempC`, `condition`, and `humidity` fields; if API unreachable, show inline "Weather unavailable" message and leave fields empty for manual entry
-- [ ] Allow manual override: user can type weather values directly regardless of API result
-- [ ] Render weather as a compact display line (temperature, condition icon, humidity) below the entry title when `weather` field is set
+- [x] Implement optional weather field per entry: `{ tempC: number, condition: string, humidity: number }`
+- [x] Implement geolocation: browser `navigator.geolocation` prompt on first use; persist coordinates in `Project.uiState.location`; show manual entry fallback in settings if prompt denied
+- [x] Add "Fetch weather" button in the entry form; on click, fetch current weather from the Open-Meteo API using stored or prompted coordinates (free API, no key required); populate `tempC`, `condition`, and `humidity` fields; if API unreachable, show inline "Weather unavailable" message and leave fields empty for manual entry
+- [x] Allow manual override: user can type weather values directly regardless of API result
+- [x] Render weather as a compact display line (temperature, condition icon, humidity) below the entry title when `weather` field is set
 
 ---
 
-## Phase D3 — Cost Tracking [ ]
+## Phase D3 — Cost Tracking [x]
 
 > Cost derivation and summary panel. Independent from D1 and D2 — can run in parallel.
 > Requires `costPerUnit` fields from PLAN-B registries. Requires PLAN-C layer visibility for exclusion logic.
 
 ---
 
-#### Feature: Cost Derivation [ ]
+#### Feature: Cost Derivation [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/cost-tracking.md` → `## Cost Model`, `## Cost Calculation Rules`
 **Also see:** `docs/frontend/data-schema.md` → registry type `costPerUnit` fields
 **Load hint:** `grep -n "costPerUnit\|per m²\|per plant\|linear meter\|per structure\|registry.only\|not.*editable" docs/frontend/cost-tracking.md`
 
 ##### Tasks
 
-- [ ] Implement cost computation functions (pure, no side effects):
+- [x] Implement cost computation functions (pure, no side effects):
   - Terrain: `cost = areaM² × terrainType.costPerUnit` (area from Phase D1 Shoelace)
   - Plant: `cost = element.quantity × plantType.costPerUnit`
   - Structure: `cost = structureType.costPerUnit` (flat per-instance, no size factor)
   - Path: `cost = perimeterM × pathType.costPerUnit` (linear meter, uses path perimeter from D1)
-- [ ] Cost reads from registry only — no per-instance override
-- [ ] Implement hidden layer exclusion: elements on hidden layers default to excluded from cost; toggle per-layer in cost summary panel (D3 next task)
-- [ ] Register per-element cost in inspector's `inspector:cost` slot via `registerInspectorSection('inspector:cost', CostPanel)` — show `currencySymbol + cost.toFixed(2)` read-only
+- [x] Cost reads from registry only — no per-instance override
+- [x] Implement hidden layer exclusion: elements on hidden layers default to excluded from cost; toggle per-layer in cost summary panel (D3 next task)
+- [x] Register per-element cost in inspector's `inspector:cost` slot via `registerInspectorSection('inspector:cost', CostPanel)` — show `currencySymbol + cost.toFixed(2)` read-only
 
 ---
 
-#### Feature: Cost Summary Panel [ ]
+#### Feature: Cost Summary Panel [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/cost-tracking.md` → `## Cost Summary Panel`
 **Load hint:** `grep -n "summary\|Summary\|group.*type\|layer breakdown\|grand total\|toggle.*hidden\|currency" docs/frontend/cost-tracking.md`
 
 ##### Tasks
 
-- [ ] Implement cost summary panel (accessible from Project Menu → "Cost Summary" and via a dedicated button in the status bar)
-- [ ] Aggregate costs by element type: terrain subtotal, plants subtotal, structures subtotal, paths subtotal, grand total
-- [ ] Optional layer breakdown: expandable per-type section showing cost per layer
-- [ ] Hidden layer toggle: "Include hidden layers" checkbox (default ON — hidden-layer elements are included in cost by default per cost-tracking.md); unchecking excludes hidden-layer elements from the total
-- [ ] Grand total updates reactively as layer toggles change
+- [x] Implement cost summary panel (accessible from Project Menu → "Cost Summary" and via a dedicated button in the status bar)
+- [x] Aggregate costs by element type: terrain subtotal, plants subtotal, structures subtotal, paths subtotal, grand total
+- [x] Optional layer breakdown: expandable per-type section showing cost per layer
+- [x] Hidden layer toggle: "Include hidden layers" checkbox (default ON — hidden-layer elements are included in cost by default per cost-tracking.md); unchecking excludes hidden-layer elements from the total
+- [x] Grand total updates reactively as layer toggles change
 
 ---
 
@@ -273,4 +273,5 @@ grep -n "Open.Meteo\|API\|geolocation\|tempC\|condition\|humidity\|fetch" docs/f
 
 ```
 2026-04-06 — PLAN-D initialized. Waiting on PLAN-A and PLAN-B completion. PLAN-C inspector hooks soft dependency.
+2026-04-06 — All three phases (D1, D2, D3) implemented in parallel. Code review, doc sync, and security audit completed. XSS in markdown renderer fixed (HTML escaping + URL scheme validation). Multi-select cost sum, Enter key for Keep, terrain perimeter, closed path polygon area, geolocation validation all addressed in review pass.
 ```
