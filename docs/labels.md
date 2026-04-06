@@ -1,6 +1,6 @@
 # Labels & Annotations
 
-Labels are text elements placed on the canvas. They render above plants and below the selection UI [canvas-viewport.md "## Render Layer Order"].
+Labels are text elements placed on the canvas. They render above plants and below the selection UI [canvas-viewport.md "## Render Layer Order (bottom to top)"].
 
 ## Placement
 

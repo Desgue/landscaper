@@ -45,5 +45,6 @@ Alt is context-dependent:
 | Placing/painting (terrain, plant, structure, arc, path, eraser) | Snap ON | Snap OFF |
 | Moving selected elements | Snap OFF (free move) | Snap ON |
 | Placing labels | Snap OFF (free placement) | Snap ON |
+| Placing measurement endpoints (M) | Snap OFF (free placement) | Snap ON |
 | Pasting (Ctrl+V) | Snap ON (grid only) | — (Alt has no effect on paste) |
 | Resizing (structures, labels) | Snap ON | Snap OFF |

@@ -17,7 +17,7 @@ When saved projects exist, the welcome screen shows a project list with options 
 
 ## Auto-Save
 
-Every meaningful change (place, move, delete, edit) triggers an auto-save after a debounce period of 2 seconds. No user action required.
+Every meaningful change (place, move, delete, edit) triggers an auto-save after a debounce period of 2 seconds. No user action required. Undo/redo history is also persisted alongside project data — see [## History Storage].
 
 ## Save & Load
 
@@ -41,4 +41,23 @@ Importing a JSON file creates a new project from the file data and opens it. If 
 
 ## PNG Export
 
-Exports an image of the full yard extent at 1:1 scale (1cm = 1px), minimum 1920px on the longest side. Includes all visible elements but not the UI chrome (toolbar, palette, inspector, status bar).
+Exports an image of the full yard extent at 1:1 scale (1cm = 1px), minimum 1920px on the longest side. Includes all visible elements (respecting layer visibility — hidden layers are excluded from export), the scale bar [canvas-viewport.md "## Scale Bar"], but not the UI chrome (toolbar, palette, inspector, status bar). Cost summary is not included in PNG export.
+
+## History Storage
+
+Undo/redo history is persisted to IndexedDB, keyed by project ID. This allows history to survive page reloads and browser restarts [selection-manipulation.md "## Undo & Redo"].
+
+### Storage Details
+
+- **Store**: IndexedDB database `landscape-planner`, object store `undoHistory`
+- **Key**: project UUID
+- **Value**: serialized action stack (JSON array of action records)
+- **Cap**: last 200 actions. Oldest actions are dropped when the cap is reached.
+- **Persistence timing**: history is saved to IndexedDB with the same debounce as auto-save (2 seconds after last change)
+
+### Lifecycle
+
+- **Project load**: restore history from IndexedDB. If the store is missing, corrupted, or the key doesn't exist, start with empty history (no error shown to user).
+- **Project delete**: clear the history entry for that project ID.
+- **JSON export**: undo history is **not** included in the exported JSON file. History is local-only.
+- **JSON import**: imported projects start with empty history.

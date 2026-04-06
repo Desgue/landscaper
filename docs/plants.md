@@ -1,6 +1,6 @@
 # Plants
 
-Plants are placed on the canvas from the palette. They render above structures and below labels [canvas-viewport.md "## Render Layer Order"].
+Plants are placed on the canvas from the palette. They render above structures and below labels [canvas-viewport.md "## Render Layer Order (bottom to top)"].
 
 ## Placement
 
@@ -10,7 +10,13 @@ Plants snap to 10cm increments by default [snap-system.md "## Grid Snap"]. Alt d
 
 ## Visual Size
 
-The plant icon is centered within its grid cell (1m × 1m). Icon size is proportional to `spacingCm`:
+Visual size depends on `growthForm`:
+
+- **Herb, groundcover, climber**: icon size = `spacingCm`. Centered in the 1m grid cell.
+- **Tree**: canopy size = `canopyWidthCm`, trunk size = `trunkWidthCm`. Centered on the plant position. May extend well beyond the grid cell.
+- **Shrub**: icon size = `canopyWidthCm` if set, else `spacingCm`.
+
+For herbs (default behavior):
 
 ```
 iconPosition = cellOrigin + (100 - spacingCm) / 2
@@ -23,9 +29,37 @@ A tomato (spacingCm 60) occupies 60% of the cell. A carrot (spacingCm 5) occupie
 
 Plants have no resize handles (size is determined solely by spacingCm) and no rotation handle.
 
+## Growth Form
+
+The `growthForm` field on the plant type [data-schema.md "### Plant Type"] determines visual representation, sizing, and collision behavior:
+
+### Herb (default)
+
+Current behavior — icon centered in grid cell, size = `spacingCm`. Applies to vegetables, herbs, flowers, and small plants.
+
+### Tree
+
+Dual-circle rendering:
+- **Trunk**: small filled circle at the plant center, diameter = `trunkWidthCm`. Dark brown. Participates in collision detection as a ground-level obstacle (blocks like a small structure).
+- **Canopy**: large semi-transparent circle, diameter = `canopyWidthCm`. Uses the plant type's color at 30–40% opacity [visual-design.md "## Color Palette"]. Does NOT participate in collision detection — other elements can exist beneath the canopy.
+
+Visual size = `canopyWidthCm` (not `spacingCm`). Trees often exceed the 1m grid cell.
+
+### Shrub
+
+Filled circle or rounded shape, diameter = `canopyWidthCm` if set, else `spacingCm`. Solid fill (not semi-transparent like trees). Participates in spacing collision like herbs.
+
+### Groundcover
+
+Fills area similar to terrain but is placed as a plant element. Icon renders as a textured fill within the plant's bounding box. Useful for creeping plants, moss, or lawn alternatives.
+
+### Climber
+
+Placed against structures. Icon includes a directional indicator (arrow pointing toward the nearest structure edge). Collision uses `spacingCm` like herbs.
+
 ## Type Properties (from registry)
 
-name, icon, category, spacingCm, rowSpacingCm, sunRequirement (full/partial/shade), waterNeed (low/medium/high), season[], daysToHarvest, companionPlants[], description.
+name, icon, category, growthForm, spacingCm, rowSpacingCm, canopyWidthCm, heightCm, trunkWidthCm, sunRequirement (full/partial/shade), waterNeed (low/medium/high), season[], daysToHarvest, companionPlants[], costPerUnit, description. See [data-schema.md "### Plant Type"] for field details.
 
 ## Instance Properties (per placement)
 
@@ -46,18 +80,28 @@ Any status can transition to `removed`. Forward transitions follow the lifecycle
 
 ## Inspector
 
-Shows all type properties and instance properties, all editable. Changes apply immediately. See [spatial-math-specification.md "## 10. Element Lifecycle"] for lifecycle details. All element types can be linked to journal entries [journal.md "## Element Linking"].
+Shows all type properties and instance properties, all editable. Changes apply immediately. See [spatial-math-specification.md "## 10. Element Lifecycle (Plant Status)"] for lifecycle details. All element types can be linked to journal entries [journal.md "## Element Linking"].
 
 ## Built-in Types
 
-cherry-tomato (45cm), tomato (60cm), onion (10cm), eggplant (60cm), pepper (45cm), basil (20cm), lettuce (25cm), carrot (5cm). Extensible via registry.
+**Vegetables** (growthForm: herb): cherry-tomato (45cm), tomato (60cm), onion (10cm), eggplant (60cm), pepper (45cm), lettuce (25cm), carrot (5cm).
+
+**Herbs** (growthForm: herb): basil (20cm), rosemary (30cm), mint (25cm), thyme (15cm).
+
+**Trees** (growthForm: tree): oak (canopy 800cm, trunk 60cm), maple (canopy 700cm, trunk 50cm), birch (canopy 500cm, trunk 30cm), fruit-tree (canopy 400cm, trunk 25cm), ornamental-pear (canopy 350cm, trunk 20cm), japanese-maple (canopy 300cm, trunk 15cm).
+
+**Shrubs** (growthForm: shrub): boxwood (canopy 80cm), lavender (canopy 60cm), hydrangea (canopy 120cm), rose-bush (canopy 90cm), holly (canopy 150cm), privet (canopy 100cm).
+
+Extensible via registry.
 
 ## Collision Rules
 
 Plants respect realistic placement constraints [canvas-viewport.md "## Collision Rules"]:
 
-- **Spacing enforcement**: `spacingCm` is the minimum center-to-center distance for a plant type. Each plant's collision radius is `spacingCm / 2`. Two plants violate spacing when `distance(centerA, centerB) < (spacingA + spacingB) / 2`
-- **Blocked by structures**: plants cannot be placed inside structures unless the structure has `category: "container"` (raised beds, garden beds, planters)
+- **Spacing enforcement** (herbs, shrubs, groundcovers, climbers): `spacingCm` is the minimum center-to-center distance for a plant type. Each plant's collision radius is `spacingCm / 2`. Two plants violate spacing when `distance(centerA, centerB) < (spacingA + spacingB) / 2`
+- **Tree trunk collision**: tree trunks block at ground level using `trunkWidthCm / 2` as the collision radius. Other elements cannot overlap the trunk circle. Tree canopy does NOT participate in collision detection [canvas-viewport.md "## Collision Rules"]
+- **Tree spacing**: trees use `spacingCm` for plant-to-plant spacing (minimum distance between tree trunks and other plants), not `canopyWidthCm`
+- **Blocked by structures**: plants cannot be placed inside structures unless the structure has `category: "container"` (raised beds, garden beds, planters) or `category: "overhead"` (pergolas — plants allowed beneath)
 - **Allowed on terrain**: plants can be placed on any terrain type
 - **Allowed on paths**: plants can be placed near or on paths (e.g., plants along a border)
 

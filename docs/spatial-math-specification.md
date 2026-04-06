@@ -546,6 +546,168 @@ Links are not visible on the canvas by default. They are visible in the inspecto
 
 ---
 
+## 12. Measurement & Area Calculations
+
+### Point-to-Point Distance
+
+Euclidean distance between two world points:
+
+```
+distance = sqrt((x2 - x1)² + (y2 - y1)²)
+displayMeters = distance / 100
+```
+
+Display with cm precision: `(distance / 100).toFixed(2)` — e.g., `3.47m`.
+
+### Rectangle Area
+
+For terrain cells (always 100×100cm) and rectangular structures:
+
+```
+areaCm2 = width * height
+areaM2 = areaCm2 / 10000
+```
+
+### Polygon Area (Shoelace Formula)
+
+For the yard boundary, closed paths, or any closed polygon defined by vertices V0…Vn-1:
+
+```
+area = 0.5 * |Σ(i=0 to n-1) (x_i * y_{i+1} - x_{i+1} * y_i)|
+```
+
+where indices wrap: `V_n = V_0`.
+
+Result is in cm². Convert to m²: `areaCm2 / 10000`.
+
+**For polygons with arc edges**: decompose each arc segment into its contribution. The polygon area from the Shoelace formula uses the chord (straight line between arc endpoints). Add or subtract the circular segment area for each arc edge:
+
+```
+segmentArea = 0.5 * R² * (sweepAngle - sin(sweepAngle))
+```
+
+If the arc bulges outward from the polygon interior, add `segmentArea`. If inward, subtract it. The sign of the arc's sagitta relative to the polygon winding determines the direction.
+
+### Perimeter Calculation
+
+Sum of all edge lengths:
+
+```
+perimeter = Σ edgeLength_i
+```
+
+For straight edges: `edgeLength = sqrt((x2-x1)² + (y2-y1)²)`
+
+For arc edges: `edgeLength = |R * sweepAngle|` where `sweepAngle` is in radians.
+
+### Aggregate Terrain Area
+
+For terrain cells of the same type:
+
+```
+aggregateAreaM2 = cellCount * 1.0   // each cell is 1m²
+```
+
+The inspector computes this by counting all terrain elements with the matching `terrainTypeId`.
+
+### Material Volume Estimation
+
+Given an area and a user-specified depth:
+
+```
+volumeM3 = areaM2 * (depthCm / 100)
+```
+
+Example: 15m² of mulch at 8cm depth = `15 * 0.08` = 1.2m³.
+
+For paths, the coverage area is:
+
+```
+pathAreaM2 = totalLengthM * (strokeWidthCm / 100)
+```
+
+where `totalLengthM` is the sum of all segment lengths (see Perimeter Calculation).
+
+---
+
+## 13. Dimension Line Rendering
+
+Dimension lines annotate distances on the canvas with leader lines, arrowheads, and a centered distance label.
+
+### Geometry
+
+A dimension annotation connects two world points P0 and P1 with a visual offset:
+
+```
+chord = P1 - P0
+chordLen = length(chord)
+dir = normalize(chord)
+perp = { x: -dir.y, y: dir.x }     // perpendicular (left normal)
+
+// Offset leader line endpoints
+L0 = P0 + perp * offsetCm
+L1 = P1 + perp * offsetCm
+```
+
+`offsetCm` is a signed perpendicular distance from the measurement line. Positive = left of P0→P1, negative = right.
+
+### Extension Lines
+
+Thin lines connecting the measured points to the offset leader line:
+
+```
+extensionStart_0 = P0 + perp * (offsetCm > 0 ? 0 : offsetCm)
+extensionEnd_0   = P0 + perp * (offsetCm > 0 ? offsetCm + extensionOverhang : -extensionOverhang)
+```
+
+`extensionOverhang` = small extension past the leader line (e.g., 10cm world units). Same logic for P1.
+
+### Arrowheads
+
+Isosceles triangle at each end of the leader line, pointing inward along the leader:
+
+```
+arrowLength = 12 / zoom    // constant screen size (12px)
+arrowWidth  = 6 / zoom     // half-width
+
+// Arrow at L0 (pointing toward L1):
+tip = L0
+base1 = L0 + dir * arrowLength + perp * arrowWidth
+base2 = L0 + dir * arrowLength - perp * arrowWidth
+
+// Arrow at L1 (pointing toward L0):
+tip = L1
+base1 = L1 - dir * arrowLength + perp * arrowWidth
+base2 = L1 - dir * arrowLength - perp * arrowWidth
+```
+
+Arrowheads are filled (solid). When the leader line is too short for two arrowheads (chordLen < 4 * arrowLength in screen px), arrowheads point outward instead.
+
+### Text Placement
+
+Distance label is centered on the leader line:
+
+```
+textPos = (L0 + L1) / 2
+textRotation = atan2(dir.y, dir.x)    // align text with leader line
+```
+
+Text is rendered with a background knockout rectangle (white fill, slight padding) so it remains legible over grid lines and elements. If the text would be upside-down (rotation > 90° or < -90°), flip by 180°.
+
+### Linked Dimension Updates
+
+When a dimension is linked to elements (`startElementId` / `endElementId` are non-null), the dimension's start/end points track the linked element's nearest edge or corner. On element move or resize:
+
+```
+1. Find the linked element's bounding box
+2. Snap the dimension endpoint to the nearest corner or edge midpoint of that bounding box
+3. Recompute the leader line, arrowheads, and text
+```
+
+If the linked element is deleted, the dimension endpoint becomes a fixed world point (the last known position). The link ID is preserved as a stale reference [data-schema.md "### Dimension Element"].
+
+---
+
 ## Reference Libraries
 
 | Library | Purpose | Relevance |

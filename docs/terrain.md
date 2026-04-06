@@ -1,6 +1,6 @@
 # Terrain Painting
 
-Terrain fills grid cells with surface types. Terrain is the lowest content layer on the canvas [canvas-viewport.md "## Render Layer Order"].
+Terrain fills grid cells with surface types. Terrain is the lowest content layer on the canvas [canvas-viewport.md "## Render Layer Order (bottom to top)"].
 
 ## Terrain Brush Tool (B)
 
@@ -16,13 +16,13 @@ Fills the grid cell under the cursor with the selected terrain type's color. The
 
 ### Drag Painting
 
-Every grid cell the cursor path crosses is filled. Uses the Amanatides-Woo grid traversal algorithm to ensure no cells are skipped during fast drags. See [spatial-math-specification.md "### Brush Drag Painting"] for the algorithm.
+Every grid cell the cursor path crosses is filled. Uses the Amanatides-Woo grid traversal algorithm to ensure no cells are skipped during fast drags. See [spatial-math-specification.md "### Brush Drag Painting (Grid Traversal)"] for the algorithm.
 
 Between consecutive mouse events, the traversal runs from the previous position to the current position, guaranteeing continuity.
 
 ### Brush Size
 
-Configurable: 1×1 (default), 2×2, 3×3. Brush size is a transient tool setting in the toolbar (not persisted in the data model). Each traversed cell is expanded to a cursor-centered NxN region. For a 2×2 brush, the region offsets top-left by 1 cell (top-left biased). For 3×3, the traversed cell is the center of the 3×3 region. See [spatial-math-specification.md "### Brush Drag Painting"] for the exact formula.
+Configurable: 1×1 (default), 2×2, 3×3. Brush size is a transient tool setting in the toolbar (not persisted in the data model). Each traversed cell is expanded to a cursor-centered NxN region. For a 2×2 brush, the region offsets top-left by 1 cell (top-left biased). For 3×3, the traversed cell is the center of the 3×3 region. See [spatial-math-specification.md "### Brush Drag Painting (Grid Traversal)"] for the exact formula.
 
 ### Overwrite
 
@@ -34,7 +34,7 @@ Alt disables snap for terrain placement [snap-system.md "## Alt Modifier Behavio
 
 ## Eraser (Terrain)
 
-The Eraser tool (E) follows the standard topmost-element priority [selection-manipulation.md "## Eraser Tool"]. When terrain is the topmost element at the cursor position, the eraser removes that terrain cell (it returns to the default empty canvas background). When a higher-priority element (label, plant, structure, path) is above the terrain, the eraser removes that element instead.
+The Eraser tool (E) follows the standard topmost-element priority [selection-manipulation.md "## Eraser Tool (E)"]. When terrain is the topmost element at the cursor position, the eraser removes that terrain cell (it returns to the default empty canvas background). When a higher-priority element (label, plant, structure, path) is above the terrain, the eraser removes that element instead.
 
 ## Inspector
 
@@ -42,12 +42,14 @@ When a terrain element is selected, the inspector shows: terrain type and dimens
 
 ## Built-in Types
 
-grass, soil, weed/wild, concrete, gravel, mulch. Extensible via registry (config file, not UI).
+**Natural**: grass, soil, weed/wild, sand. **Hardscape**: concrete, gravel, pebbles, decking-surface. **Organic**: mulch, bark-chips. Extensible via registry (config file, not UI).
 
 ## Collision Rules
 
-Terrain is the ground layer and has no collision constraints [canvas-viewport.md "## Collision Rules"]. Terrain can be painted anywhere, regardless of other elements. Painting over an existing terrain cell replaces its type.
+Terrain is the ground layer and has minimal collision constraints [canvas-viewport.md "## Collision Rules"]. Terrain can be painted anywhere, regardless of most other elements. Painting over an existing terrain cell replaces its type.
+
+**Exception**: terrain cannot be painted over structures with `category: "surface"` (patios, decks). The brush skips cells occupied by surface structures. Other structure categories do not block terrain painting.
 
 ## Rendering
 
-Solid colors in MVP. Realistic but stylized tiling textures planned for Phase 2 [visual-design.md "### Icons"].
+Solid colors in MVP. Realistic but stylized tiling textures planned for Phase 2 [visual-design.md "## Icons"].

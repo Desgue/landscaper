@@ -12,10 +12,11 @@ This is the single source of truth for all keyboard shortcuts. Other docs refere
 | P | Plant placement tool |
 | S | Structure tool |
 | A | Arc tool |
-| E | Eraser (removes topmost element on click/drag) [selection-manipulation.md "## Eraser Tool"] |
+| E | Eraser (removes topmost element on click/drag) [selection-manipulation.md "## Eraser Tool (E)"] |
 | T | Text/Label tool |
+| M | Measurement tool (click two points to measure distance) [measurement-dimensions.md "## Measurement Tool (M)"] |
 
-Note: Path tool has no shortcut — activated via the Paths tab in the side palette.
+Note: Path tool has no shortcut — activated via the Paths tab in the side palette. Undo/Redo are toolbar buttons — see Ctrl+Z / Ctrl+Shift+Z in [## Selection & Manipulation].
 
 ## Canvas Navigation
 
@@ -44,6 +45,16 @@ Note: Path tool has no shortcut — activated via the Paths tab in the side pale
 | Ctrl+Z | Undo |
 | Ctrl+Shift+Z | Redo |
 | Alt+drag (selected elements) | Move with snapping (10cm + geometry) |
+| Tab | Cycle through overlapping elements at click point |
+
+## Groups
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+Shift+G | Group selected elements [layers-groups.md "## Grouping"] |
+| Ctrl+Shift+U | Ungroup selected group [layers-groups.md "## Ungroup"] |
+| Double-click group | Enter group (edit individual elements) |
+| Click outside group | Exit group editing |
 
 ## Toggles
 
@@ -60,5 +71,5 @@ Alt behavior is context-dependent:
 |----------|--------|
 | Alt (while placing/painting with Terrain, Plant, Structure, Arc, Path, or Eraser) | Disable snapping (10cm + geometry) |
 | Alt (while moving selected elements) | Enable snapping (moves default to free) |
-| Alt (while placing with Text/Label tool) | Enable snapping (labels default to free placement) |
+| Alt (while placing with Text/Label or Measurement tool) | Enable snapping (labels and measurements default to free placement) |
 | Alt (while using Hand/Pan tool) | No effect |

@@ -45,6 +45,9 @@ Defines the JSON structure for project export/import and the registry format for
         }
       ]
     },
+    "currency": "string (display symbol, default '$')",
+    "layers": ["...see Layer Schema below"],
+    "groups": ["...see Group Schema below"],
     "elements": ["...see Element Schema below"],
     "journalEntries": ["...see Journal Entry Schema below"]
   },
@@ -74,14 +77,16 @@ Every element on the canvas shares this base:
 ```json
 {
   "id": "uuid",
-  "type": "terrain | plant | structure | path | label",
+  "type": "terrain | plant | structure | path | label | dimension",
   "x": "number (cm)",
   "y": "number (cm)",
   "width": "number (cm)",
   "height": "number (cm)",
   "rotation": "number (degrees, [0, 360), 0 = no rotation)",
   "zIndex": "number (integer, default 0)",
-  "locked": false,          // reserved for future use — see note below
+  "locked": false,
+  "layerId": "uuid (references Layer.id)",
+  "groupId": "uuid (references Group.id) | null",
   "createdAt": "ISO 8601 datetime",
   "updatedAt": "ISO 8601 datetime"
 }
@@ -91,7 +96,13 @@ Every element on the canvas shares this base:
 
 ### Locked
 
-`locked` is reserved for future use. Currently always `false`. When implemented, locked elements will be unselectable, unmovable, and uneditable until unlocked.
+`locked` is `false` by default. Locking is primarily driven by the layer system [layers-groups.md "## Layer Locking"] — all elements on a locked layer behave as locked. The per-element `locked` field allows locking individual elements independently of their layer.
+
+### Layer & Group Assignment
+
+`layerId` references a layer in the project's `layers[]` array. Every element must belong to exactly one layer. If omitted on import, the element is assigned to the default layer. See [layers-groups.md "## Layer Model"] for layer behavior.
+
+`groupId` references a group in the project's `groups[]` array, or `null` if the element is ungrouped. All elements in a group must share the same `layerId`. See [layers-groups.md "## Grouping"] for group behavior.
 
 ### Rotation
 
@@ -101,7 +112,7 @@ Only structures support rotation. Plants, terrain, labels, and paths always stor
 
 `zIndex` controls render order within the same element type layer. Higher values render on top. Default is `0`. Elements with the same `zIndex` fall back to `createdAt` timestamp (latest on top).
 
-The UI provides **Bring to Front** and **Send to Back** actions (via right-click context menu or keyboard shortcuts) that adjust `zIndex` relative to other elements of the same type. Z-index does not affect cross-type layer order — labels always render above plants regardless of `zIndex` [canvas-viewport.md "## Render Layer Order"]. Selection also respects `zIndex` — within the same type layer, higher `zIndex` wins. If `zIndex` is equal, `createdAt` breaks the tie (latest on top).
+The UI provides **Bring to Front** and **Send to Back** actions (via right-click context menu or keyboard shortcuts) that adjust `zIndex` relative to other elements of the same type. Z-index does not affect cross-type layer order — labels always render above plants regardless of `zIndex` [canvas-viewport.md "## Render Layer Order (bottom to top)"]. Selection also respects `zIndex` — within the same type layer, higher `zIndex` wins. If `zIndex` is equal, `createdAt` breaks the tie (latest on top).
 
 ### Width & Height: Stored vs Derived
 
@@ -205,6 +216,63 @@ When `closed` is `true`, the path renders a closing segment from `points[N]` bac
 
 Width and height define the text box bounds. Rotation is always 0.
 
+### Dimension Element
+
+```json
+{
+  "...base",
+  "type": "dimension",
+  "startPoint": { "x": "number (cm)", "y": "number (cm)" },
+  "endPoint": { "x": "number (cm)", "y": "number (cm)" },
+  "startElementId": "uuid | null",
+  "endElementId": "uuid | null",
+  "offsetCm": "number (perpendicular offset from measurement line, default 50)",
+  "displayUnit": "m",
+  "precision": "number (decimal places, 0-4, default 2)"
+}
+```
+
+`startPoint` and `endPoint` define the measured world positions. When `startElementId` or `endElementId` is non-null, the corresponding point tracks the linked element's nearest edge or corner — the point auto-updates when the linked element moves or resizes. See [spatial-math-specification.md "### Linked Dimension Updates"] for the tracking algorithm.
+
+If a linked element is deleted, the link ID is preserved as a stale reference (same pattern as journal links [## Journal Entry Schema]). The dimension endpoint becomes a fixed world point at the last known position.
+
+The base `x`, `y` equals `startPoint` (for uniform hit testing). `width` and `height` are the AABB of startPoint, endPoint, and the offset leader line — recomputed when any point or offset changes.
+
+Rotation is always 0. Dimension lines orient based on their start/end points, not the `rotation` field.
+
+## Layer Schema
+
+```json
+{
+  "id": "uuid",
+  "name": "string (max 100 chars)",
+  "visible": true,
+  "locked": false,
+  "order": "number (integer, display order in layer panel)"
+}
+```
+
+Layers are stored at project level in `project.layers[]`. Every project has at least one layer — the default layer (name: `"Default"`, cannot be deleted but can be renamed). Layer `order` controls display position in the layer panel only — it does NOT affect canvas render order, which remains type-based [canvas-viewport.md "## Render Layer Order (bottom to top)"].
+
+Layer visibility and locking behavior: [layers-groups.md "## Layer Visibility"], [layers-groups.md "## Layer Locking"].
+
+## Group Schema
+
+```json
+{
+  "id": "uuid",
+  "name": "string (max 100 chars) | null",
+  "elementIds": ["uuid"],
+  "layerId": "uuid (references Layer.id)"
+}
+```
+
+Groups are stored at project level in `project.groups[]`. All elements in a group must share the same `layerId`. Groups are flat — no nesting (an element cannot belong to more than one group, and groups cannot contain other groups).
+
+`elementIds` is the authoritative list. Each element also stores `groupId` as a back-reference for efficient lookup. These must stay in sync — updating one requires updating the other.
+
+See [layers-groups.md "## Grouping"] for interaction behavior.
+
 ## Journal Entry Schema
 
 ```json
@@ -240,6 +308,7 @@ Registries define the available types for each element category. Built-in types 
   "category": "natural | hardscape | water | other",
   "color": "string (hex, 6-digit with hash, e.g. '#4CAF50')",
   "textureUrl": "string (URL or relative path) | null",
+  "costPerUnit": "number | null (cost per m²)",
   "description": "string (max 500 chars) | null"
 }
 ```
@@ -250,18 +319,33 @@ Registries define the available types for each element category. Built-in types 
 {
   "id": "string (slug, e.g. 'cherry-tomato')",
   "name": "string (e.g. 'Cherry Tomato', max 100 chars)",
-  "category": "string (e.g. 'vegetable', 'herb', 'fruit', 'flower', max 50 chars)",
+  "category": "string (e.g. 'vegetable', 'herb', 'fruit', 'flower', 'tree', 'shrub', max 50 chars)",
+  "growthForm": "herb | shrub | tree | groundcover | climber",
   "iconUrl": "string (URL or relative path)",
   "spacingCm": "number (1-500)",
   "rowSpacingCm": "number (1-500)",
+  "canopyWidthCm": "number (1-5000) | null",
+  "heightCm": "number (1-5000) | null",
+  "trunkWidthCm": "number (1-500) | null",
   "sunRequirement": "full | partial | shade",
   "waterNeed": "low | medium | high",
   "season": ["spring | summer | fall | winter"],
   "daysToHarvest": "number (1-365) | null",
   "companionPlants": ["string (plant type ids)"],
+  "costPerUnit": "number | null (cost per plant)",
   "description": "string (max 500 chars) | null"
 }
 ```
+
+`growthForm` determines the visual representation and collision behavior [plants.md "## Growth Form"]:
+
+- `herb`: current behavior — icon centered in cell, size = `spacingCm`
+- `tree`: dual-circle rendering — trunk circle (`trunkWidthCm`) + semi-transparent canopy circle (`canopyWidthCm`). Canopy is overhead and does not block ground-level elements.
+- `shrub`: filled circle/oval, size = `canopyWidthCm` if set, else `spacingCm`
+- `groundcover`: fills area like terrain but placed as a plant element
+- `climber`: placed against structures, directional indicator
+
+`canopyWidthCm` is the mature canopy diameter for trees and shrubs. `heightCm` is the mature height (informational, shown in inspector). `trunkWidthCm` is the trunk diameter for trees (used for ground-level collision).
 
 `season` values are constrained to the four standard seasons. `companionPlants` references are informational — IDs that don't match a known plant type are kept as-is (they may reference user-defined types added later).
 
@@ -271,15 +355,23 @@ Registries define the available types for each element category. Built-in types 
 {
   "id": "string (slug, e.g. 'brick-wall')",
   "name": "string (e.g. 'Brick Wall', max 100 chars)",
-  "category": "string (e.g. 'boundary', 'container', max 50 chars)",
+  "category": "string (e.g. 'boundary', 'container', 'surface', 'overhead', 'feature', 'furniture', max 50 chars)",
   "iconUrl": "string (URL or relative path)",
   "defaultWidthCm": "number (1-10000)",
   "defaultHeightCm": "number (1-10000)",
+  "costPerUnit": "number | null (cost per structure)",
   "description": "string (max 500 chars) | null"
 }
 ```
 
-The `category` field has semantic meaning for collision rules [canvas-viewport.md "## Collision Rules"]. Structures with `category: "container"` (raised beds, garden beds, planters) accept plants inside their bounds. All other categories block plant placement by default. Built-in categories: `"boundary"` (walls, fences), `"container"` (raised beds, planters).
+The `category` field has semantic meaning for collision rules [canvas-viewport.md "## Collision Rules"]:
+
+- `"boundary"` — walls, fences. Blocks structures, paths, and plants.
+- `"container"` — raised beds, planters, garden beds. Accepts plants inside bounds.
+- `"surface"` — patios, decks. Blocks other surfaces and terrain painting over it. Plants and labels allowed on top.
+- `"overhead"` — pergolas, arbors. Does NOT block ground-level elements beneath it. Plants, structures, and paths can exist under overhead structures.
+- `"feature"` — water features, fire pits. Standalone decorative. Blocks structures and plants like `"boundary"`.
+- `"furniture"` — benches, tables, planters. Blocks other structures like `"boundary"`.
 
 ### Path Type
 
@@ -290,6 +382,7 @@ The `category` field has semantic meaning for collision rules [canvas-viewport.m
   "category": "string (e.g. 'edging', 'walkway', max 50 chars)",
   "defaultWidthCm": "number (1-500)",
   "color": "string (hex, 6-digit with hash, e.g. '#8B4513')",
+  "costPerUnit": "number | null (cost per linear meter)",
   "description": "string (max 500 chars) | null"
 }
 ```
@@ -322,6 +415,28 @@ All hex color fields use the format `#RRGGBB` — 6-digit, lowercase or uppercas
 | `project.gridConfig.snapIncrementCm` | Positive number, <= cellSizeCm, must evenly divide cellSizeCm. If invalid, falls back to `10` | `10` |
 | `project.gridConfig.originX` | Finite number | `0` |
 | `project.gridConfig.originY` | Finite number | `0` |
+| `project.currency` | Non-empty string, max 10 chars | `"$"` |
+| `project.layers` | Array of Layer objects | `[{ id: generated, name: "Default", visible: true, locked: false, order: 0 }]` |
+| `project.groups` | Array of Group objects | `[]` |
+
+### Layer defaults
+
+| Field | Validation | Default |
+|-------|-----------|---------|
+| `id` | Valid UUID, unique within project | Generate new UUID |
+| `name` | Non-empty string, max 100 chars | `"Layer"` |
+| `visible` | Boolean | `true` |
+| `locked` | Boolean | `false` |
+| `order` | Finite integer | Next sequential integer |
+
+### Group defaults
+
+| Field | Validation | Default |
+|-------|-----------|---------|
+| `id` | Valid UUID, unique within project | Generate new UUID |
+| `name` | String, max 100 chars, or null | `null` |
+| `elementIds` | Array of valid UUIDs (existence check against elements) | Remove IDs not found in elements. If < 2 remain, **skip group** |
+| `layerId` | Valid UUID referencing a layer | Default layer ID |
 
 ### Viewport defaults
 
@@ -357,12 +472,14 @@ All hex color fields use the format `#RRGGBB` — 6-digit, lowercase or uppercas
 | Field | Validation | Default |
 |-------|-----------|---------|
 | `id` | Valid UUID, unique within project | Generate new UUID (see Duplicate ID Resolution) |
-| `type` | One of: terrain, plant, structure, path, label | **Skip element** (unknown type) |
+| `type` | One of: terrain, plant, structure, path, label, dimension | **Skip element** (unknown type) |
 | `x`, `y` | Finite number | `0` |
 | `width`, `height` | Positive finite number | `100` (1m). **Note:** type-specific rules override this default — terrain forces 100×100, plant recomputes from `spacingCm`, path recomputes from AABB. The generic default only applies when the type-specific computation cannot run (e.g., missing registry entry) |
 | `rotation` | Finite number | `0` (normalized to [0, 360) via `((r % 360) + 360) % 360`) |
 | `zIndex` | Finite integer | `0` |
 | `locked` | Boolean | `false` |
+| `layerId` | Valid UUID referencing a layer | Default layer ID |
+| `groupId` | Valid UUID referencing a group, or null | `null` |
 | `createdAt`, `updatedAt` | Valid ISO 8601 | Current datetime |
 
 ### Terrain element defaults
@@ -416,6 +533,18 @@ Note: if `plantedDate` is non-null and `status` is `"planned"`, the import keeps
 | `bold` | Boolean | `false` |
 | `italic` | Boolean | `false` |
 
+### Dimension element defaults
+
+| Field | Validation | Default |
+|-------|-----------|---------|
+| `startPoint` | Object with finite `x` and `y` | **Skip element** |
+| `endPoint` | Object with finite `x` and `y` | **Skip element** |
+| `startElementId` | Valid UUID or null | `null` |
+| `endElementId` | Valid UUID or null | `null` |
+| `offsetCm` | Finite number | `50` |
+| `displayUnit` | `"m"` | `"m"` |
+| `precision` | Integer 0-4 | `2` |
+
 ### Journal entry defaults
 
 | Field | Validation | Default |
@@ -450,6 +579,11 @@ Note: if `plantedDate` is non-null and `status` is `"planned"`, the import keeps
 | `season` (plant) | Array of: `"spring"`, `"summer"`, `"fall"`, `"winter"` | `[]` (invalid values silently dropped) |
 | `daysToHarvest` (plant) | Positive integer 1-365 or null | `null` |
 | `companionPlants` (plant) | Array of strings | `[]` (unresolved IDs kept as-is) |
+| `growthForm` (plant) | One of: `"herb"`, `"shrub"`, `"tree"`, `"groundcover"`, `"climber"` | `"herb"` |
+| `canopyWidthCm` (plant) | Positive number 1-5000 or null | `null` |
+| `heightCm` (plant) | Positive number 1-5000 or null | `null` |
+| `trunkWidthCm` (plant) | Positive number 1-500 or null | `null` |
+| `costPerUnit` (all registries) | Positive number or null | `null` |
 | `description` (all) | String, max 500 chars, or null | `null` |
 
 ### Import behavior rules

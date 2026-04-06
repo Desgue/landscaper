@@ -16,11 +16,12 @@ Cross-cutting visual and interaction design reference. For behavioral details, s
 ┌─────────────────────────────────────────────────────────┐
 │  Logo          Top Toolbar (tools)          Project Menu │
 ├────────┬────────────────────────────────────┬────────────┤
-│        │                                    │            │
-│ Side   │                                    │ Inspector  │
-│ Palette│         Canvas (main area)         │ Panel      │
-│        │                                    │ (context)  │
-│        │                                    │            │
+│        │                                    │ Inspector  │
+│ Side   │                                    │ Panel      │
+│ Palette│         Canvas (main area)         │ (context)  │
+│        │                                    ├────────────┤
+│        │                      [Scale Bar]   │ Layer      │
+│        │                          [Minimap] │ Panel      │
 ├────────┴────────────────────────────────────┴────────────┤
 │  Status bar: zoom %, coordinates, snap/grid toggles      │
 └─────────────────────────────────────────────────────────┘
@@ -28,7 +29,7 @@ Cross-cutting visual and interaction design reference. For behavioral details, s
 
 ### Top Toolbar
 
-Tools: Select (V), Hand/Pan (H), Terrain Brush (B), Plant (P), Structure (S), Arc (A), Eraser (E), Text/Label (T), Undo/Redo. Active tool highlighted blue (#1971c2). See [keyboard-shortcuts.md "## Tools"].
+Tools: Select (V), Hand/Pan (H), Terrain Brush (B), Plant (P), Structure (S), Arc (A), Eraser (E), Text/Label (T), Measurement (M), Undo/Redo. Active tool highlighted blue (#1971c2). See [keyboard-shortcuts.md "## Tools"].
 
 ### Side Palette
 
@@ -36,7 +37,11 @@ Left, collapsible. Tabs: Terrain | Plants | Structures | Paths. Search field fil
 
 ### Inspector Panel
 
-Right, collapsible. Type-specific properties for the selected element. Multi-select: shows the first-clicked (primary) element. Empty: "Nothing selected."
+Right, collapsible. Type-specific properties for the selected element. Multi-select: shows the first-clicked (primary) element. Empty: "Nothing selected." Shows derived cost from registry when an element is selected [cost-tracking.md "## Inspector Integration"]. Shows area/perimeter for applicable elements [measurement-dimensions.md "## Area & Perimeter Display"].
+
+### Layer Panel
+
+Right, below the inspector. Collapsible. Shows all layers with visibility (eye) and lock icons. Drag to reorder (display order only — does not affect canvas render order). Active layer highlighted. See [layers-groups.md "## Layer Panel"].
 
 ### Minimap
 
@@ -54,6 +59,12 @@ Every toolbar button, palette item, and interactive icon. Shows action name + sh
 - Yard boundary: distinct outline (dashed blue or dark gray)
 - Overflow area: subtly dimmed
 - Snap guides: accent blue, thin, 50% opacity
+- Dimension lines: dark gray #555555, thin leader lines
+- Dimension arrowheads: filled dark gray, small triangles
+- Dimension text: dark gray on white knockout background
+- Measurement preview: dashed accent blue while measuring, distance tooltip at cursor
+- Tree canopy: semi-transparent fill (30–40% opacity) of the plant type's color
+- Cost text in inspector: muted gray, right-aligned
 
 ## Terrain Rendering
 
@@ -66,12 +77,26 @@ System font stack: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 ## Icons
 
 - Toolbar: outlined, monochrome
-- Plants: flat colored top-down illustrations
+- Plants (herbs/vegetables): flat colored top-down illustrations
+- Plants (trees): top-down canopy circle with trunk dot at center
+- Plants (shrubs): rounded filled shape, slightly irregular outline
 - Terrain: solid color swatches (MVP)
 
 ## Grid Appearance
 
 Major lines (1m): subtle dotted, always visible. Minor lines (10cm): lighter dotted, appear when zoomed in. Visually distinguishable by weight or opacity.
+
+## Scale Bar Appearance
+
+Minimal horizontal bar, bottom-left of canvas. Black bar on a white semi-transparent background pill (80% opacity, rounded corners). Distance label in the system font, small size. Bar length adapts to zoom — see [canvas-viewport.md "## Scale Bar"] for the distance selection algorithm.
+
+## Dimension Line Appearance
+
+Leader lines: 1px screen-space, dark gray (#555555). Extension lines: same style, extending from measured points to the offset leader line with a small overshoot. Arrowheads: small filled triangles (12px screen-space), dark gray. Distance text: system font, centered on leader line, white knockout rectangle background with 4px padding. See [spatial-math-specification.md "## 13. Dimension Line Rendering"] for geometry.
+
+## Measurement Tool Appearance
+
+While the Measurement tool (M) is active and the user is measuring: a dashed accent blue line (#1971c2) connects the start point to the cursor. A tooltip near the cursor displays the live distance in meters. On click (second point), the measurement can become a persistent dimension element or dismiss — see [measurement-dimensions.md "## Measurement Tool (M)"].
 
 ## Responsive
 

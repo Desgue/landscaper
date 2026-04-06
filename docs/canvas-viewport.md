@@ -59,6 +59,20 @@ Visible along the top and left edges of the canvas. Major markings at 1m, minor 
 
 Bottom-right corner, collapsible. Shows yard boundary outline and a scaled-down view of all elements. A rectangle indicates the current viewport position. Click to pan to that position. Double-click to fit-to-view.
 
+## Scale Bar
+
+Bottom-left of the canvas, above the status bar. Displays a horizontal bar with a labeled distance that auto-adjusts to the current zoom level:
+
+| Zoom range | Scale bar shows |
+|-----------|----------------|
+| Very zoomed out (< 0.1) | 50m or 100m |
+| Zoomed out (0.1–0.3) | 10m or 20m |
+| Normal (0.3–1.0) | 5m or 10m |
+| Zoomed in (1.0–3.0) | 1m or 2m |
+| Very zoomed in (> 3.0) | 50cm or 20cm |
+
+The bar length in pixels is computed as `distanceCm * zoom`. The displayed distance is chosen so the bar stays between 80–200 screen pixels. Rendered in the UI layer (not part of yard content). Included in PNG export [persistence-projects.md "## PNG Export"]. Toggleable via View menu.
+
 ## Render Layer Order (bottom to top)
 
 1. Grid lines (background)
@@ -69,7 +83,10 @@ Bottom-right corner, collapsible. Shows yard boundary outline and a scaled-down 
 6. Structures
 7. Plants
 8. Labels
-9. Selection overlay, handles, guides (UI layer)
+9. Dimensions (leader lines, arrowheads, distance text) [measurement-dimensions.md "## Dimension Element"]
+10. Selection overlay, handles, guides (UI layer)
+
+Layer visibility [layers-groups.md "## Layer Visibility"] affects which elements are rendered: elements on hidden layers are skipped at their respective layer position. The type-based render order above is always preserved — layers do NOT change render order.
 
 ## Overflow Dimming
 
@@ -92,6 +109,7 @@ Elements follow realistic placement constraints. When a placement violates a col
 | Path | Structures | Terrain, other paths, plants |
 | Terrain | Nothing | Everywhere (ground layer, always paintable) |
 | Label | Nothing | Everywhere (annotations, no physical presence) |
+| Dimension | Nothing | Everywhere (annotations, no physical presence) |
 
 ### Rule Details
 
@@ -101,11 +119,19 @@ Elements follow realistic placement constraints. When a placement violates a col
 
 **Structures block plants (with exceptions)**: Plants cannot be placed inside structures by default. However, structures with `category: "container"` (raised beds, garden beds, planters) accept plants inside their bounds. See [data-schema.md "### Structure Type"] for category semantics.
 
+**Overhead structures are permissive**: Structures with `category: "overhead"` (pergolas, arbors) do NOT block ground-level elements. Plants, other structures, and paths can exist beneath overhead structures. This models real-world overhead coverage.
+
+**Surface structures block terrain painting**: Structures with `category: "surface"` (patios, decks) block terrain painting over their area. Other surfaces cannot overlap them. Plants and labels are allowed on top.
+
+**Tree canopy does not block**: Tree canopy circles (from `canopyWidthCm`) are rendered semi-transparently and do NOT participate in collision detection. Only the tree trunk blocks at ground level: collision radius = `trunkWidthCm / 2`, treated as a small structure-like collision circle. See [plants.md "## Growth Form"].
+
 **Paths block structures**: Structures cannot be placed overlapping a path, and vice versa. A brick wall cannot cross a brick path. Paths have a real-world width (e.g., brick edging = 10cm) used for collision detection. See [spatial-math-specification.md "## 6. Path Segment Connectivity"] for width rendering.
 
-**Terrain is always free**: Terrain cells are the ground layer and can be painted anywhere regardless of other elements.
+**Terrain is always free**: Terrain cells are the ground layer and can be painted anywhere regardless of other elements (except over `category: "surface"` structures).
 
 **Labels are always free**: Labels are non-physical annotations and can be placed anywhere.
+
+**Dimensions are always free**: Dimension annotations are non-physical measurement overlays and can be placed anywhere [measurement-dimensions.md "## Collision Rules"].
 
 ### Collision Detection
 
@@ -115,14 +141,17 @@ Collision checks use AABB (axis-aligned bounding box) tests for rectangular elem
 
 When elements occupy the same position, click-selection follows this priority (topmost wins):
 
-1. Labels
-2. Plants
-3. Structures
-4. Paths
-5. Terrain
-6. Yard boundary (lowest)
+1. Dimensions
+2. Labels
+3. Plants
+4. Structures
+5. Paths
+6. Terrain
+7. Yard boundary (lowest)
 
-Within the same type layer, `zIndex` takes precedence — higher `zIndex` wins. If `zIndex` is equal, the element with the latest `createdAt` timestamp wins [data-schema.md "### Z-Index"]. **Tab** cycles through all overlapping elements at the click point, from topmost to bottommost.
+Within the same type layer, `zIndex` takes precedence — higher `zIndex` wins. If `zIndex` is equal, the element with the latest `createdAt` timestamp wins [data-schema.md "### Z-Index"]. **Tab** cycles through all overlapping elements at the click point, from topmost to bottommost [keyboard-shortcuts.md "## Selection & Manipulation"].
+
+Elements on hidden layers are not hit-testable. Elements on locked layers are visible but not selectable. See [layers-groups.md "## Layer Visibility"] and [layers-groups.md "## Layer Locking"].
 
 ### Eraser Behavior
 

@@ -24,7 +24,7 @@ When the user confirms the setup, the canvas opens with the yard boundary drawn.
 
 ## Curved Edges
 
-After the polygon is complete, any straight edge can be converted to an arc using the same drag-to-curve interaction as the Arc Tool [structures.md "## Arc Tool"]: click an edge, then drag perpendicular to set curvature. Arc edges are stored via the `edgeTypes` array in the yard boundary schema [data-schema.md "### Yard Boundary Storage"]. Arc math: [spatial-math-specification.md "## 5. Arc Geometry"].
+After the polygon is complete, any straight edge can be converted to an arc using the same drag-to-curve interaction as the Arc Tool [structures.md "## Arc Tool (A)"]: click an edge, then drag perpendicular to set curvature. Arc edges are stored via the `edgeTypes` array in the yard boundary schema [data-schema.md "### Yard Boundary Storage"]. Arc math: [spatial-math-specification.md "## 5. Arc Geometry"].
 
 ## Boundary as Element
 

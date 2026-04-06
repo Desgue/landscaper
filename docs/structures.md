@@ -1,6 +1,6 @@
 # Structures
 
-Structures are placeable elements like walls, fences, and raised beds. They can be straight or curved. They render above paths and below plants [canvas-viewport.md "## Render Layer Order"].
+Structures are placeable elements like walls, fences, and raised beds. They can be straight or curved. They render above paths and below plants [canvas-viewport.md "## Render Layer Order (bottom to top)"].
 
 ## Placement
 
@@ -49,15 +49,30 @@ Shows: structure type, dimensions (in meters), shape (straight/curved), arc radi
 
 ## Built-in Types
 
-brick-wall (`category: "boundary"`), fence (`category: "boundary"`), raised-bed (`category: "container"`). Extensible via registry.
+**Boundary**: brick-wall (200×20cm), fence (200×10cm), retaining-wall (200×30cm).
+
+**Container**: raised-bed (200×100cm), planter-box (100×40cm).
+
+**Surface**: patio (300×300cm), deck (400×300cm).
+
+**Overhead**: pergola (300×300cm).
+
+**Feature**: water-feature (150×100cm), fire-pit (100×100cm).
+
+**Furniture**: bench (150×50cm), table (120×80cm).
+
+See [data-schema.md "### Structure Type"] for category semantics. Extensible via registry.
 
 ## Collision Rules
 
 Structures follow realistic placement constraints [canvas-viewport.md "## Collision Rules"]:
 
-- **Blocked by structures**: structures cannot overlap other structures
+- **Blocked by structures**: structures cannot overlap other structures (except: elements can be placed beneath `category: "overhead"` structures)
 - **Blocked by paths**: structures cannot overlap paths (and vice versa)
 - **Allowed on terrain**: structures can be placed on any terrain type
-- **Container category**: structures with `category: "container"` (raised beds, planters) accept plants inside their bounds. Other categories (e.g., `"boundary"`) block plants
+- **Container category**: structures with `category: "container"` (raised beds, planters) accept plants inside their bounds
+- **Overhead category**: structures with `category: "overhead"` (pergolas, arbors) do NOT block ground-level elements. Plants, paths, furniture, and other structures can exist beneath them
+- **Surface category**: structures with `category: "surface"` (patios, decks) block terrain painting over their area. Other surface structures cannot overlap them. Plants and labels are allowed on top
+- **Furniture and feature categories**: block other structures like `"boundary"` but have no special sub-rules
 
 Invalid placement shows a red ghost preview. Placement is blocked until the cursor moves to a valid position.

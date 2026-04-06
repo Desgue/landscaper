@@ -1,6 +1,6 @@
 # Paths & Borders
 
-Paths are a distinct element type for brick edging, curved borders, and freeform landscape paths. They render above terrain and below structures [canvas-viewport.md "## Render Layer Order"].
+Paths are a distinct element type for brick edging, curved borders, and freeform landscape paths. They render above terrain and below structures [canvas-viewport.md "## Render Layer Order (bottom to top)"].
 
 ## Activation
 
@@ -14,7 +14,7 @@ Click a start point, click an end point. A straight path segment is drawn betwee
 
 ### Curved Segment
 
-Click a start point, click an end point, drag to set arc radius. A curved path segment (arc) is drawn. Same interaction as the Arc Tool (A) [structures.md "## Arc Tool"]. The A key works contextually — when a path is being drawn, it switches the next segment to curved mode. Arc math: [spatial-math-specification.md "## 5. Arc Geometry"].
+Click a start point, click an end point, drag to set arc radius. A curved path segment (arc) is drawn. Same interaction as the Arc Tool (A) [structures.md "## Arc Tool (A)"]. The A key works contextually — when a path is being drawn, it switches the next segment to curved mode. Arc math: [spatial-math-specification.md "## 5. Arc Geometry"].
 
 ## Segment Model
 
@@ -40,7 +40,7 @@ Shows: path type, width (in cm), total length (in meters), and per-segment detai
 
 ## Built-in Types
 
-brick-edging (initial). Extensible via registry.
+brick-edging (10cm width, `category: "edging"`), gravel-path (60cm width, `category: "walkway"`), stepping-stones (40cm width, `category: "walkway"`), concrete-walkway (90cm width, `category: "walkway"`), flagstone (80cm width, `category: "walkway"`). Extensible via registry.
 
 ## Closed Paths
 
