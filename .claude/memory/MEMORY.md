@@ -1,0 +1,5 @@
+- [PLAN-B status](project_planb_status.md) — B1 done, B2 plant+structure done; PathLayer/LabelLayer/review pending
+- [Use Write tool](feedback_use_write_tool.md) — Always use Write/Edit tools for files, never cat/heredoc in Bash
+- [Blueprint review loop](feedback_blueprint_review_loop.md) — Iterate blueprint reviews until all reviewers approve before implementation
+- [Observability reviewer](feedback_observability_reviewer.md) — Always include observability agent (logging/tracing) in every review team (6th reviewer)
+- [Commit project-local .claude skills](feedback_commit_claude_skills.md) — Copy skills to .claude/skills/ in the project and commit; keep global copy too
