@@ -6,6 +6,7 @@
  */
 
 interface Destroyable {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   destroy: (...args: any[]) => void
 }
 
@@ -13,6 +14,7 @@ interface DestroyableContainer extends Destroyable {
   children?: unknown[]
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface DestroyableTexture extends Destroyable {
   // marker — we differentiate by registration category
 }
