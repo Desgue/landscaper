@@ -5,7 +5,6 @@
 
 import { useState, useMemo } from 'react'
 import { X } from 'lucide-react'
-import type { CanvasElement } from '../types/schema'
 import { useProjectStore } from '../store/useProjectStore'
 import { pathTotalLength } from '../canvas/geometry'
 

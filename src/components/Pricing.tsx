@@ -217,7 +217,7 @@ function PlanCard({ plan, billing }: { plan: Plan; billing: BillingPeriod }) {
 
       <a
         href={plan.ctaHref}
-        className={`block w-full text-center font-semibold py-3 rounded-lg transition-colors ${
+        className={`block w-full text-center font-semibold py-3 rounded-lg transition-colors min-h-[44px] ${
           plan.highlighted
             ? 'bg-accent hover:bg-accent-hover text-text'
             : 'border-2 border-primary text-primary hover:bg-primary hover:text-white'
@@ -231,9 +231,9 @@ function PlanCard({ plan, billing }: { plan: Plan; billing: BillingPeriod }) {
 
 export default function Pricing() {
   const [billing, setBilling] = useState<BillingPeriod>('monthly')
-  const { ref: headerRef, isInView: headerInView } = useInView()
-  const { ref: toggleRef, isInView: toggleInView } = useInView()
-  const { ref: cardsRef, isInView: cardsInView } = useInView({ threshold: 0.05 })
+  const { ref: headerRef, isInView: headerInView } = useInView({ rootMargin: '0px 0px -40px 0px' })
+  const { ref: toggleRef, isInView: toggleInView } = useInView({ rootMargin: '0px 0px -20px 0px' })
+  const { ref: cardsRef, isInView: cardsInView } = useInView({ threshold: 0.05, rootMargin: '0px 0px -40px 0px' })
 
   return (
     <section

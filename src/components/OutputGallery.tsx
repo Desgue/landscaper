@@ -1,4 +1,7 @@
 import { useInView } from '../hooks/useInView'
+import japaneseImg from '../assets/landing/japanese.png'
+import tropicalImg from '../assets/landing/tropical.png'
+import kitchenImg from '../assets/landing/kitchen.png'
 
 const galleryCards = [
   {
@@ -7,17 +10,17 @@ const galleryCards = [
     time: 'Golden hour',
     image: '/images/gallery/contemporary-summer.png',
   },
-  {
-    style: 'Cottage',
-    season: 'Spring',
-    time: 'Morning',
-    image: '/images/gallery/cottage-spring.png',
-  },
-  {
+{
     style: 'Japanese',
     season: 'Autumn',
     time: 'Afternoon',
-    gradient: 'linear-gradient(135deg, #D4763C 0%, #C45B28 40%, #2D6A4F 100%)',
+    image: japaneseImg,
+  },
+  {
+    style: 'Kitchen Garden',
+    season: 'Spring',
+    time: 'Morning',
+    image: kitchenImg,
   },
   {
     style: 'Formal',
@@ -35,7 +38,7 @@ const galleryCards = [
     style: 'Tropical',
     season: 'Summer',
     time: 'Midday',
-    gradient: 'linear-gradient(135deg, #40916C 0%, #2D6A4F 40%, #5BC0BE 100%)',
+    image: tropicalImg,
   },
 ]
 
@@ -49,10 +52,11 @@ const staggerDelays = [
 ]
 
 export default function OutputGallery() {
-  const { ref, isInView } = useInView({ threshold: 0.1 })
+  const { ref, isInView } = useInView({ threshold: 0.1, rootMargin: '0px 0px -40px 0px' })
 
   return (
     <section
+      id="gallery"
       ref={ref}
       className="bg-bg py-16 px-6 border-t border-border"
       aria-labelledby="gallery-heading"
@@ -81,19 +85,14 @@ export default function OutputGallery() {
               role="listitem"
               className={`rounded-xl shadow-md overflow-hidden bg-bg-card animate-on-scroll ${staggerDelays[i]} ${isInView ? 'animate-fade-up' : ''}`}
             >
-              {'image' in card ? (
-                <img
-                  src={card.image}
-                  alt={`AI-generated ${card.style.toLowerCase()} landscape in ${card.season.toLowerCase()}`}
-                  className="h-48 w-full object-cover"
-                  loading={i < 3 ? 'eager' : 'lazy'}
-                />
-              ) : (
-                <div
-                  className="h-48"
-                  style={{ background: card.gradient }}
-                />
-              )}
+              <img
+                src={card.image}
+                alt={`AI-generated ${card.style.toLowerCase()} landscape in ${card.season.toLowerCase()}`}
+                className="h-48 w-full object-cover"
+                width={1376}
+                height={768}
+                loading={i < 3 ? undefined : 'lazy'}
+              />
               <div className="p-4 text-left">
                 <p className="font-bold text-text">{card.style}</p>
                 <p className="text-sm text-text-muted">

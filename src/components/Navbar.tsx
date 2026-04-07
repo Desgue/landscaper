@@ -13,7 +13,7 @@ export default function Navbar() {
         </div>
         <a
           href="/app"
-          className="bg-accent hover:bg-accent-hover text-text text-sm font-semibold px-4 py-2 rounded-md transition-colors"
+          className="bg-accent hover:bg-accent-hover text-text text-sm font-semibold px-4 py-2 rounded-md transition-colors min-h-[44px] inline-flex items-center"
         >
           Start free
         </a>

@@ -47,7 +47,7 @@ export default function Hero() {
         <div className={`animate-on-scroll animate-delay-300 ${isInView ? 'animate-fade-up' : ''}`}>
           <a
             href="/app"
-            className="inline-block bg-accent hover:bg-accent-hover text-text font-semibold px-8 py-3.5 rounded-lg text-base transition-all shadow-sm hover:shadow-md"
+            className="inline-flex items-center justify-center w-full sm:w-auto bg-accent hover:bg-accent-hover text-text font-semibold px-8 py-3.5 rounded-lg text-base transition-all shadow-sm hover:shadow-md min-h-[44px]"
           >
             Start planning — it's free <span aria-hidden="true">&rarr;</span>
           </a>
@@ -131,6 +131,8 @@ function TransformationPreview({ isInView }: { isInView: boolean }) {
           src="/images/hero/before.jpeg"
           alt="Yard photo before landscaping"
           className="w-full h-64 sm:h-80 object-cover"
+          width={1200}
+          height={1600}
           draggable={false}
           fetchPriority="high"
         />
@@ -148,6 +150,8 @@ function TransformationPreview({ isInView }: { isInView: boolean }) {
             src="/images/hero/after.png"
             alt="AI-generated landscape design of the same yard"
             className="w-full h-full object-cover"
+            width={1376}
+            height={768}
             draggable={false}
             fetchPriority="high"
           />
