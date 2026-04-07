@@ -1,21 +1,43 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useProjectStore } from '../store/useProjectStore'
 import { useToolStore } from '../store/useToolStore'
 import { useTerrainPaintStore } from '../canvas/TerrainLayer'
 import { usePlantToolStore } from '../canvas/PlantLayer'
 import { useStructureToolStore } from '../canvas/StructureLayer'
 import { usePathToolStore } from '../canvas/PathLayer'
+import type { ToolId } from '../types/schema'
 
 type Tab = 'Terrain' | 'Plants' | 'Structures' | 'Paths'
 const TABS: Tab[] = ['Terrain', 'Plants', 'Structures', 'Paths']
 
+const TOOL_TO_TAB: Partial<Record<ToolId, Tab>> = {
+  terrain: 'Terrain',
+  plant: 'Plants',
+  structure: 'Structures',
+  path: 'Paths',
+}
+
 export default function SidePalette() {
   const [collapsed, setCollapsed] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('Terrain')
+  const activeTool = useToolStore((s) => s.activeTool)
 
   const terrainTypes = useProjectStore((s) => s.registries.terrain)
   const selectedTerrainTypeId = useTerrainPaintStore((s) => s.selectedTerrainTypeId)
   const setSelectedTerrainTypeId = useTerrainPaintStore((s) => s.setSelectedTerrainTypeId)
+
+  // BUG-5 fix: Sync palette tab when toolbar tool changes
+  useEffect(() => {
+    const tab = TOOL_TO_TAB[activeTool]
+    if (tab) setActiveTab(tab)
+  }, [activeTool])
+
+  // BUG-1 fix: Auto-select first terrain type when switching to terrain tool with none selected
+  useEffect(() => {
+    if (activeTool === 'terrain' && !selectedTerrainTypeId && terrainTypes.length > 0) {
+      setSelectedTerrainTypeId(terrainTypes[0].id)
+    }
+  }, [activeTool, selectedTerrainTypeId, terrainTypes, setSelectedTerrainTypeId])
   const brushSize = useTerrainPaintStore((s) => s.brushSize)
   const brushSetBrushSize = useTerrainPaintStore((s) => s.setBrushSize)
 
