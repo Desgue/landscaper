@@ -199,7 +199,7 @@ func TestBuild_UniqueNames(t *testing.T) {
 	}
 }
 
-func TestBuild_PlantCapAt7(t *testing.T) {
+func TestBuild_AllElementsIncluded(t *testing.T) {
 	var elements []filter.FilteredElement
 	for i := 0; i < 10; i++ {
 		name := "Plant" + string(rune('A'+i))
@@ -208,15 +208,7 @@ func TestBuild_PlantCapAt7(t *testing.T) {
 			PlantType: &model.PlantType{Name: name},
 		})
 	}
-	parts := Build(elements, defaultOpts(), 0)
-	if strings.Contains(parts.ScenePrompt, "PlantH") {
-		t.Error("plant cap exceeded — PlantH should not be in prompt")
-	}
-}
-
-func TestBuild_StructureCapAt3(t *testing.T) {
-	var elements []filter.FilteredElement
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 7; i++ {
 		name := "Struct" + string(rune('A'+i))
 		elements = append(elements, filter.FilteredElement{
 			Element:       model.Element{Type: "structure"},
@@ -224,23 +216,11 @@ func TestBuild_StructureCapAt3(t *testing.T) {
 		})
 	}
 	parts := Build(elements, defaultOpts(), 0)
-	if strings.Contains(parts.ScenePrompt, "StructD") {
-		t.Error("structure cap exceeded — StructD should not be in prompt")
+	if !strings.Contains(parts.ScenePrompt, "PlantJ") {
+		t.Error("all plants should be included — PlantJ missing")
 	}
-}
-
-func TestBuild_TerrainCapAt2(t *testing.T) {
-	var elements []filter.FilteredElement
-	for i := 0; i < 4; i++ {
-		name := "Terrain" + string(rune('A'+i))
-		elements = append(elements, filter.FilteredElement{
-			Element:     model.Element{Type: "terrain"},
-			TerrainType: &model.TerrainType{Name: name},
-		})
-	}
-	parts := Build(elements, defaultOpts(), 0)
-	if strings.Contains(parts.ScenePrompt, "TerrainC") {
-		t.Error("terrain cap exceeded — TerrainC should not be in prompt")
+	if !strings.Contains(parts.ScenePrompt, "StructG") {
+		t.Error("all structures should be included — StructG missing")
 	}
 }
 
