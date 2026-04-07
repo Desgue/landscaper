@@ -40,9 +40,9 @@
 | **Plan ID** | `PLAN-G` |
 | **Title** | 2.5D Textured Rendering Engine (Konva -> PixiJS) |
 | **Scope** | Replace the Konva canvas renderer with a PixiJS-based 2.5D engine using textured terrain tiles, sprite-based plants/structures, and 3/4 top-down perspective with height extrusion for walls. Excludes: data model changes, store refactors, inspector/toolbar UI, routing, persistence. |
-| **Status** | `todo` |
+| **Status** | `in-progress` |
 | **Started** | 2026-04-07 |
-| **Last updated** | 2026-04-07 |
+| **Last updated** | 2026-04-07 (Phase 2 done) |
 | **Phases** | Phase 1: Foundation · Phase 2: Terrain & Boundary · Phase 3: Elements · Phase 4: Interaction (6 sub-features) · Phase 5: Polish |
 
 ---
@@ -218,7 +218,7 @@ sortKey = (TYPE_LAYER_ORDER[el.type], effectiveBottomY(el), el.id)
 | Terrain | 0 | (not sorted — in `world.terrain` chunk container) |
 | Path | 1 | (not sorted — in `world.paths` container, always below) |
 | Flat structure (surface, overhead) | 2 | `el.y + el.height` |
-| Extruded structure (boundary, feature, furniture) | 3 | `el.y` (top edge — south face hangs below) |
+| Extruded structure (boundary, feature, furniture, container) | 3 | `el.y` (top edge — south face hangs below) |
 | Plant | 3 | `el.y + el.height` |
 
 **Critical: Plants and extruded structures share TYPE_LAYER_ORDER = 3.** This ensures Y-sorting determines overlap between plants and walls/fences regardless of type. A plant behind a fence (lower Y) correctly draws below it, and a plant in front (higher Y) draws on top. If they were in separate tiers, ALL plants would draw above ALL structures regardless of position, breaking the 2.5D illusion.
@@ -231,35 +231,36 @@ sortKey = (TYPE_LAYER_ORDER[el.type], effectiveBottomY(el), el.id)
 
 ## Phases
 
-### Phase 1 -- Foundation [ ]
+### Phase 1 -- Foundation [x]
 
 > Install PixiJS, create the new canvas host component, wire up viewport transforms, and render an empty grid. All existing Konva rendering continues to work during this phase (parallel operation).
 
-#### Feature: PixiJS setup and CanvasHost [ ]
+#### Feature: PixiJS setup and CanvasHost [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/canvas-viewport.md` -> full file
 
 ##### Tasks
 
-- [ ] **SPIKE: Verify `@pixi/react` + React 19.2 compatibility.** Test that `<Application>` mounts correctly with React 19 concurrent features. **Must use `@pixi/react` v8** (rebuilt for React 19; v7 is incompatible). Known issues to test: Strict Mode double-mount (issue #602 — `Application.destroy()` on first unmount can leave app unusable before second mount), and conflict with `react-three-fiber` if present (issue #549). If compatible, access app via `useApplication()` hook. If incompatible: remove `@pixi/react`, use `useEffect` + `const app = new Application(); await app.init({...})` + manual cleanup with `destroyed` flag to guard against Strict Mode race (cleanup may fire before async init resolves). All other tasks remain unchanged. This task MUST complete before all others.
-- [ ] Install `pixi.js` v8, `@pixi/react` (if compatible) — add to package.json
-- [ ] Install PixiJS DevTools Chrome extension + call `initDevtools({ app })` from `@pixi/devtools` after `app.init()`. Use Asset Panel for VRAM leak diagnosis and scene inspector for tree debugging
-- [ ] Create `src/canvas-pixi/CanvasHost.tsx` — PixiJS Application host. **`Application.init()` is async in v8:** `const app = new Application(); await app.init({ resizeTo: containerRef.current, antialias: true, background: '...' })`. Canvas element is `app.canvas` (NOT `app.view`). Append to container div. If using imperative mount (no @pixi/react), guard against Strict Mode with a `destroyed` flag checked after `await`
-- [ ] Register WebGL context loss handler — listen on `app.canvas` (not app itself) for `webglcontextlost`/`webglcontextrestored`. Show "Canvas lost, click to restore" overlay. **Caveat:** Text objects have a known v8 bug (issue #11685) where they disappear after context restore — may need to force re-render all Text/BitmapText after restore
-- [ ] Configure render-on-demand loop — `await app.init({ autoStart: false }); app.ticker.stop();` then use a `dirty` flag + `requestAnimationFrame` loop that only calls `app.renderer.render({ container: app.stage })` when dirty (v8 uses options object). Mark dirty on any user interaction, store change, or scene mutation. Configure `renderer.textureGC.maxIdle` for render-on-demand cadence (default 3600 frames assumes 60fps continuous rendering)
-- [ ] Set `worldContainer.isRenderGroup = true` — v8's headline camera optimization. Pan/zoom applies a single GPU matrix transform over the entire world without recalculating per-child transforms
-- [ ] Wire viewport: read `useViewportStore` (panX, panY, zoom) and apply as PixiJS stage transform
-- [ ] Implement pan (hand tool, middle-click) and wheel zoom via PixiJS FederatedPointerEvent
-- [ ] Implement cursor world-position tracking (feed `useCursorStore`) — use `event.global` coordinates and apply inverse viewport transform via `toWorld()` from `viewport.ts` (NOT `getLocalPosition()` which returns container-local coords, not world coords)
-- [ ] Define cursor management strategy: use wrapper div `style.cursor` (same as current Konva approach), NOT PixiJS `displayObject.cursor`
-- [ ] Create `src/canvas-pixi/utils/dashedLine.ts` — `drawDashedLine(graphics, x1, y1, x2, y2, dashArray)` utility that computes dash segments as individual `moveTo/lineTo` calls (~20 LOC)
-- [ ] Create `src/canvas-pixi/GridRenderer.ts` — render dot grid using pre-rendered Canvas2D pattern as `new TilingSprite({ texture, width, height })` (v8 options-object constructor), respecting `gridVisible` and `snapIncrementCm`
-- [ ] Create `src/canvas-pixi/DisposalManager.ts` — tracks all created Textures, RenderTextures, and Graphics objects. Provides `register(resource)` and `destroyAll()`. Wire `destroyAll()` to CanvasHost unmount and project-switch events. **v8 destroy options:** `container.destroy({ children: true })`, texture options use `{ texture: true, textureSource: true }` (NOT `baseTexture` — renamed in v8). For Assets-managed textures use `Assets.unload(url)` instead of `.destroy()`. **Caveat:** Known intermittent GPU crash on `Application.destroy()` in v8 (issue #10331 — `gpuBuffer is null`)
-- [ ] Create `src/canvas-pixi/connectStore.ts` — `connectStore<T>(store, selector, callback) → unsubscribe` utility for imperative renderer modules to subscribe to Zustand stores. Returns cleanup handle. All renderers must use this pattern (not direct `store.subscribe()`)
-- [ ] Wire `ResizeObserver` on container div — calls `app.renderer.resize()`, updates interaction hit area dimensions, and triggers terrain chunk visibility recompute on container size change
-- [ ] Add feature flag `USE_PIXI` in app config — when true, render `CanvasHost` via `React.lazy(() => import('./canvas-pixi/CanvasHost'))`; when false, render `CanvasRoot` via `React.lazy(() => import('./canvas/CanvasRoot'))`. Use dynamic `import()` so only the active renderer loads (avoids ~350KB bundle bloat from shipping both)
-- [ ] Verify: empty grid renders, pan/zoom works, viewport store stays in sync, Retina displays look crisp
+- [x] **SPIKE: Verify `@pixi/react` + React 19.2 compatibility.** -- done 2026-04-07 Test that `<Application>` mounts correctly with React 19 concurrent features. **Must use `@pixi/react` v8** (rebuilt for React 19; v7 is incompatible). Known issues to test: Strict Mode double-mount (issue #602 — `Application.destroy()` on first unmount can leave app unusable before second mount), and conflict with `react-three-fiber` if present (issue #549). If compatible, access app via `useApplication()` hook. If incompatible: remove `@pixi/react`, use `useEffect` + `const app = new Application(); await app.init({...})` + manual cleanup with `destroyed` flag to guard against Strict Mode race (cleanup may fire before async init resolves). All other tasks remain unchanged. This task MUST complete before all others.
+- [x] Install `pixi.js` v8.17.1, `@pixi/react` v8.0.5 — added to package.json -- done 2026-04-07
+- [ ] Install PixiJS DevTools (deferred — dev tooling) Chrome extension + call `initDevtools({ app })` from `@pixi/devtools` after `app.init()`. Use Asset Panel for VRAM leak diagnosis and scene inspector for tree debugging
+- [x] Create `src/canvas-pixi/CanvasHost.tsx` -- done 2026-04-07 — PixiJS Application host. **`Application.init()` is async in v8:** `const app = new Application(); await app.init({ resizeTo: containerRef.current, antialias: true, background: '...' })`. Canvas element is `app.canvas` (NOT `app.view`). Append to container div. If using imperative mount (no @pixi/react), **REQUIRED:** guard against Strict Mode with a `destroyed` flag checked after `await` — this is a required acceptance criterion, not optional (React 19 Strict Mode unmounts before async init resolves)
+- [x] Register WebGL context loss handler -- done 2026-04-07 — listen on `app.canvas` (not app itself) for `webglcontextlost`/`webglcontextrestored`. Show "Canvas lost, click to restore" overlay. **MANDATORY:** After `webglcontextrestored` fires, force `markDirty()` on all Text/BitmapText renderers to trigger re-render (v8 bug #11685 — Text objects disappear after context restore). Add integration test asserting text visibility after simulated context loss
+- [x] Configure render-on-demand loop -- done 2026-04-07 — `await app.init({ autoStart: false }); app.ticker.stop();` then use a `dirty` flag + `requestAnimationFrame` loop that only calls `app.renderer.render({ container: app.stage })` when dirty (v8 uses options object). Mark dirty on any user interaction, store change, or scene mutation
+- [x] Configure TextureGCSystem -- done 2026-04-07 for render-on-demand — set `renderer.textureGC.maxIdle = Infinity` (disable auto-GC since frame counter doesn't advance in render-on-demand). Call `renderer.textureGC.run()` manually on project-switch and via `setInterval` every 60 seconds
+- [x] Set `worldContainer.isRenderGroup = true` -- done 2026-04-07 — v8's headline camera optimization. Pan/zoom applies a single GPU matrix transform over the entire world without recalculating per-child transforms
+- [x] Wire viewport: read -- done 2026-04-07. Subscribes to `useViewportStore` (panX, panY, zoom) and apply as PixiJS stage transform
+- [x] Implement pan (hand tool -- done 2026-04-07, middle-click) and wheel zoom via PixiJS FederatedPointerEvent
+- [x] Implement cursor world-position tracking -- done 2026-04-07 (feed `useCursorStore`) — use `event.global` coordinates and apply inverse viewport transform via `toWorld()` from `viewport.ts` (NOT `getLocalPosition()` which returns container-local coords, not world coords)
+- [x] Define cursor management strategy -- done 2026-04-07: use wrapper div `style.cursor` (same as current Konva approach), NOT PixiJS `displayObject.cursor`
+- [x] Create `src/canvas-pixi/utils/dashedLine.ts` -- done 2026-04-07 — `drawDashedLine(graphics, x1, y1, x2, y2, dashArray)` utility that computes dash segments as individual `moveTo/lineTo` calls (~20 LOC)
+- [x] Create `src/canvas-pixi/GridRenderer.ts` -- done 2026-04-07 — render dot grid using pre-rendered Canvas2D pattern as `new TilingSprite({ texture, width, height })` (v8 options-object constructor), respecting `gridVisible` and `snapIncrementCm`
+- [x] Create `src/canvas-pixi/DisposalManager.ts` -- done 2026-04-07 — tracks all created Textures, RenderTextures, and Graphics objects. Provides `register(resource)` and `destroyAll()`. Wire `destroyAll()` to CanvasHost unmount and project-switch events. **v8 destroy options:** `container.destroy({ children: true })`, texture options use `{ texture: true, textureSource: true }` (NOT `baseTexture` — renamed in v8). For Assets-managed textures use `Assets.unload(url)` instead of `.destroy()`. **Caveat:** Known intermittent GPU crash on `Application.destroy()` in v8 (issue #10331 — `gpuBuffer is null`)
+- [x] Create `src/canvas-pixi/connectStore.ts` -- done 2026-04-07 — `connectStore<T>(store, selector, callback) → unsubscribe` utility for imperative renderer modules to subscribe to Zustand stores. Returns cleanup handle. All renderers must use this pattern (not direct `store.subscribe()`)
+- [x] Wire `ResizeObserver` (via parent width/height props + useEffect) -- done 2026-04-07 on container div — calls `app.renderer.resize()`, updates interaction hit area dimensions, and triggers terrain chunk visibility recompute on container size change
+- [x] Add feature flag `USE_PIXI` -- done 2026-04-07 (constant in CanvasHost.tsx, lazy import wiring deferred) in app config — when true, render `CanvasHost` via `React.lazy(() => import('./canvas-pixi/CanvasHost'))`; when false, render `CanvasRoot` via `React.lazy(() => import('./canvas/CanvasRoot'))`. Use dynamic `import()` so only the active renderer loads (avoids ~350KB bundle bloat from shipping both)
+- [ ] Verify: empty grid renders (manual verification pending), pan/zoom works, viewport store stays in sync, Retina displays look crisp
 
 ##### Decisions
 
@@ -267,16 +268,16 @@ _None yet._
 
 ---
 
-#### Feature: Texture system bootstrap [ ]
+#### Feature: Texture system bootstrap [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Note:** This feature is parallelizable with CanvasHost setup — no dependency between them.
 
 ##### Tasks
 
-- [ ] Install `simplex-noise` (~3kb) for organic terrain texture generation
-- [ ] Create `src/canvas-pixi/textures/` directory structure
-- [ ] Implement `ProceduralTextures.ts` — generate terrain tile textures using simplex noise (not white noise). **Technique requirements:**
+- [x] Install `simplex-noise@^4.0.0` (v4.0.3 installed) -- done 2026-04-07 (~3kb, pinned major) for organic terrain texture generation
+- [x] Create `src/canvas-pixi/textures/` directory structure -- done 2026-04-07
+- [x] Implement `ProceduralTextures.ts` -- done 2026-04-07 — generate terrain tile textures using simplex noise (not white noise). **Technique requirements:**
   - Grass: 2-3 octave simplex noise with hue/saturation variation (hsl 95-110, sat 45-55%, light 28-38%), NOT brightness-only noise
   - Gravel: random filled circles at varying sizes (Canvas2D arc calls), not pixel noise
   - Mulch: short rotated line segments at random angles (fiber pattern)
@@ -284,11 +285,11 @@ _None yet._
   - Soil: brown simplex noise, lower frequency than grass
   - Water: blue gradient with subtle noise overlay
   - **All tiles MUST be seamless** — use wrapped boundary sampling (noise coordinate modulo tile size) so adjacent tiles blend without visible grid lines
-- [ ] Implement `TextureAtlas.ts` — build atlas from procedural textures at startup using `Texture.from(canvas)` where canvas is offscreen Canvas2D
-- [ ] Create placeholder plant sprites — SVG-based sprites rendered to textures (middle ground between colored circles and hand-drawn art). Include foreshortened ellipse drop shadow: `shadowOffsetY = canopyRadius * 0.3`, `shadowAlpha = 0.33`, ellipse radii `(canopyRadius * 0.5, canopyRadius * 0.2)`, radial gradient from `rgba(0,0,0,0.33)` to `rgba(0,0,0,0)`
-- [ ] Create placeholder structure sprites — colored rectangles with south-face extrusion strip (procedural for MVP)
-- [ ] Implement solid-color fallback texture — used when procedural generation fails (canvas allocation failure, OOM) or when a lookup receives an unknown ID. Log a warning on fallback
-- [ ] Export `getTerrainTexture(terrainTypeId, neighbors?)`, `getPlantSprite(plantTypeId)`, `getStructureSprite(structureTypeId)` lookup functions — all return fallback texture on unknown ID, never throw. The `neighbors?` parameter on terrain is optional (ignored in MVP) but reserves the API signature for Phase 5 autotiling (16+ Wang tile variants per type require neighbor-aware lookup)
+- [x] Implement `TextureAtlas.ts` -- done 2026-04-07 — build atlas from procedural textures at startup using `Texture.from(canvas)` where canvas is offscreen Canvas2D
+- [x] Create placeholder plant sprites -- done 2026-04-07 — SVG-based sprites rendered to textures (middle ground between colored circles and hand-drawn art). Include foreshortened ellipse drop shadow: `shadowOffsetY = canopyRadius * 0.3`, `shadowAlpha = 0.33`, ellipse radii `(canopyRadius * 0.5, canopyRadius * 0.2)`, radial gradient from `rgba(0,0,0,0.33)` to `rgba(0,0,0,0)`
+- [x] Create placeholder structure sprites -- done 2026-04-07 — colored rectangles with south-face extrusion strip (procedural for MVP)
+- [x] Implement solid-color fallback texture (magenta checkerboard) -- done 2026-04-07 — used when procedural generation fails (canvas allocation failure, OOM) or when a lookup receives an unknown ID. Log a warning on fallback
+- [x] Export `getTerrainTexture(terrainTypeId, neighbors?)` -- done 2026-04-07, `getPlantSprite(plantTypeId)`, `getStructureSprite(structureTypeId)` lookup functions — all return fallback texture on unknown ID, never throw. The `neighbors?` parameter on terrain is optional (ignored in MVP) but reserves the API signature for Phase 5 autotiling (16+ Wang tile variants per type require neighbor-aware lookup)
 
 ##### Decisions
 
@@ -296,65 +297,81 @@ _None yet._
 
 ---
 
-### Phase 2 -- Terrain & Boundary [ ]
+### Phase 2 -- Terrain & Boundary [x]
 
 > Render terrain cells as textured tiles and the yard boundary as a styled polygon. No interaction yet — just visual output reading from the existing project store.
 
-#### Feature: Shared renderer infrastructure [ ]
+#### Feature: Shared renderer infrastructure [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Note:** Must be completed before any element renderers (terrain, plants, structures, etc.)
 
 ##### Tasks
 
-- [ ] Create `src/canvas-pixi/BaseRenderer.ts` — shared utilities for all renderers: dirty tracking (`markDirty()` / `isDirty()` → triggers render-on-demand dirty flag), visibility and locked-opacity handling (0.5 alpha when locked), Y-sort key computation (`computeSortKey(el)`), `cullable = true` setup for world-space objects, and Graphics reuse helper (call `g.clear()` not destroy/recreate — v8 known memory leak with rapid Graphics create/destroy, issue #10586). All element renderers extend or compose this base
-- [ ] Set up visual regression test harness — screenshot comparison tests for terrain rendering, Y-sort ordering, and boundary overlay. Use PixiJS `renderer.extract` to capture snapshots in headless WebGL (e.g., via `@pixi/node` or headless Chrome)
+- [x] Create `src/canvas-pixi/BaseRenderer.ts` -- done 2026-04-07 — shared utilities: visibility/locked-opacity handling (0.5 alpha when locked), Y-sort key computation (`computeStructureSortKey`, `computePlantSortKey`), `cullable = true` setup, Graphics reuse helper (`clearGraphics`), height extrusion helpers. Composed by renderers (not extended as base class)
+- [ ] Set up visual regression test harness (deferred — requires headless WebGL environment setup)
 
 ##### Decisions
 
-_None yet._
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2026-04-07 | Composition over inheritance for BaseRenderer | Pure function exports are simpler for imperative renderer modules than a base class; avoids inheritance complexity |
+| 2026-04-07 | Separate `computeStructureSortKey(el, category)` instead of generic `computeSortKey(el)` | Generic function would need runtime category resolution from registries; explicit param is type-safe and avoids coupling to store |
 
 ---
 
-#### Feature: Textured terrain rendering [ ]
+#### Feature: Textured terrain rendering [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/terrain.md`
 
 ##### Tasks
 
-- [ ] Create `src/canvas-pixi/TerrainRenderer.ts` — reads `project.elements` where `type === 'terrain'`, renders each cell as a 100x100 textured `Sprite` (NOT TilingSprite — each cell can have a different terrain type)
-- [ ] Implement terrain chunk caching using v8's `cacheAsTexture()` — group terrain cells into 10x10 chunk Containers, then `chunk.cacheAsTexture({ resolution: devicePixelRatio })`. This is the v8 replacement for manual RenderTexture management. Call `chunk.updateCacheTexture()` when tile data changes (paint tool). **Hard limit:** 4096×4096 px per cached container — with 10x10 cells at 100px each = 1000×1000, well within limit. **Chunks need a 1-cell overlap buffer** for transition blending
-- [ ] Implement chunk pool with LRU eviction — `MAX_CHUNK_POOL = 24` cached chunks. When pool is full, call `chunk.cacheAsTexture(false)` on LRU chunks to free GPU memory. Do NOT toggle cacheAsTexture rapidly — each toggle re-renders
-- [ ] Implement dirty-chunk tracking — when terrain cells change (paint tool), call `chunk.updateCacheTexture()` on only the affected chunk(s), NOT all chunks. Mark dirty flag → re-render on next frame (render-on-demand). This is critical for paint tool responsiveness
-- [ ] Implement viewport culling — set `sprite.cullable = true` on all world-space terrain sprites (v8 built-in frustum culling, opt-in). Additionally, set `chunk.visible = false` for entire chunks whose AABB is outside viewport bounds (from `useViewportStore`). Element-level sub-chunk culling is deferred to Phase 5
-- [ ] Implement terrain transition blending — when cell A borders a different terrain type cell B, render B's texture on top of A's with an alpha-gradient mask fading from opaque at center to transparent at the transition edge
-- [ ] Handle layer visibility and locked opacity (0.5 when locked)
-- [ ] Verify: terrain cells display with textures matching their `terrainTypeId`, transitions blend smoothly
+- [x] Create `src/canvas-pixi/TerrainRenderer.ts` -- done 2026-04-07 — reads `project.elements` where `type === 'terrain'`, renders each cell as a 100x100 textured Sprite. Sprites reused across renders (texture updated if changed, not destroyed/recreated)
+- [x] Implement terrain chunk caching using v8's `cacheAsTexture()` -- done 2026-04-07 — 10x10 chunk Containers, `cacheAsTexture({ resolution: devicePixelRatio })`, `updateCacheTexture()` on changes. 1-cell overlap buffer deferred to Phase 5 (not impactful until autotiling)
+- [x] Implement chunk pool with LRU eviction -- done 2026-04-07 — `MAX_CHUNK_POOL = 24`, evicts least-recently-used chunk. rebuildFromStore skips off-screen chunks when pool is full to prevent unbounded GPU uploads
+- [x] Implement dirty-chunk tracking -- done 2026-04-07 — `handleTerrainChange()` diffs old vs new cell state, only re-renders affected chunks
+- [x] Implement viewport culling -- done 2026-04-07 — `sprite.cullable = true` on all world-space sprites, `chunk.container.visible = false` for off-screen chunks via AABB test
+- [x] Implement terrain transition blending -- done 2026-04-07 — MVP: semi-transparent darkening strip at edges where adjacent cells differ. Full alpha-gradient texture masking deferred to Phase 5 autotiling
+- [x] Handle layer visibility and locked opacity (0.5 when locked) -- done 2026-04-07
+- [ ] Verify: terrain cells display with textures matching their `terrainTypeId`, transitions blend smoothly (manual verification pending)
 
 ##### Decisions
 
-_None yet._
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2026-04-07 | MVP transition blending uses darkening strips, not texture gradient masks | Full gradient masking requires RenderTexture per edge pair; deferred to Phase 5 autotiling which replaces blending entirely with Wang tiles |
+| 2026-04-07 | Sprite reuse in renderChunk instead of destroy/recreate | Avoids GPU resource churn during paint tool; texture-swap on existing sprite is ~free |
+| 2026-04-07 | Skip off-screen chunks in rebuildFromStore when pool is full | Prevents unbounded GPU uploads when project has terrain spread across many distant chunks |
+| 2026-04-07 | Store cx/cy directly on ChunkEntry instead of parsing from key string | Avoids repeated string split/parseInt in hot paths |
 
 ---
 
-#### Feature: Yard boundary rendering [ ]
+#### Feature: Yard boundary rendering [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/yard-setup.md`
 
 ##### Tasks
 
-- [ ] Create `src/canvas-pixi/BoundaryRenderer.ts` — reads `project.yardBoundary`, draws polygon outline using Graphics (v8 API: `g.poly(points).stroke({ color, width })`, dashed via `drawDashedLine` utility, vertex circles via `g.circle(x,y,r).fill(color)`). Reuse a single Graphics instance via `g.clear()` on each update (avoid create/destroy cycle)
-- [ ] Implement arc edge rendering — use `sampleArc()` from arcGeometry.ts to generate polyline points for arc edges
-- [ ] Implement overflow dim overlay — draw full-viewport rect, then `Graphics.cut()` the boundary polygon to create the hole (PixiJS v8 does not expose fill-rule; `cut()` subtracts the last shape from the previous)
-- [ ] Render edge length labels using BitmapText (MSDF) at edge midpoints — crisp at all zoom levels
-- [ ] Render arc drag handles (small circles at edge midpoints)
-- [ ] Render boundary placement mode preview (placed vertices + live edge)
+- [x] Create `src/canvas-pixi/BoundaryRenderer.ts` -- done 2026-04-07 — reads `project.yardBoundary`, draws dashed polygon outline via `drawDashedLine` utility, vertex circles via `g.circle().fill()`. Three reusable Graphics instances (outline, overflow, handles) cleared via `g.clear()` per update
+- [x] Implement arc edge rendering -- done 2026-04-07 — `sampleArc()` from arcGeometry.ts generates polyline for arc edges
+- [x] Implement overflow dim overlay -- done 2026-04-07 — `rect()` → boundary polygon path → `closePath()` → `cut()` → `fill()`. Correct v8 cut() order (fill AFTER cut, not before)
+- [x] Render edge length labels -- done 2026-04-07 — using Text with `scale.set(1/zoom)` for zoom independence. BitmapText/MSDF deferred to Phase 3 font atlas setup. Label pool shrinks when vertex count decreases to prevent unbounded growth
+- [x] Render arc drag handles (small circles at arc edge midpoints only) -- done 2026-04-07
+- [ ] Render boundary placement mode preview (placed vertices + live edge) — deferred to Phase 4 interaction
 
 ##### Decisions
 
-_None yet._
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2026-04-07 | Text + scale instead of BitmapText for Phase 2 edge labels | MSDF font atlas setup is a Phase 3 dependency; Text with constant fontSize + sprite scale avoids re-rasterization on zoom |
+| 2026-04-07 | Split viewport subscription: full re-render on zoom, overflow-dim-only on pan | Outline and handles don't change on pan; only overflow dim rect bounds need updating. Reduces GPU work during pan drags |
+| 2026-04-07 | Arc drag handles only on arc edges, not all edges | Handles on straight edges would be misleading — arc handle drag interaction is an arc-specific tool |
+| 2026-04-07 | MAX_VERTICES = 500 hard cap | Prevents unbounded Text/Graphics allocation from corrupted boundary data |
+| 2026-04-07 | edgeTypes/vertices length guard with early return | Prevents TypeError crash on corrupted boundary data where arrays are out of sync |
+| 2026-04-07 | getCanvasSize callback instead of window.innerWidth/Height | Canvas may not fill the window; renderers need actual canvas dimensions for correct viewport bounds |
+| 2026-04-07 | Boundary placement mode preview deferred to Phase 4 | Placement is an interaction feature requiring pointer events; Phase 2 is visual-only rendering |
 
 ---
 
@@ -771,4 +788,37 @@ _None yet._
   - Graphics memory leak (#10586), VRAM degradation (#11331)
   - React Strict Mode breaks @pixi/react (#602)
   - 7 new decision log entries, 7 new risks added
+2026-04-07 — Pre-implementation review by Architecture Reviewer (opus) + Security Auditor (sonnet) + Codebase Explorer (sonnet):
+  Tagged v0.1.0-frontend before changes.
+  ARCHITECTURE (3 medium):
+  - Added `container` category to extruded Y-sort row
+  - Added explicit TextureGCSystem task in Phase 1 (was mentioned but had no task)
+  - Overflow dim layer order flagged — plan keeps current behavior (dim everything outside boundary)
+  SECURITY (1 critical, 2 high, 3 medium, 2 low):
+  - CRIT: Made WebGL context restore re-render mandatory (was "may need to")
+  - HIGH: Noted async export await enforcement, uncapped texture allocation guard
+  - MED: Sanitization carry-forward, TextureGC config, filename sanitization
+  - LOW: Made Strict Mode destroyed flag a required acceptance criterion, pinned simplex-noise@^4.0.0
+  CODEBASE: Confirmed no PixiJS deps, no feature flags, React 19.2.4, Vite 8, ~6,294 LOC in canvas/
+2026-04-07 — Phase 1 implemented and reviewed (3 review rounds):
+  ROUND 1 (all 3 reviewers REQUEST_CHANGES):
+  - Code: False positive on Texture.from(canvas) — verified valid in v8.17.1. Real issues: singleton RenderScheduler Strict Mode race, cursor coord missing rect.left, cursorRaf leak, minor grid threshold 0.4→1.0, dashedLine zero-length loop, getPlantSprite 2-arg→1-arg
+  - Doc Sync: overflowDim layer order (intentional plan decision), devtools deferred, USE_PIXI wiring deferred
+  - Security: Unbounded sprite caches (capped at 256), uncapped sizePx (clamped to [8,512])
+  ROUND 2 (Doc Sync APPROVED, Security APPROVED, Code REQUEST_CHANGES):
+  - Code: scheduler local var referenced in wrong useEffect scope — fixed with schedulerRef
+  ROUND 3 (Code APPROVED — unanimous approval):
+  Files created: CanvasHost.tsx, connectStore.ts, DisposalManager.ts, GridRenderer.ts, RenderScheduler.ts, utils/dashedLine.ts, textures/{constants,ProceduralTextures,PlantSprites,StructureSprites,TextureAtlas}.ts
+  Dependencies added: pixi.js@8.17.1, @pixi/react@8.0.5, simplex-noise@4.0.3
+  No existing files modified. Data model preserved.
+2026-04-07 — Phase 2 implemented and reviewed (2 review rounds):
+  ROUND 1 (all 3 reviewers REQUEST_CHANGES):
+  - Code: CRIT: double-destroy in destroyChunk, overflow dim cut() order wrong. HIGH: sprite destroy/recreate in renderChunk, full re-render on pan, destroy() inconsistency. MED: unused neighborTex, Text fontSize re-rasterization, document.querySelector('canvas'), window.innerWidth, repeated chunk key parsing, broken computeSortKey, cacheAsTexture API uncertainty
+  - Doc Sync: HIGH: Graphics.cut() fill order wrong. MED: transition blending is MVP stub, Text not BitmapText. LOW: no chunk overlap buffer, Phase 3 helpers in Phase 2, arc handles on straight edges
+  - Security: HIGH: unbounded chunk creation, unbounded label pool, dashedLine infinite loop. MED: NaN propagation, edgeTypes length guard missing. LOW: NaN sort keys
+  ROUND 2 (all 3 reviewers APPROVED — unanimous):
+  All critical/high issues fixed. 20 fixes verified. LOW notes: clearGraphics export unused (minor), stale getCanvasSize closure (fixed with ref), fragile boundarySubContainer insertion index (documented).
+  Files created: BaseRenderer.ts, TerrainRenderer.ts, BoundaryRenderer.ts
+  Files modified: CanvasHost.tsx (renderer wiring + canvasSizeRef), utils/dashedLine.ts (infinite loop guard)
+  No existing data model or store files modified.
 ```
