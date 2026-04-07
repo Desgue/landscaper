@@ -27,6 +27,7 @@ Accept: image/png
     "time_of_day":     "morning | midday | golden hour | overcast",
     "viewpoint":       "eye-level | elevated | isometric",
     "aspect_ratio":    "square | landscape | portrait",
+    "image_size":      "1K | 2K | 4K",
     "seed":            "integer | -1 (default: -1 = random)"
   }
 }
@@ -48,6 +49,7 @@ Defaults are applied after validation passes. Fields present but set to an unrec
 | `time_of_day` | string | `morning`, `midday`, `golden hour`, `overcast` | `"golden hour"` |
 | `viewpoint` | string | `eye-level`, `elevated`, `isometric` | `"eye-level"` |
 | `aspect_ratio` | string | `square`, `landscape`, `portrait` | `"square"` |
+| `image_size` | string | `1K`, `2K`, `4K` | `"1K"` |
 | `seed` | integer | any integer; `-1` = random | `-1` |
 
 When `options.season` is omitted: derive from `project.location.lat` and the server date. If `project.location` is null or `lat` is null, default to `"summer"`. Full derivation logic in [prompt-construction.md "## Season Derivation"].
@@ -56,12 +58,12 @@ When `options.season` is omitted: derive from `project.location.lat` and the ser
 
 ## Response Spec
 
-### Success — 200 PNG
+### Success — 200 Image
 
 ```
 HTTP 200
-Content-Type: image/png
-Body: raw PNG image bytes
+Content-Type: image/png or image/jpeg (whichever Gemini returns)
+Body: raw image bytes
 ```
 
 Output dimensions per `aspect_ratio`:
@@ -69,8 +71,10 @@ Output dimensions per `aspect_ratio`:
 | `aspect_ratio` | Dimensions | Gemini aspect_ratio |
 |---|---|---|
 | `square` | 1024 × 1024 px | `1:1` |
-| `landscape` | 1024 × 576 px (16:9) | `16:9` |
-| `portrait` | 576 × 1024 px (9:16) | `9:16` |
+| `landscape` | 1024 × 768 px (4:3) | `4:3` |
+| `portrait` | 768 × 1024 px (3:4) | `3:4` |
+
+Output resolution scales with `image_size` (`1K` ≈ 1024px, `2K` ≈ 2048px, `4K` ≈ 4096px on the largest dimension). The Content-Type header reflects whichever format Gemini returns.
 
 ### Error — 4xx / 5xx JSON
 
@@ -154,6 +158,7 @@ Validated before any rendering begins. All invalid requests return HTTP 400 imme
 | `options.time_of_day` | One of 4 allowed values if present | `"invalid time_of_day"` |
 | `options.viewpoint` | One of 3 allowed values if present | `"invalid viewpoint"` |
 | `options.aspect_ratio` | One of 3 allowed values if present | `"invalid aspect_ratio"` |
+| `options.image_size` | One of 3 allowed values (`1K`, `2K`, `4K`) if present | `"invalid image_size"` |
 | `options.seed` | Integer or omitted; `-1` means random | `"invalid seed"` |
 | `options.include_planned` | Boolean or omitted | `"invalid include_planned"` |
 | `yard_photo` | Valid base64 string decoding to JPEG or PNG magic bytes if present | `"invalid yard_photo"` |
@@ -181,6 +186,7 @@ Exact error strings per case:
 | `options.garden_style` unrecognized | 400 | `"invalid garden_style"` |
 | `options.season` unrecognized | 400 | `"invalid season"` |
 | `options.aspect_ratio` unrecognized | 400 | `"invalid aspect_ratio"` |
+| `options.image_size` unrecognized | 400 | `"invalid image_size"` |
 | `options.viewpoint` unrecognized | 400 | `"invalid viewpoint"` |
 | `options.time_of_day` unrecognized | 400 | `"invalid time_of_day"` |
 | Segmentation render failure | 500 | `"segmentation render failed"` |
@@ -204,8 +210,8 @@ Scenario: Valid request with all options
   And options specifying garden_style, season, time_of_day, viewpoint, aspect_ratio, seed, and include_planned
   When POST /api/generate is called
   Then the response status is 200
-  And the Content-Type header is image/png
-  And the response body is a valid PNG
+  And the Content-Type header is image/jpeg or image/png
+  And the response body is a valid image
 ```
 
 ### Scenario: Valid request with no options (all defaults applied)
@@ -216,8 +222,8 @@ Scenario: Valid request with no options
   And the request body contains no options object
   When POST /api/generate is called
   Then the response status is 200
-  And the Content-Type header is image/png
-  And the response body is a valid PNG
+  And the Content-Type header is image/jpeg or image/png
+  And the response body is a valid image
 ```
 
 ### Scenario: Body is not valid JSON

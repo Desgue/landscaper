@@ -1,6 +1,7 @@
 package prompt
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -8,46 +9,132 @@ import (
 	"greenprint/internal/model"
 )
 
-// Style suffixes per viewpoint. All include "not a floor plan" directive.
-var styleSuffixes = map[string]string{
-	"eye-level": "photorealistic, eye-level view, garden photography, natural lighting, high detail, not a floor plan",
-	"elevated":  "photorealistic, elevated perspective view, garden photography, natural lighting, high detail, not a floor plan",
-	"isometric": "photorealistic, isometric view, garden photography, natural lighting, high detail, not a floor plan",
-}
+// segmapInstruction explains the segmap role with color legend and explicit prohibitions.
+// Placed immediately before the segmap blob so the model reads it in context.
+const segmapInstruction = `This image is a top-down color-coded layout map of a garden. ` +
+	`Each colored shape represents an element: ` +
+	`pink/magenta shapes are plants, red/orange shapes are structures, neon green shapes are paths, cyan is lawn, gold is soil/mulch. ` +
+	`These colors are intentionally artificial — they exist ONLY to mark positions. ` +
+	`Use this map ONLY to understand where each element is positioned and its approximate size. ` +
+	`NO neon colors in the output. NO pink circles. NO geometric shapes from this map. NO flat diagram overlays. ` +
+	`The output must be a photorealistic photograph, not a diagram.`
 
-const yardPhotoPreamble = "The first image is a top-down segmentation plan of the garden layout. The second image is the real yard. Generate a photorealistic view showing the planned garden in the real yard's perspective and lighting."
+// yardPhotoInstruction explains the yard photo role.
+// Placed immediately before the yard photo blob.
+const yardPhotoInstruction = `This image is a real photograph of the yard. ` +
+	`Match the perspective, camera angle, lighting, ground textures, fences, walls, and surroundings from this photo. ` +
+	`Place the garden elements from the layout map into this real scene.`
+
+// viewpointPhrases maps viewpoint to camera/lens description.
+var viewpointPhrases = map[string]string{
+	"eye-level": "eye-level perspective, 24mm wide-angle lens, ground-level viewpoint, horizon at mid-frame",
+	"elevated":  "elevated three-quarter view looking down at an angle, 35mm lens, slightly above fence height",
+	"isometric": "isometric perspective, tilt-shift lens effect, uniform scale across the scene",
+}
 
 // Cap rules per element category.
 const (
 	maxPlants     = 7
 	maxStructures = 3
 	maxTerrain    = 2
-	maxTotal      = 12
 )
 
-// Build assembles the prompt string from filtered elements, effective options, and project location.
-// The now parameter is used for season derivation when options.Season was derived from date.
-func Build(elements []filter.FilteredElement, opts model.EffectiveOptions, hasYardPhoto bool) string {
+// botanicalNames maps plant registry IDs to botanical names for species-accurate prompts.
+var botanicalNames = map[string]string{
+	"tomato":          "Solanum lycopersicum",
+	"cherry-tomato":   "Solanum lycopersicum var. cerasiforme",
+	"onion":           "Allium cepa",
+	"eggplant":        "Solanum melongena",
+	"pepper":          "Capsicum annuum",
+	"lettuce":         "Lactuca sativa",
+	"carrot":          "Daucus carota",
+	"basil":           "Ocimum basilicum",
+	"rosemary":        "Salvia rosmarinus",
+	"mint":            "Mentha spicata",
+	"thyme":           "Thymus vulgaris",
+	"oak":             "Quercus robur",
+	"maple":           "Acer saccharum",
+	"birch":           "Betula pendula",
+	"fruit-tree":      "Malus domestica",
+	"ornamental-pear": "Pyrus calleryana",
+	"japanese-maple":  "Acer palmatum",
+	"boxwood":         "Buxus sempervirens",
+	"lavender":        "Lavandula angustifolia",
+	"hydrangea":       "Hydrangea macrophylla",
+	"rose-bush":       "Rosa floribunda",
+	"holly":           "Ilex aquifolium",
+	"privet":          "Ligustrum vulgare",
+}
+
+// Build assembles the structured prompt parts from filtered elements and effective options.
+// The returned PromptParts are interleaved with image blobs by the Gemini client.
+func Build(elements []filter.FilteredElement, opts model.EffectiveOptions, hasYardPhoto bool) model.PromptParts {
 	subject := buildSubject(opts)
 	elemStr := buildElementList(elements)
-	style := styleSuffix(opts.Viewpoint)
+	style := buildStyle(opts.Viewpoint)
+	prohibitions := buildProhibitions(opts.Viewpoint)
 
-	var parts []string
-	if hasYardPhoto {
-		parts = append(parts, yardPhotoPreamble)
-	}
+	// Scene prompt: SCHEMA order — Style → Composition → Subject → Mandatory elements → Prohibitions
+	var scene strings.Builder
 
+	// Style + Composition (merged — viewpoint phrase includes lens)
+	scene.WriteString(style)
+	scene.WriteString(" ")
+
+	// Subject
+	scene.WriteString(subject)
+	scene.WriteString(". ")
+
+	// Mandatory elements with map-position linking
 	if elemStr != "" {
-		parts = append(parts, subject+". "+elemStr+". "+style+".")
-	} else {
-		parts = append(parts, subject+". "+style+".")
+		scene.WriteString("Place these elements at the positions shown by their corresponding colored shapes in the layout map: ")
+		scene.WriteString(elemStr)
+		scene.WriteString(". ")
 	}
 
-	return strings.Join(parts, " ")
+	// Constraint: only what's in the map
+	scene.WriteString("Only include elements shown in the layout map. NO extra structures, furniture, or decorations not in the plan. ")
+
+	// Prohibitions
+	scene.WriteString(prohibitions)
+
+	parts := model.PromptParts{
+		SegmapInstruction: segmapInstruction,
+		ScenePrompt:       scene.String(),
+	}
+
+	if hasYardPhoto {
+		parts.YardPhotoInstruction = yardPhotoInstruction
+	}
+
+	return parts
 }
 
 func buildSubject(opts model.EffectiveOptions) string {
 	return "A " + opts.GardenStyle + " garden, " + opts.Season + ", " + opts.TimeOfDay
+}
+
+func buildStyle(viewpoint string) string {
+	phrase, ok := viewpointPhrases[viewpoint]
+	if !ok {
+		phrase = viewpointPhrases["eye-level"]
+	}
+	return fmt.Sprintf(
+		"High-end residential landscape photography, %s, natural lighting, rich textures, sharp detail.",
+		phrase,
+	)
+}
+
+func buildProhibitions(viewpoint string) string {
+	base := "NO floor plan. NO top-down diagram. " +
+		"NO colored circles or geometric overlays. NO cartoon or illustrated style. " +
+		"NO watermarks. NO text overlays. NO close-up of a single plant."
+	// "NO bird's-eye view" conflicts with isometric which is a top-down variant,
+	// so only add it for eye-level and elevated viewpoints.
+	if viewpoint != "isometric" {
+		base = "NO bird's-eye view. " + base
+	}
+	return base
 }
 
 func buildElementList(elements []filter.FilteredElement) string {
@@ -61,7 +148,7 @@ func buildElementList(elements []filter.FilteredElement) string {
 		case "plant":
 			if fe.PlantType != nil && !seenPlants[fe.PlantType.Name] {
 				seenPlants[fe.PlantType.Name] = true
-				plantNames = append(plantNames, fe.PlantType.Name)
+				plantNames = append(plantNames, enrichPlantName(fe.PlantType.ID, fe.PlantType.Name))
 			}
 		case "structure":
 			if fe.StructureType != nil && !seenStructs[fe.StructureType.Name] {
@@ -94,25 +181,19 @@ func buildElementList(elements []filter.FilteredElement) string {
 	all = append(all, structNames...)
 	all = append(all, terrainNames...)
 
-	// Apply total cap
-	if len(all) > maxTotal {
-		all = all[:maxTotal]
-	}
-
 	return strings.Join(all, ", ")
 }
 
-func styleSuffix(viewpoint string) string {
-	if s, ok := styleSuffixes[viewpoint]; ok {
-		return s
+// enrichPlantName returns "Botanical Name (Common Name)" if a botanical name is known,
+// otherwise just the common name.
+func enrichPlantName(id, commonName string) string {
+	if botanical, ok := botanicalNames[id]; ok {
+		return botanical + " (" + commonName + ")"
 	}
-	return styleSuffixes["eye-level"]
+	return commonName
 }
 
 // DeriveSeason determines the season from latitude and date.
-// This is re-exported for use by the handler when options.Season is empty.
-// Note: the actual season derivation is already done in handler/validate.go resolveOptions.
-// This function is provided for completeness if needed by other callers.
 func DeriveSeason(loc *model.Location, now time.Time) string {
 	if loc == nil || loc.Lat == nil {
 		return "summer"

@@ -37,6 +37,10 @@ var validAspectRatios = map[string]bool{
 	"square": true, "landscape": true, "portrait": true,
 }
 
+var validImageSizes = map[string]bool{
+	"1K": true, "2K": true, "4K": true,
+}
+
 // Magic byte prefixes for image format detection.
 var jpegMagic = []byte{0xFF, 0xD8, 0xFF}
 var pngMagic = []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
@@ -148,6 +152,10 @@ func validateAndParseWithTime(w http.ResponseWriter, r *http.Request, now time.T
 		validationError(w, r, http.StatusBadRequest, "invalid aspect_ratio")
 		return model.GenerateRequest{}, model.EffectiveOptions{}, nil, false
 	}
+	if req.Options.ImageSize != "" && !validImageSizes[req.Options.ImageSize] {
+		validationError(w, r, http.StatusBadRequest, "invalid image_size")
+		return model.GenerateRequest{}, model.EffectiveOptions{}, nil, false
+	}
 
 	// 10. yard_photo: if present, decode base64 and check magic bytes
 	var photo *YardPhotoData
@@ -189,6 +197,7 @@ func resolveOptions(opts model.GenerateOptions, loc *model.Location, now time.Ti
 		TimeOfDay:      "golden hour",
 		Viewpoint:      "eye-level",
 		AspectRatio:    "square",
+		ImageSize:      "1K",
 		Seed:           -1,
 	}
 
@@ -211,6 +220,9 @@ func resolveOptions(opts model.GenerateOptions, loc *model.Location, now time.Ti
 	}
 	if opts.AspectRatio != "" {
 		eff.AspectRatio = opts.AspectRatio
+	}
+	if opts.ImageSize != "" {
+		eff.ImageSize = opts.ImageSize
 	}
 	if opts.Seed != nil {
 		eff.Seed = *opts.Seed

@@ -135,33 +135,35 @@ The render is implemented using [`fogleman/gg`](https://github.com/fogleman/gg) 
 
 Segmentation colors are fixed constants — not derived from registry display colors. Registry colors drive the 2D canvas render only [canvas-viewport.md "## Render Layer Order (bottom to top)"].
 
+Colors use a non-natural, high-contrast palette so Gemini never confuses diagram shapes with photorealistic content. Hue bands: plants = pink/magenta, terrain = cyan/gold, paths = neon green, structures = red/orange.
+
 | Semantic category | Hex color | Applies to |
 |---|---|---|
 | void | `#000000` | Outside yard boundary (canvas background) |
-| bare soil (default ground) | `#8B4513` | Unpainted ground inside yard boundary |
-| lawn / grass | `#00AA00` | Terrain type: grass |
-| soil / mulch | `#6B3A2A` | Terrain type: soil, mulch, bark |
-| gravel / stone | `#AAAAAA` | Terrain type: gravel, concrete |
-| wood decking | `#C8A96E` | Terrain type: wood decking |
-| water (terrain) | `#4169E1` | Terrain type: water |
-| path — stone / gravel | `#999999` | Path `material`: stone, gravel |
-| path — brick | `#CC6644` | Path `material`: brick |
-| path — wood | `#B8860B` | Path `material`: wood |
-| path — concrete | `#BBBBBB` | Path `material`: concrete |
-| path — other | `#888888` | Path `material`: other |
-| tree trunk | `#5C3317` | Plant growth form: tree (trunk shape) |
-| tree canopy | `#228B22` | Plant growth form: tree (canopy shape) |
-| shrub | `#3A7A3A` | Plant growth form: shrub |
-| herb / vegetable | `#66BB66` | Plant growth form: herb |
-| groundcover | `#558B55` | Plant growth form: groundcover |
-| climber | `#4A7A4A` | Plant growth form: climber |
-| structure — wood | `#DEB887` | Structure `material`: wood |
-| structure — metal | `#B0C4DE` | Structure `material`: metal |
-| structure — masonry | `#D2B48C` | Structure `material`: masonry |
-| structure — stone | `#C9A96E` | Structure `material`: stone |
-| structure — other | `#BBAA99` | Structure `material`: other |
-| water feature | `#4169E1` | Structure category: feature + material: other (water) |
-| fire feature | `#FF6633` | Structure category: feature + id contains "fire" |
+| bare soil (default ground) | `#FFA500` | Unpainted ground inside yard boundary |
+| lawn / grass | `#00FFFF` | Terrain type: grass |
+| soil / mulch | `#FFD700` | Terrain type: soil, mulch, bark |
+| gravel / stone | `#7B68EE` | Terrain type: gravel, concrete |
+| wood decking | `#00CED1` | Terrain type: wood decking |
+| water (terrain) | `#E0FFFF` | Terrain type: water |
+| path — stone / gravel | `#ADFF2F` | Path `material`: stone, gravel |
+| path — brick | `#7FFF00` | Path `material`: brick |
+| path — wood | `#32CD32` | Path `material`: wood |
+| path — concrete | `#98FB98` | Path `material`: concrete |
+| path — other | `#00FA9A` | Path `material`: other |
+| tree trunk | `#8B008B` | Plant growth form: tree (trunk shape) |
+| tree canopy | `#FF00FF` | Plant growth form: tree (canopy shape) |
+| shrub | `#FF1493` | Plant growth form: shrub |
+| herb / vegetable | `#FF69B4` | Plant growth form: herb |
+| groundcover | `#DA70D6` | Plant growth form: groundcover |
+| climber | `#FF00FF` | Plant growth form: climber |
+| structure — wood | `#FF4500` | Structure `material`: wood |
+| structure — metal | `#FF6347` | Structure `material`: metal |
+| structure — masonry | `#FF7F50` | Structure `material`: masonry |
+| structure — stone | `#DC143C` | Structure `material`: stone |
+| structure — other | `#CD5C5C` | Structure `material`: other |
+| water feature | `#1E90FF` | Structure category: feature + material: other (water) |
+| fire feature | `#FFD700` | Structure category: feature + id contains "fire" |
 
 ### Terrain Color Lookup
 
@@ -169,21 +171,21 @@ Two-step resolution. First, match the terrain type's `id` against the built-in I
 
 | Built-in ID(s) | Color row |
 |---|---|
-| `"grass"` | lawn / grass `#00AA00` |
-| `"soil"`, `"mulch"`, `"bark"` | soil / mulch `#6B3A2A` |
-| `"gravel"`, `"concrete"` | gravel / stone `#AAAAAA` |
-| `"wood-decking"`, `"decking-surface"` | wood decking `#C8A96E` |
-| `"water"` | water `#4169E1` |
+| `"grass"` | lawn / grass `#00FFFF` |
+| `"soil"`, `"mulch"`, `"bark"` | soil / mulch `#FFD700` |
+| `"gravel"`, `"concrete"` | gravel / stone `#7B68EE` |
+| `"wood-decking"`, `"decking-surface"` | wood decking `#00CED1` |
+| `"water"` | water `#E0FFFF` |
 
 If the terrain type ID does not match any built-in, fall back to `terrainType.category`:
 
 | Category | Color |
 |---|---|
-| `"natural"` | `#00AA00` |
-| `"hardscape"` | `#AAAAAA` |
-| `"water"` | `#4169E1` |
-| `"mulch"` | `#6B3A2A` |
-| `"other"` | `#8B4513` |
+| `"natural"` | `#00FFFF` |
+| `"hardscape"` | `#7B68EE` |
+| `"water"` | `#E0FFFF` |
+| `"mulch"` | `#FFD700` |
+| `"other"` | `#FFA500` |
 
 See [data-schema.md "### Terrain Type"] for the full list of built-in IDs and category values.
 

@@ -21,65 +21,152 @@ func defaultOpts() model.EffectiveOptions {
 	}
 }
 
-func TestBuildSubjectFormatting(t *testing.T) {
-	opts := defaultOpts()
-	result := Build(nil, opts, false)
-	if !strings.HasPrefix(result, "A cottage garden, late summer, golden hour.") {
-		t.Fatalf("unexpected subject: %q", result)
+// --- PromptParts structure tests ---
+
+func TestBuild_ReturnsSegmapInstruction(t *testing.T) {
+	parts := Build(nil, defaultOpts(), false)
+	if parts.SegmapInstruction == "" {
+		t.Fatal("SegmapInstruction should never be empty")
+	}
+	if !strings.Contains(parts.SegmapInstruction, "layout map") {
+		t.Error("SegmapInstruction should mention layout map")
 	}
 }
 
-func TestBuildWithElements(t *testing.T) {
+func TestBuild_SegmapInstructionContainsColorLegend(t *testing.T) {
+	parts := Build(nil, defaultOpts(), false)
+	if !strings.Contains(parts.SegmapInstruction, "pink/magenta shapes are plants") {
+		t.Error("SegmapInstruction should contain color legend for plants")
+	}
+	if !strings.Contains(parts.SegmapInstruction, "red/orange shapes are structures") {
+		t.Error("SegmapInstruction should contain color legend for structures")
+	}
+}
+
+func TestBuild_SegmapInstructionContainsProhibitions(t *testing.T) {
+	parts := Build(nil, defaultOpts(), false)
+	if !strings.Contains(parts.SegmapInstruction, "NO pink circles") {
+		t.Error("SegmapInstruction should contain explicit NO prohibitions")
+	}
+	if !strings.Contains(parts.SegmapInstruction, "NO geometric shapes") {
+		t.Error("SegmapInstruction should prohibit geometric shapes")
+	}
+}
+
+func TestBuild_WithYardPhoto_HasYardPhotoInstruction(t *testing.T) {
+	parts := Build(nil, defaultOpts(), true)
+	if parts.YardPhotoInstruction == "" {
+		t.Fatal("YardPhotoInstruction should be set when hasYardPhoto is true")
+	}
+	if !strings.Contains(parts.YardPhotoInstruction, "real photograph") {
+		t.Error("YardPhotoInstruction should mention real photograph")
+	}
+	if !strings.Contains(parts.YardPhotoInstruction, "perspective") {
+		t.Error("YardPhotoInstruction should mention perspective matching")
+	}
+}
+
+func TestBuild_WithoutYardPhoto_EmptyYardPhotoInstruction(t *testing.T) {
+	parts := Build(nil, defaultOpts(), false)
+	if parts.YardPhotoInstruction != "" {
+		t.Error("YardPhotoInstruction should be empty when hasYardPhoto is false")
+	}
+}
+
+// --- Scene prompt tests ---
+
+func TestBuild_ScenePromptContainsSubject(t *testing.T) {
+	parts := Build(nil, defaultOpts(), false)
+	if !strings.Contains(parts.ScenePrompt, "cottage garden, late summer, golden hour") {
+		t.Fatalf("ScenePrompt missing subject: %q", parts.ScenePrompt)
+	}
+}
+
+func TestBuild_ScenePromptContainsStyle(t *testing.T) {
+	parts := Build(nil, defaultOpts(), false)
+	if !strings.Contains(parts.ScenePrompt, "landscape photography") {
+		t.Error("ScenePrompt should contain photography style")
+	}
+	if !strings.Contains(parts.ScenePrompt, "24mm") {
+		t.Error("eye-level ScenePrompt should contain lens hint")
+	}
+}
+
+func TestBuild_ScenePromptContainsProhibitions(t *testing.T) {
+	parts := Build(nil, defaultOpts(), false)
+	if !strings.Contains(parts.ScenePrompt, "NO floor plan") {
+		t.Error("ScenePrompt should contain floor plan prohibition")
+	}
+	if !strings.Contains(parts.ScenePrompt, "NO top-down diagram") {
+		t.Error("ScenePrompt should contain diagram prohibition")
+	}
+	if !strings.Contains(parts.ScenePrompt, "NO colored circles") {
+		t.Error("ScenePrompt should contain colored circles prohibition")
+	}
+}
+
+func TestBuild_ScenePromptContainsOnlyMapElements(t *testing.T) {
+	parts := Build(nil, defaultOpts(), false)
+	if !strings.Contains(parts.ScenePrompt, "Only include elements shown in the layout map") {
+		t.Error("ScenePrompt should constrain to layout map elements only")
+	}
+	if !strings.Contains(parts.ScenePrompt, "NO extra structures") {
+		t.Error("ScenePrompt should prohibit extra structures")
+	}
+}
+
+// --- Element list tests ---
+
+func TestBuild_WithElements_LinkedToMap(t *testing.T) {
 	elements := []filter.FilteredElement{
 		{Element: model.Element{Type: "plant"}, PlantType: &model.PlantType{Name: "Rose Bush"}},
 		{Element: model.Element{Type: "structure"}, StructureType: &model.StructureType{Name: "Wooden Pergola"}},
 		{Element: model.Element{Type: "terrain"}, TerrainType: &model.TerrainType{Name: "Grass"}},
 	}
-	result := Build(elements, defaultOpts(), false)
-	if !strings.Contains(result, "Rose Bush, Wooden Pergola, Grass") {
-		t.Fatalf("expected element names in prompt: %q", result)
+	parts := Build(elements, defaultOpts(), false)
+	if !strings.Contains(parts.ScenePrompt, "Rose Bush, Wooden Pergola, Grass") {
+		t.Fatalf("expected element names in prompt: %q", parts.ScenePrompt)
+	}
+	if !strings.Contains(parts.ScenePrompt, "positions shown by their corresponding colored shapes") {
+		t.Error("elements should be linked to map positions")
 	}
 }
 
-func TestBuildWithoutElements(t *testing.T) {
-	result := Build(nil, defaultOpts(), false)
-	// Should be subject + style with no element section
-	if strings.Contains(result, ",,") {
-		t.Fatal("prompt has double commas indicating empty element list")
-	}
-	if !strings.Contains(result, "photorealistic") {
-		t.Fatal("missing style suffix")
+func TestBuild_WithoutElements_NoElementSection(t *testing.T) {
+	parts := Build(nil, defaultOpts(), false)
+	if strings.Contains(parts.ScenePrompt, "Place these elements") {
+		t.Error("should not contain element section when no elements")
 	}
 }
 
-func TestBuildPathsExcludedFromElements(t *testing.T) {
+func TestBuild_PathsExcludedFromElements(t *testing.T) {
 	elements := []filter.FilteredElement{
 		{Element: model.Element{Type: "path"}, PathType: &model.PathType{Name: "Stone Path"}},
 		{Element: model.Element{Type: "plant"}, PlantType: &model.PlantType{Name: "Rose"}},
 	}
-	result := Build(elements, defaultOpts(), false)
-	if strings.Contains(result, "Stone Path") {
-		t.Fatal("paths should not appear in prompt elements")
+	parts := Build(elements, defaultOpts(), false)
+	if strings.Contains(parts.ScenePrompt, "Stone Path") {
+		t.Error("paths should not appear in prompt elements")
 	}
-	if !strings.Contains(result, "Rose") {
-		t.Fatal("plants should appear in prompt elements")
+	if !strings.Contains(parts.ScenePrompt, "Rose") {
+		t.Error("plants should appear in prompt elements")
 	}
 }
 
-func TestBuildUniqueNames(t *testing.T) {
+func TestBuild_UniqueNames(t *testing.T) {
 	elements := []filter.FilteredElement{
 		{Element: model.Element{Type: "plant"}, PlantType: &model.PlantType{Name: "Rose"}},
 		{Element: model.Element{Type: "plant"}, PlantType: &model.PlantType{Name: "Rose"}},
 		{Element: model.Element{Type: "plant"}, PlantType: &model.PlantType{Name: "Rose"}},
 	}
-	result := Build(elements, defaultOpts(), false)
-	count := strings.Count(result, "Rose")
+	parts := Build(elements, defaultOpts(), false)
+	count := strings.Count(parts.ScenePrompt, "Rose")
 	if count != 1 {
-		t.Fatalf("expected Rose to appear once, got %d times in: %q", count, result)
+		t.Fatalf("expected Rose to appear once, got %d times in: %q", count, parts.ScenePrompt)
 	}
 }
 
-func TestBuildPlantCapAt7(t *testing.T) {
+func TestBuild_PlantCapAt7(t *testing.T) {
 	var elements []filter.FilteredElement
 	for i := 0; i < 10; i++ {
 		name := "Plant" + string(rune('A'+i))
@@ -88,14 +175,13 @@ func TestBuildPlantCapAt7(t *testing.T) {
 			PlantType: &model.PlantType{Name: name},
 		})
 	}
-	result := Build(elements, defaultOpts(), false)
-	// Plants A-G should be present (7), H-J should not
-	if strings.Contains(result, "PlantH") {
-		t.Fatal("plant cap exceeded — PlantH should not be in prompt")
+	parts := Build(elements, defaultOpts(), false)
+	if strings.Contains(parts.ScenePrompt, "PlantH") {
+		t.Error("plant cap exceeded — PlantH should not be in prompt")
 	}
 }
 
-func TestBuildStructureCapAt3(t *testing.T) {
+func TestBuild_StructureCapAt3(t *testing.T) {
 	var elements []filter.FilteredElement
 	for i := 0; i < 5; i++ {
 		name := "Struct" + string(rune('A'+i))
@@ -104,13 +190,13 @@ func TestBuildStructureCapAt3(t *testing.T) {
 			StructureType: &model.StructureType{Name: name},
 		})
 	}
-	result := Build(elements, defaultOpts(), false)
-	if strings.Contains(result, "StructD") {
-		t.Fatal("structure cap exceeded — StructD should not be in prompt")
+	parts := Build(elements, defaultOpts(), false)
+	if strings.Contains(parts.ScenePrompt, "StructD") {
+		t.Error("structure cap exceeded — StructD should not be in prompt")
 	}
 }
 
-func TestBuildTerrainCapAt2(t *testing.T) {
+func TestBuild_TerrainCapAt2(t *testing.T) {
 	var elements []filter.FilteredElement
 	for i := 0; i < 4; i++ {
 		name := "Terrain" + string(rune('A'+i))
@@ -119,51 +205,147 @@ func TestBuildTerrainCapAt2(t *testing.T) {
 			TerrainType: &model.TerrainType{Name: name},
 		})
 	}
-	result := Build(elements, defaultOpts(), false)
-	if strings.Contains(result, "TerrainC") {
-		t.Fatal("terrain cap exceeded — TerrainC should not be in prompt")
+	parts := Build(elements, defaultOpts(), false)
+	if strings.Contains(parts.ScenePrompt, "TerrainC") {
+		t.Error("terrain cap exceeded — TerrainC should not be in prompt")
 	}
 }
 
-func TestBuildWithYardPhoto(t *testing.T) {
-	result := Build(nil, defaultOpts(), true)
-	if !strings.HasPrefix(result, "The first image is a top-down segmentation plan") {
-		t.Fatalf("expected yard photo preamble at start: %q", result)
-	}
-	// Should still have subject and style
-	if !strings.Contains(result, "A cottage garden") {
-		t.Fatal("missing subject after preamble")
-	}
-}
+// --- Viewpoint tests ---
 
-func TestBuildWithoutYardPhoto(t *testing.T) {
-	result := Build(nil, defaultOpts(), false)
-	if strings.Contains(result, "segmentation plan") {
-		t.Fatal("preamble should not appear when yard photo is absent")
-	}
-}
-
-func TestStyleSuffixes(t *testing.T) {
-	tests := []struct {
-		viewpoint string
-		contains  string
-	}{
-		{"eye-level", "eye-level view"},
-		{"elevated", "elevated perspective view"},
-		{"isometric", "isometric view"},
-	}
-	for _, tt := range tests {
+func TestBuild_AllViewpointsProduceDifferentPrompts(t *testing.T) {
+	viewpoints := []string{"eye-level", "elevated", "isometric"}
+	prompts := map[string]string{}
+	for _, vp := range viewpoints {
 		opts := defaultOpts()
-		opts.Viewpoint = tt.viewpoint
-		result := Build(nil, opts, false)
-		if !strings.Contains(result, tt.contains) {
-			t.Errorf("viewpoint %q: expected %q in prompt: %q", tt.viewpoint, tt.contains, result)
-		}
-		if !strings.Contains(result, "not a floor plan") {
-			t.Errorf("viewpoint %q: missing 'not a floor plan' directive", tt.viewpoint)
+		opts.Viewpoint = vp
+		parts := Build(nil, opts, false)
+		prompts[vp] = parts.ScenePrompt
+	}
+	if prompts["eye-level"] == prompts["elevated"] {
+		t.Error("eye-level and elevated should produce different prompts")
+	}
+	if prompts["eye-level"] == prompts["isometric"] {
+		t.Error("eye-level and isometric should produce different prompts")
+	}
+	if prompts["elevated"] == prompts["isometric"] {
+		t.Error("elevated and isometric should produce different prompts")
+	}
+}
+
+func TestBuild_EyeLevelContainsLensHint(t *testing.T) {
+	opts := defaultOpts()
+	opts.Viewpoint = "eye-level"
+	parts := Build(nil, opts, false)
+	if !strings.Contains(parts.ScenePrompt, "24mm") {
+		t.Error("eye-level should contain 24mm lens hint")
+	}
+}
+
+func TestBuild_ElevatedContainsLensHint(t *testing.T) {
+	opts := defaultOpts()
+	opts.Viewpoint = "elevated"
+	parts := Build(nil, opts, false)
+	if !strings.Contains(parts.ScenePrompt, "35mm") {
+		t.Error("elevated should contain 35mm lens hint")
+	}
+}
+
+func TestBuild_IsometricContainsTiltShift(t *testing.T) {
+	opts := defaultOpts()
+	opts.Viewpoint = "isometric"
+	parts := Build(nil, opts, false)
+	if !strings.Contains(parts.ScenePrompt, "tilt-shift") {
+		t.Error("isometric should contain tilt-shift lens hint")
+	}
+}
+
+func TestBuild_UnknownViewpointFallsBackToEyeLevel(t *testing.T) {
+	opts := defaultOpts()
+	opts.Viewpoint = "birds-eye"
+	parts := Build(nil, opts, false)
+	if !strings.Contains(parts.ScenePrompt, "24mm") {
+		t.Error("unknown viewpoint should fall back to eye-level (24mm)")
+	}
+}
+
+// --- Yard photo + elements combo ---
+
+func TestBuild_WithYardPhotoAndElements(t *testing.T) {
+	elements := []filter.FilteredElement{
+		{Element: model.Element{Type: "plant"}, PlantType: &model.PlantType{Name: "Lavender"}},
+		{Element: model.Element{Type: "structure"}, StructureType: &model.StructureType{Name: "Raised Bed"}},
+	}
+	parts := Build(elements, defaultOpts(), true)
+
+	if parts.SegmapInstruction == "" {
+		t.Error("SegmapInstruction should be set")
+	}
+	if parts.YardPhotoInstruction == "" {
+		t.Error("YardPhotoInstruction should be set when yard photo present")
+	}
+	if !strings.Contains(parts.ScenePrompt, "Lavender") {
+		t.Error("ScenePrompt should contain element names")
+	}
+	if !strings.Contains(parts.ScenePrompt, "Raised Bed") {
+		t.Error("ScenePrompt should contain structure names")
+	}
+}
+
+// --- Botanical name enrichment tests ---
+
+func TestBuild_BotanicalNameEnrichment_KnownPlant(t *testing.T) {
+	elements := []filter.FilteredElement{
+		{Element: model.Element{Type: "plant"}, PlantType: &model.PlantType{ID: "lavender", Name: "Lavender"}},
+	}
+	parts := Build(elements, defaultOpts(), false)
+	if !strings.Contains(parts.ScenePrompt, "Lavandula angustifolia (Lavender)") {
+		t.Fatalf("expected botanical name enrichment; got: %q", parts.ScenePrompt)
+	}
+}
+
+func TestBuild_BotanicalNameEnrichment_UnknownPlant(t *testing.T) {
+	elements := []filter.FilteredElement{
+		{Element: model.Element{Type: "plant"}, PlantType: &model.PlantType{ID: "custom-plant", Name: "My Custom Plant"}},
+	}
+	parts := Build(elements, defaultOpts(), false)
+	if !strings.Contains(parts.ScenePrompt, "My Custom Plant") {
+		t.Fatal("unknown plant should use common name")
+	}
+	if strings.Contains(parts.ScenePrompt, "(My Custom Plant)") {
+		t.Error("unknown plant should not have parenthesized format")
+	}
+}
+
+func TestBuild_BotanicalNameEnrichment_MultiplePlants(t *testing.T) {
+	elements := []filter.FilteredElement{
+		{Element: model.Element{Type: "plant"}, PlantType: &model.PlantType{ID: "oak", Name: "Oak Tree"}},
+		{Element: model.Element{Type: "plant"}, PlantType: &model.PlantType{ID: "basil", Name: "Basil"}},
+		{Element: model.Element{Type: "plant"}, PlantType: &model.PlantType{ID: "unknown-shrub", Name: "Mystery Shrub"}},
+	}
+	parts := Build(elements, defaultOpts(), false)
+	if !strings.Contains(parts.ScenePrompt, "Quercus robur (Oak Tree)") {
+		t.Errorf("missing oak botanical name in: %q", parts.ScenePrompt)
+	}
+	if !strings.Contains(parts.ScenePrompt, "Ocimum basilicum (Basil)") {
+		t.Errorf("missing basil botanical name in: %q", parts.ScenePrompt)
+	}
+	if !strings.Contains(parts.ScenePrompt, "Mystery Shrub") {
+		t.Errorf("missing unknown plant common name in: %q", parts.ScenePrompt)
+	}
+}
+
+func TestEnrichPlantName_AllKnownIDs(t *testing.T) {
+	for id, botanical := range botanicalNames {
+		got := enrichPlantName(id, "Common")
+		expected := botanical + " (Common)"
+		if got != expected {
+			t.Errorf("enrichPlantName(%q, %q) = %q; want %q", id, "Common", got, expected)
 		}
 	}
 }
+
+// --- Season derivation tests ---
 
 func TestDeriveSeasonNorthern(t *testing.T) {
 	lat := 40.0
@@ -235,5 +417,16 @@ func TestDeriveSeasonNilLat(t *testing.T) {
 	got := DeriveSeason(loc, time.Now())
 	if got != "summer" {
 		t.Errorf("nil lat: got %q, want %q", got, "summer")
+	}
+}
+
+func TestDeriveSeasonEquator(t *testing.T) {
+	lat := 0.0
+	loc := &model.Location{Lat: &lat}
+	// Latitude 0 uses northern hemisphere logic
+	d, _ := time.Parse("2006-01-02", "2026-06-15")
+	got := DeriveSeason(loc, d)
+	if got != "summer" {
+		t.Errorf("equator June: got %q, want %q", got, "summer")
 	}
 }

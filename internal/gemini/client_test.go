@@ -10,8 +10,8 @@ func TestAspectRatioMapping(t *testing.T) {
 		expected string
 	}{
 		{"square", "1:1"},
-		{"landscape", "16:9"},
-		{"portrait", "9:16"},
+		{"landscape", "4:3"},
+		{"portrait", "3:4"},
 	}
 	for _, tt := range tests {
 		got := AspectRatioMap[tt.input]

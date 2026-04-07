@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -199,38 +198,38 @@ func edgeCaseProject() map[string]any {
 
 // --- mock Gemini function ----------------------------------------------------
 
-func mockGeminiSuccess(_ context.Context, _ string, _ []byte, _ []byte, _ string, _ model.EffectiveOptions, _ string, _ string) ([]byte, *gemini.Error) {
-	return fakePNGBytes, nil
+func mockGeminiSuccess(_ context.Context, _ model.PromptParts, _ []byte, _ []byte, _ string, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+	return fakePNGBytes, "image/png", nil
 }
 
-func mockGeminiTimeout(_ context.Context, _ string, _ []byte, _ []byte, _ string, _ model.EffectiveOptions, _ string, _ string) ([]byte, *gemini.Error) {
-	return nil, &gemini.Error{StatusCode: http.StatusGatewayTimeout, Message: "image generation timed out"}
+func mockGeminiTimeout(_ context.Context, _ model.PromptParts, _ []byte, _ []byte, _ string, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+	return nil, "", &gemini.Error{StatusCode: http.StatusGatewayTimeout, Message: "image generation timed out"}
 }
 
-func mockGeminiAPIError(_ context.Context, _ string, _ []byte, _ []byte, _ string, _ model.EffectiveOptions, _ string, _ string) ([]byte, *gemini.Error) {
-	return nil, &gemini.Error{StatusCode: http.StatusBadGateway, Message: "Nano Banana error: quota exceeded"}
+func mockGeminiAPIError(_ context.Context, _ model.PromptParts, _ []byte, _ []byte, _ string, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+	return nil, "", &gemini.Error{StatusCode: http.StatusBadGateway, Message: "Nano Banana error: quota exceeded"}
 }
 
-func mockGeminiNoImage(_ context.Context, _ string, _ []byte, _ []byte, _ string, _ model.EffectiveOptions, _ string, _ string) ([]byte, *gemini.Error) {
-	return nil, &gemini.Error{StatusCode: http.StatusBadGateway, Message: "no image in Nano Banana response"}
+func mockGeminiNoImage(_ context.Context, _ model.PromptParts, _ []byte, _ []byte, _ string, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+	return nil, "", &gemini.Error{StatusCode: http.StatusBadGateway, Message: "no image in Nano Banana response"}
 }
 
 // recordingMock captures the arguments passed to the Gemini function for assertion.
 type recordingMock struct {
-	prompt         string
+	promptParts    model.PromptParts
 	segMapBytes    []byte
 	yardPhotoBytes []byte
 	yardPhotoMIME  string
 	opts           model.EffectiveOptions
 }
 
-func (rm *recordingMock) generate(_ context.Context, prompt string, segMapBytes []byte, yardPhotoBytes []byte, yardPhotoMIMEType string, opts model.EffectiveOptions, _ string, _ string) ([]byte, *gemini.Error) {
-	rm.prompt = prompt
+func (rm *recordingMock) generate(_ context.Context, pp model.PromptParts, segMapBytes []byte, yardPhotoBytes []byte, yardPhotoMIMEType string, opts model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+	rm.promptParts = pp
 	rm.segMapBytes = segMapBytes
 	rm.yardPhotoBytes = yardPhotoBytes
 	rm.yardPhotoMIME = yardPhotoMIMEType
 	rm.opts = opts
-	return fakePNGBytes, nil
+	return fakePNGBytes, "image/png", nil
 }
 
 // --- helpers -----------------------------------------------------------------
@@ -686,10 +685,6 @@ func TestIntegration_GeminiReceives_YardPhotoBytes(t *testing.T) {
 	if rm.yardPhotoMIME != "image/jpeg" {
 		t.Errorf("yard photo MIME = %q; want %q", rm.yardPhotoMIME, "image/jpeg")
 	}
-	// BDD: "the prompt includes the dual-image context preamble"
-	if !strings.Contains(rm.prompt, "The first image is a top-down segmentation plan") {
-		t.Error("prompt should contain yard photo preamble when yard_photo is present")
-	}
 }
 
 func TestIntegration_GeminiReceives_NoYardPhoto(t *testing.T) {
@@ -708,10 +703,6 @@ func TestIntegration_GeminiReceives_NoYardPhoto(t *testing.T) {
 	}
 	if rm.yardPhotoMIME != "" {
 		t.Errorf("expected empty yard photo MIME; got %q", rm.yardPhotoMIME)
-	}
-	// BDD: prompt should NOT contain yard photo preamble when absent
-	if strings.Contains(rm.prompt, "The first image is a top-down segmentation plan") {
-		t.Error("prompt should not contain yard photo preamble when yard_photo is absent")
 	}
 }
 
@@ -755,6 +746,50 @@ func TestIntegration_GeminiReceives_SeasonDefaultsSummer_NullLocation(t *testing
 	}
 	if rm.opts.Season != "summer" {
 		t.Errorf("Season = %q; want %q (null location defaults to summer)", rm.opts.Season, "summer")
+	}
+}
+
+func TestIntegration_GeminiReceives_ImageSize2K(t *testing.T) {
+	rm := &recordingMock{}
+	old := geminiGenerateFunc
+	geminiGenerateFunc = rm.generate
+	defer func() { geminiGenerateFunc = old }()
+
+	body := marshalBody(minimalValidProject(), map[string]any{"image_size": "2K"})
+	rec := doGenerate(body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d; want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	if rm.opts.ImageSize != "2K" {
+		t.Errorf("ImageSize = %q; want %q", rm.opts.ImageSize, "2K")
+	}
+}
+
+func TestIntegration_GeminiReceives_DefaultImageSize1K(t *testing.T) {
+	rm := &recordingMock{}
+	old := geminiGenerateFunc
+	geminiGenerateFunc = rm.generate
+	defer func() { geminiGenerateFunc = old }()
+
+	body := marshalBody(minimalValidProject(), nil)
+	rec := doGenerate(body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d; want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	if rm.opts.ImageSize != "1K" {
+		t.Errorf("ImageSize = %q; want %q", rm.opts.ImageSize, "1K")
+	}
+}
+
+func TestIntegration_InvalidImageSize_400(t *testing.T) {
+	rec := doGenerate(marshalBody(minimalValidProject(), map[string]any{"image_size": "8K"}))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d; want 400", rec.Code)
+	}
+	var resp map[string]string
+	json.Unmarshal(rec.Body.Bytes(), &resp)
+	if resp["error"] != "invalid image_size" {
+		t.Errorf("error = %q; want %q", resp["error"], "invalid image_size")
 	}
 }
 
