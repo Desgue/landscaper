@@ -106,12 +106,6 @@ function paintCell(
   } satisfies TerrainElement)
 }
 
-function eraseCell(cellX: number, cellY: number, draft: Project): void {
-  draft.elements = draft.elements.filter(
-    (el) => !(el.type === 'terrain' && el.x === cellX && el.y === cellY),
-  )
-}
-
 // ---------------------------------------------------------------------------
 // Handler
 // ---------------------------------------------------------------------------

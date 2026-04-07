@@ -8,13 +8,12 @@
  * DragState modes: idle, box_selecting, moving, resizing, rotating, path_point_dragging
  */
 
-import type { CanvasElement, PathElement, Project, Vec2 } from '../types/schema'
+import type { PathElement, Project, Vec2 } from '../types/schema'
 import { useToolStore } from '../store/useToolStore'
 import { useSelectionStore } from '../store/useSelectionStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useViewportStore } from '../store/useViewportStore'
-import { useInspectorStore } from '../store/useInspectorStore'
 import {
   getElementAABB,
   getElementsAtPoint,
