@@ -1,0 +1,61 @@
+{
+  "version": "1.0",
+  "exportedAt": "2026-04-07T00:00:00.000Z",
+  "project": {
+    "id": "landing-japanese",
+    "name": "Japanese Garden",
+    "createdAt": "2026-04-07T00:00:00.000Z",
+    "updatedAt": "2026-04-07T00:00:00.000Z",
+    "location": { "lat": 35.0, "lng": 135.7 },
+    "yardBoundary": {
+      "vertices": [
+        { "x": 0, "y": 0 },
+        { "x": 1000, "y": 0 },
+        { "x": 1000, "y": 800 },
+        { "x": 0, "y": 800 }
+      ]
+    },
+    "layers": [
+      { "id": "l1", "visible": true, "locked": false, "name": "Default", "order": 0 }
+    ],
+    "elements": [
+      { "id": "t1", "type": "terrain", "layerId": "l1", "x": 0, "y": 0, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t2", "type": "terrain", "layerId": "l1", "x": 100, "y": 0, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t3", "type": "terrain", "layerId": "l1", "x": 200, "y": 0, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t4", "type": "terrain", "layerId": "l1", "x": 300, "y": 0, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t5", "type": "terrain", "layerId": "l1", "x": 600, "y": 300, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t6", "type": "terrain", "layerId": "l1", "x": 700, "y": 300, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t7", "type": "terrain", "layerId": "l1", "x": 600, "y": 400, "width": 100, "height": 100, "terrainTypeId": "grass" },
+
+      { "id": "maple1", "type": "plant", "layerId": "l1", "x": 200, "y": 200, "width": 350, "height": 350, "plantTypeId": "japanese-maple", "status": "planted", "quantity": 1 },
+      { "id": "box1", "type": "plant", "layerId": "l1", "x": 650, "y": 100, "width": 80, "height": 80, "plantTypeId": "boxwood", "status": "planted", "quantity": 1 },
+      { "id": "box2", "type": "plant", "layerId": "l1", "x": 750, "y": 150, "width": 80, "height": 80, "plantTypeId": "boxwood", "status": "planted", "quantity": 1 },
+
+      { "id": "bench1", "type": "structure", "layerId": "l1", "x": 600, "y": 600, "width": 150, "height": 50, "structureTypeId": "bench", "shape": "straight", "rotation": 0 },
+
+      { "id": "path1", "type": "path", "layerId": "l1", "x": 0, "y": 0, "width": 0, "height": 0, "pathTypeId": "stone-path", "strokeWidthCm": 60, "points": [
+        { "x": 0, "y": 400 },
+        { "x": 200, "y": 380 },
+        { "x": 450, "y": 500 },
+        { "x": 600, "y": 620 },
+        { "x": 1000, "y": 600 }
+      ]}
+    ]
+  },
+  "registries": {
+    "terrain": [
+      { "id": "gravel", "name": "Gravel", "category": "hardscape" },
+      { "id": "grass", "name": "Moss Garden", "category": "natural" }
+    ],
+    "plants": [
+      { "id": "japanese-maple", "name": "Japanese Maple", "growthForm": "tree", "spacingCm": 350, "canopyWidthCm": 350, "trunkWidthCm": 25 },
+      { "id": "boxwood", "name": "Boxwood", "growthForm": "shrub", "spacingCm": 80, "canopyWidthCm": 80 }
+    ],
+    "structures": [
+      { "id": "bench", "name": "Stone Bench", "category": "furniture", "material": "stone" }
+    ],
+    "paths": [
+      { "id": "stone-path", "name": "Stepping Stones", "material": "stone", "defaultWidthCm": 60 }
+    ]
+  }
+}

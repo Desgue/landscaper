@@ -1,0 +1,68 @@
+{
+  "version": "1.0",
+  "exportedAt": "2026-04-07T00:00:00.000Z",
+  "project": {
+    "id": "landing-cottage",
+    "name": "Cottage Garden",
+    "createdAt": "2026-04-07T00:00:00.000Z",
+    "updatedAt": "2026-04-07T00:00:00.000Z",
+    "location": { "lat": 51.5, "lng": -0.12 },
+    "yardBoundary": {
+      "vertices": [
+        { "x": 0, "y": 0 },
+        { "x": 1200, "y": 0 },
+        { "x": 1200, "y": 900 },
+        { "x": 0, "y": 900 }
+      ]
+    },
+    "layers": [
+      { "id": "l1", "visible": true, "locked": false, "name": "Default", "order": 0 }
+    ],
+    "elements": [
+      { "id": "t1", "type": "terrain", "layerId": "l1", "x": 0, "y": 0, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t2", "type": "terrain", "layerId": "l1", "x": 100, "y": 0, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t3", "type": "terrain", "layerId": "l1", "x": 200, "y": 0, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t4", "type": "terrain", "layerId": "l1", "x": 300, "y": 0, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t5", "type": "terrain", "layerId": "l1", "x": 0, "y": 100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t6", "type": "terrain", "layerId": "l1", "x": 800, "y": 400, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t7", "type": "terrain", "layerId": "l1", "x": 900, "y": 400, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t8", "type": "terrain", "layerId": "l1", "x": 800, "y": 500, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+
+      { "id": "rose1", "type": "plant", "layerId": "l1", "x": 100, "y": 300, "width": 90, "height": 90, "plantTypeId": "rose-bush", "status": "planted", "quantity": 1 },
+      { "id": "rose2", "type": "plant", "layerId": "l1", "x": 250, "y": 350, "width": 90, "height": 90, "plantTypeId": "rose-bush", "status": "planted", "quantity": 1 },
+      { "id": "lav1", "type": "plant", "layerId": "l1", "x": 400, "y": 200, "width": 60, "height": 60, "plantTypeId": "lavender", "status": "planted", "quantity": 1 },
+      { "id": "lav2", "type": "plant", "layerId": "l1", "x": 500, "y": 200, "width": 60, "height": 60, "plantTypeId": "lavender", "status": "planted", "quantity": 1 },
+      { "id": "lav3", "type": "plant", "layerId": "l1", "x": 600, "y": 200, "width": 60, "height": 60, "plantTypeId": "lavender", "status": "planted", "quantity": 1 },
+      { "id": "hydra1", "type": "plant", "layerId": "l1", "x": 900, "y": 100, "width": 120, "height": 120, "plantTypeId": "hydrangea", "status": "planted", "quantity": 1 },
+      { "id": "tree1", "type": "plant", "layerId": "l1", "x": 800, "y": 600, "width": 300, "height": 300, "plantTypeId": "fruit-tree", "status": "planted", "quantity": 1 },
+
+      { "id": "pergola1", "type": "structure", "layerId": "l1", "x": 500, "y": 500, "width": 250, "height": 200, "structureTypeId": "pergola", "shape": "straight", "rotation": 0 },
+
+      { "id": "path1", "type": "path", "layerId": "l1", "x": 0, "y": 0, "width": 0, "height": 0, "pathTypeId": "flagstone", "strokeWidthCm": 80, "points": [
+        { "x": 0, "y": 450 },
+        { "x": 300, "y": 450 },
+        { "x": 500, "y": 500 },
+        { "x": 750, "y": 500 },
+        { "x": 1200, "y": 450 }
+      ]}
+    ]
+  },
+  "registries": {
+    "terrain": [
+      { "id": "grass", "name": "Grass", "category": "natural" },
+      { "id": "mulch", "name": "Mulch", "category": "natural" }
+    ],
+    "plants": [
+      { "id": "rose-bush", "name": "Rose Bush", "growthForm": "shrub", "spacingCm": 90, "canopyWidthCm": 90 },
+      { "id": "lavender", "name": "Lavender", "growthForm": "shrub", "spacingCm": 60, "canopyWidthCm": 60 },
+      { "id": "hydrangea", "name": "Hydrangea", "growthForm": "shrub", "spacingCm": 120, "canopyWidthCm": 120 },
+      { "id": "fruit-tree", "name": "Fruit Tree", "growthForm": "tree", "spacingCm": 300, "canopyWidthCm": 300, "trunkWidthCm": 20 }
+    ],
+    "structures": [
+      { "id": "pergola", "name": "Wooden Pergola", "category": "overhead", "material": "wood" }
+    ],
+    "paths": [
+      { "id": "flagstone", "name": "Flagstone Path", "defaultWidthCm": 80 }
+    ]
+  }
+}

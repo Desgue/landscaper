@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "exportedAt": "2026-04-07T00:00:00.000Z",
+  "project": {
+    "id": "landing-mediterranean",
+    "name": "Mediterranean Garden",
+    "createdAt": "2026-04-07T00:00:00.000Z",
+    "updatedAt": "2026-04-07T00:00:00.000Z",
+    "location": { "lat": 37.9, "lng": 23.7 },
+    "yardBoundary": {
+      "vertices": [
+        { "x": 0, "y": 0 },
+        { "x": 1400, "y": 0 },
+        { "x": 1400, "y": 800 },
+        { "x": 0, "y": 800 }
+      ]
+    },
+    "layers": [
+      { "id": "l1", "visible": true, "locked": false, "name": "Default", "order": 0 }
+    ],
+    "elements": [
+      { "id": "t1", "type": "terrain", "layerId": "l1", "x": 0, "y": 0, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t2", "type": "terrain", "layerId": "l1", "x": 100, "y": 0, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t3", "type": "terrain", "layerId": "l1", "x": 200, "y": 0, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t4", "type": "terrain", "layerId": "l1", "x": 800, "y": 200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t5", "type": "terrain", "layerId": "l1", "x": 900, "y": 200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+
+      { "id": "lav1", "type": "plant", "layerId": "l1", "x": 100, "y": 300, "width": 60, "height": 60, "plantTypeId": "lavender", "status": "planted", "quantity": 1 },
+      { "id": "lav2", "type": "plant", "layerId": "l1", "x": 200, "y": 300, "width": 60, "height": 60, "plantTypeId": "lavender", "status": "planted", "quantity": 1 },
+      { "id": "lav3", "type": "plant", "layerId": "l1", "x": 300, "y": 300, "width": 60, "height": 60, "plantTypeId": "lavender", "status": "planted", "quantity": 1 },
+      { "id": "lav4", "type": "plant", "layerId": "l1", "x": 400, "y": 300, "width": 60, "height": 60, "plantTypeId": "lavender", "status": "planted", "quantity": 1 },
+      { "id": "olive1", "type": "plant", "layerId": "l1", "x": 900, "y": 400, "width": 300, "height": 300, "plantTypeId": "fruit-tree", "status": "planted", "quantity": 1 },
+      { "id": "rosemary1", "type": "plant", "layerId": "l1", "x": 600, "y": 500, "width": 45, "height": 45, "plantTypeId": "rosemary", "status": "planted", "quantity": 1 },
+      { "id": "rosemary2", "type": "plant", "layerId": "l1", "x": 670, "y": 500, "width": 45, "height": 45, "plantTypeId": "rosemary", "status": "planted", "quantity": 1 },
+
+      { "id": "wall1", "type": "structure", "layerId": "l1", "x": 0, "y": 0, "width": 1400, "height": 20, "structureTypeId": "wall", "shape": "straight", "rotation": 0 },
+
+      { "id": "path1", "type": "path", "layerId": "l1", "x": 0, "y": 0, "width": 0, "height": 0, "pathTypeId": "stone-path", "strokeWidthCm": 90, "points": [
+        { "x": 700, "y": 0 },
+        { "x": 700, "y": 400 },
+        { "x": 700, "y": 800 }
+      ]}
+    ]
+  },
+  "registries": {
+    "terrain": [
+      { "id": "gravel", "name": "Terracotta Gravel", "category": "hardscape" },
+      { "id": "grass", "name": "Grass", "category": "natural" }
+    ],
+    "plants": [
+      { "id": "lavender", "name": "Lavender", "growthForm": "shrub", "spacingCm": 60, "canopyWidthCm": 60 },
+      { "id": "fruit-tree", "name": "Olive Tree", "growthForm": "tree", "spacingCm": 300, "canopyWidthCm": 300, "trunkWidthCm": 25 },
+      { "id": "rosemary", "name": "Rosemary", "growthForm": "herb", "spacingCm": 30 }
+    ],
+    "structures": [
+      { "id": "wall", "name": "Stone Wall", "category": "boundary", "material": "stone" }
+    ],
+    "paths": [
+      { "id": "stone-path", "name": "Stone Path", "material": "stone", "defaultWidthCm": 90 }
+    ]
+  }
+}

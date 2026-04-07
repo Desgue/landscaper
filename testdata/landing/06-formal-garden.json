@@ -1,0 +1,72 @@
+{
+  "version": "1.0",
+  "exportedAt": "2026-04-07T00:00:00.000Z",
+  "project": {
+    "id": "landing-formal",
+    "name": "Formal Garden",
+    "createdAt": "2026-04-07T00:00:00.000Z",
+    "updatedAt": "2026-04-07T00:00:00.000Z",
+    "location": { "lat": 48.8, "lng": 2.35 },
+    "yardBoundary": {
+      "vertices": [
+        { "x": 0, "y": 0 },
+        { "x": 1200, "y": 0 },
+        { "x": 1200, "y": 800 },
+        { "x": 0, "y": 800 }
+      ]
+    },
+    "layers": [
+      { "id": "l1", "visible": true, "locked": false, "name": "Default", "order": 0 }
+    ],
+    "elements": [
+      { "id": "t1", "type": "terrain", "layerId": "l1", "x": 300, "y": 100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t2", "type": "terrain", "layerId": "l1", "x": 400, "y": 100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t3", "type": "terrain", "layerId": "l1", "x": 300, "y": 200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t4", "type": "terrain", "layerId": "l1", "x": 400, "y": 200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t5", "type": "terrain", "layerId": "l1", "x": 700, "y": 100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t6", "type": "terrain", "layerId": "l1", "x": 800, "y": 100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t7", "type": "terrain", "layerId": "l1", "x": 700, "y": 200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t8", "type": "terrain", "layerId": "l1", "x": 800, "y": 200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t9", "type": "terrain", "layerId": "l1", "x": 0, "y": 0, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+
+      { "id": "box1", "type": "plant", "layerId": "l1", "x": 280, "y": 80, "width": 80, "height": 80, "plantTypeId": "boxwood", "status": "planted", "quantity": 1 },
+      { "id": "box2", "type": "plant", "layerId": "l1", "x": 440, "y": 80, "width": 80, "height": 80, "plantTypeId": "boxwood", "status": "planted", "quantity": 1 },
+      { "id": "box3", "type": "plant", "layerId": "l1", "x": 680, "y": 80, "width": 80, "height": 80, "plantTypeId": "boxwood", "status": "planted", "quantity": 1 },
+      { "id": "box4", "type": "plant", "layerId": "l1", "x": 840, "y": 80, "width": 80, "height": 80, "plantTypeId": "boxwood", "status": "planted", "quantity": 1 },
+      { "id": "rose1", "type": "plant", "layerId": "l1", "x": 350, "y": 400, "width": 90, "height": 90, "plantTypeId": "rose-bush", "status": "planted", "quantity": 1 },
+      { "id": "rose2", "type": "plant", "layerId": "l1", "x": 750, "y": 400, "width": 90, "height": 90, "plantTypeId": "rose-bush", "status": "planted", "quantity": 1 },
+      { "id": "tree1", "type": "plant", "layerId": "l1", "x": 50, "y": 500, "width": 250, "height": 250, "plantTypeId": "ornamental-pear", "status": "planted", "quantity": 1 },
+      { "id": "tree2", "type": "plant", "layerId": "l1", "x": 950, "y": 500, "width": 250, "height": 250, "plantTypeId": "ornamental-pear", "status": "planted", "quantity": 1 },
+
+      { "id": "bench1", "type": "structure", "layerId": "l1", "x": 530, "y": 600, "width": 150, "height": 50, "structureTypeId": "bench", "shape": "straight", "rotation": 0 },
+
+      { "id": "path1", "type": "path", "layerId": "l1", "x": 0, "y": 0, "width": 0, "height": 0, "pathTypeId": "stone-path", "strokeWidthCm": 100, "points": [
+        { "x": 600, "y": 0 },
+        { "x": 600, "y": 400 },
+        { "x": 600, "y": 800 }
+      ]},
+      { "id": "path2", "type": "path", "layerId": "l1", "x": 0, "y": 0, "width": 0, "height": 0, "pathTypeId": "stone-path", "strokeWidthCm": 60, "points": [
+        { "x": 200, "y": 400 },
+        { "x": 600, "y": 400 },
+        { "x": 1000, "y": 400 }
+      ]}
+    ]
+  },
+  "registries": {
+    "terrain": [
+      { "id": "grass", "name": "Manicured Lawn", "category": "natural" },
+      { "id": "gravel", "name": "Fine Gravel", "category": "hardscape" }
+    ],
+    "plants": [
+      { "id": "boxwood", "name": "Boxwood", "growthForm": "shrub", "spacingCm": 80, "canopyWidthCm": 80 },
+      { "id": "rose-bush", "name": "Rose Bush", "growthForm": "shrub", "spacingCm": 90, "canopyWidthCm": 90 },
+      { "id": "ornamental-pear", "name": "Ornamental Pear", "growthForm": "tree", "spacingCm": 250, "canopyWidthCm": 250, "trunkWidthCm": 20 }
+    ],
+    "structures": [
+      { "id": "bench", "name": "Iron Bench", "category": "furniture", "material": "metal" }
+    ],
+    "paths": [
+      { "id": "stone-path", "name": "Limestone Path", "material": "stone", "defaultWidthCm": 100 }
+    ]
+  }
+}
