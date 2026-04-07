@@ -100,26 +100,41 @@ The camera is mostly overhead but with a slight southward tilt implied through r
 
 ### Rendering Engine: PixiJS v8
 
-**Integration model:** `@pixi/react` is used ONLY for the top-level `<Application>` mount. All scene children are rendered imperatively (plain PixiJS classes: `new Container()`, `new Sprite()`, etc.) via `.ts` renderer modules. This avoids React reconciliation overhead on the scene graph — the standard pattern for production PixiJS+React apps.
+**Integration model:** `@pixi/react` is used ONLY for the top-level `<Application>` mount. All scene children are rendered imperatively (plain PixiJS classes: `new Container()`, `new Sprite()`, etc.) via `.ts` renderer modules. This avoids React reconciliation overhead on the scene graph — the standard pattern for production PixiJS+React apps. Access the app instance via `useApplication()` hook inside child components of `<Application>`.
 
 ```
 React host (CanvasHost.tsx)
   └── pixi.js v8 (WebGL2 renderer) — imperative scene graph
        ├── Sprite            — terrain cells (one per cell), plant sprites
-       ├── TilingSprite      — grid pattern, path texture fills
-       ├── Graphics          — boundary polygon, selection handles, dashed lines
+       ├── TilingSprite      — grid pattern, path texture fills (options-object constructor)
+       ├── Graphics          — boundary polygon, selection handles, dashed lines (v8 Canvas2D-style API)
        ├── Container         — layer grouping (replaces Konva Layer)
-       ├── Text              — labels, dimensions (with zoom-dependent resolution)
-       └── RenderTexture     — cached terrain chunks for perf
+       ├── BitmapText        — world-space labels/dimensions (MSDF for zoom-crisp rendering)
+       ├── Text              — HUD/overlay text only (not world-space)
+       └── cacheAsTexture    — cached terrain chunks for perf (replaces manual RenderTexture)
 ```
 
-**Important PixiJS v8 specifics:**
+**Critical PixiJS v8 API changes (vs v7):**
+- **`Application.init()` is async:** `const app = new Application(); await app.init({ ... })` — there is no synchronous constructor initialization. The canvas element is `app.canvas` (NOT `app.view`)
+- **Graphics API rewritten:** `beginFill()/endFill()` deprecated → use `g.rect(x,y,w,h).fill(color)` and `g.circle(x,y,r).stroke({ color, width })`. Holes use `.cut()` on the preceding shape. Reuse Graphics via `g.clear()` instead of destroy/recreate (known memory leak with rapid create/destroy — issue #10586)
+- **Text constructor:** `new Text({ text: '...', style })` — options object, NOT positional args. `resolution` is NOT a per-Text property in v8 — it's global. For zoom-crisp world-space text, use **BitmapText with MSDF fonts** instead (crisp at all scales without re-rasterization)
+- **TilingSprite constructor:** `new TilingSprite({ texture, width, height })` — options object, NOT positional args
+- **`renderer.render()` signature:** `renderer.render({ container: stage, target: renderTexture })` — options object, NOT positional args
+- **`renderer.extract.*` methods are async** — return Promises. Missing `await` returns a Promise object, not data
+- **`Texture.from(url)` won't fetch** — must pre-load via `Assets.load(url)`. `Texture.from(canvas)` still works for HTMLCanvasElement
+- **`destroy()` options changed:** `{ texture: true, textureSource: true }` — `baseTexture` renamed to `textureSource`. For Assets-managed textures, use `Assets.unload(url)` instead of `texture.destroy()`
+- **`interactive = true` removed** — must use `eventMode` ('none', 'passive', 'static', 'dynamic', 'auto')
 - Set `eventMode = 'none'` and `interactiveChildren = false` on world container — all hit testing goes through `InteractionManager` using existing pure-math `hitTestAll.ts`
-- World-space `Text` objects need `resolution = Math.min(zoom * devicePixelRatio, 4)` (clamped to prevent enormous internal canvases). **Debounce re-rasterization** — during active zoom, use sprite `scale` for GPU scaling; only call `updateText()` after zoom gesture settles (150ms idle)
 - No built-in dashed line support — implement a `drawDashedLine()` utility using computed dash segments
-- Even-odd fill for boundary overlay → use `Graphics.cut()` API instead
-- PNG export `renderer.extract` methods are async in v8 (return Promises)
+- Even-odd fill for boundary overlay → use `Graphics.cut()` API on the preceding shape
 - **Coordinate conversion:** Use `event.global` (stage-space) + `toWorld()` from `viewport.ts` for world coordinates. Do NOT use `getLocalPosition(worldContainer)` — it returns container-local coords which are wrong when the world container has pan/zoom transforms applied
+
+**Performance architecture (v8-specific):**
+- **Render-on-demand, NOT continuous ticker.** This is a design tool, not a game. Use `await app.init({ autoStart: false }); app.ticker.stop();` then render only when dirty (user interaction, drag, zoom, scene mutation). Avoids wasting GPU cycles on a static scene
+- **`isRenderGroup = true` on world container.** Pan/zoom operations then apply a single GPU matrix transform over the entire world without recalculating per-child transforms. This is v8's headline feature for viewport cameras
+- **`sprite.cullable = true` on all world-space objects.** PixiJS v8 has built-in frustum culling — opt-in per display object. Supplements chunk-level AABB culling with per-element culling
+- **`cacheAsTexture()` for terrain chunks** instead of manual RenderTexture management. v8 replacement for `cacheAsBitmap`. Call `chunk.updateCacheTexture()` when tile data changes. Hard limit: 4096×4096 px per cached container
+- **TextureGCSystem** auto-evicts textures unused for 3600 frames (~1 min at 60fps). For render-on-demand apps this timer is misleading — configure `textureGCMaxIdle` or call `renderer.textureGC.run()` manually
 
 ### Layer Consolidation (12 Konva Layers -> 3 PixiJS Containers)
 
@@ -134,7 +149,7 @@ React host (CanvasHost.tsx)
 | Sub-container | Contents | Sort? |
 |---------------|----------|-------|
 | `world.grid` | Grid dots/lines | No |
-| `world.terrain` | Cached terrain RenderTexture chunks | No |
+| `world.terrain` | Terrain chunk Containers (cached via `cacheAsTexture()`) | No |
 | `world.paths` | Path strokes | No (flat, always below structures) |
 | `world.elements` | Structures + Plants (Y-sorted) | Yes — `sortableChildren = true` (consider PixiJS v8 Render Layers as more performant alternative) |
 | `world.labels` | Text labels + dimension lines | No |
@@ -152,10 +167,12 @@ HTML overlays (YardBoundaryHTMLOverlays, LabelHTMLOverlays, MeasurementHTMLOverl
 
 **PixiJS does NOT garbage-collect GPU resources.** Every `Texture`, `RenderTexture`, and `Graphics` object consumes VRAM until explicitly destroyed. The `DisposalManager` (Phase 1) tracks all allocated resources:
 
-- **Renderers** call `disposalManager.register(resource)` for every created texture/RenderTexture/Graphics
-- **On unmount/project-switch:** `disposalManager.destroyAll()` calls `.destroy({ children: true, texture: true })` on everything
+- **Renderers** call `disposalManager.register(resource)` for every created texture/Graphics
+- **On unmount/project-switch:** `disposalManager.destroyAll()` calls `.destroy({ children: true })` on containers, `{ texture: true, textureSource: true }` on textures (v8 renamed `baseTexture` → `textureSource`). For Assets-managed textures, use `Assets.unload(url)` to avoid double-free
 - **Store subscriptions** via `connectStore()` return unsubscribe handles; all must be called on teardown
-- **VRAM budget:** Terrain chunk pool capped at `MAX_CHUNK_POOL = 24` RenderTextures (~24MB at 512x512). Atlas capped at 2048x2048 (~16MB per page). Total budget target: <64MB VRAM
+- **Graphics reuse:** Always `g.clear()` and redraw — do NOT destroy/recreate Graphics per frame (v8 memory leak, issue #10586). `GraphicsContext` can be shared across instances for identical shapes
+- **TextureGCSystem:** v8 auto-evicts textures unused for 3600 frames (~1 min at 60fps). For render-on-demand, configure `renderer.textureGC.maxIdle` or call `renderer.textureGC.run()` manually
+- **VRAM budget:** Terrain chunk pool capped at `MAX_CHUNK_POOL = 24` cached chunks. Atlas capped at 2048x2048 (~16MB per page). Total budget target: <64MB VRAM
 
 ### Texture Atlas Strategy
 
@@ -225,18 +242,20 @@ sortKey = (TYPE_LAYER_ORDER[el.type], effectiveBottomY(el), el.id)
 
 ##### Tasks
 
-- [ ] **SPIKE: Verify `@pixi/react` + React 19.2 compatibility.** Test that `<Application>` mounts correctly with React 19 concurrent features. **Must use `@pixi/react` v8** (rebuilt for React 19; v7 is incompatible). If incompatible: remove `@pixi/react` install task, `CanvasHost` uses `useEffect` + `Application.init()` + manual cleanup in return function. All other tasks remain unchanged — the imperative scene graph approach is identical either way. This task MUST complete before all others.
+- [ ] **SPIKE: Verify `@pixi/react` + React 19.2 compatibility.** Test that `<Application>` mounts correctly with React 19 concurrent features. **Must use `@pixi/react` v8** (rebuilt for React 19; v7 is incompatible). Known issues to test: Strict Mode double-mount (issue #602 — `Application.destroy()` on first unmount can leave app unusable before second mount), and conflict with `react-three-fiber` if present (issue #549). If compatible, access app via `useApplication()` hook. If incompatible: remove `@pixi/react`, use `useEffect` + `const app = new Application(); await app.init({...})` + manual cleanup with `destroyed` flag to guard against Strict Mode race (cleanup may fire before async init resolves). All other tasks remain unchanged. This task MUST complete before all others.
 - [ ] Install `pixi.js` v8, `@pixi/react` (if compatible) — add to package.json
-- [ ] Install PixiJS DevTools Chrome extension for scene graph debugging
-- [ ] Create `src/canvas-pixi/CanvasHost.tsx` — PixiJS Application host with Retina/DPI-aware setup (`resolution: window.devicePixelRatio`, proper `renderer.resize()` on container resize)
-- [ ] Register WebGL context loss handler — show "Canvas lost, click to restore" overlay on `webglcontextlost`, re-init on `webglcontextrestored`
+- [ ] Install PixiJS DevTools Chrome extension + call `initDevtools({ app })` from `@pixi/devtools` after `app.init()`. Use Asset Panel for VRAM leak diagnosis and scene inspector for tree debugging
+- [ ] Create `src/canvas-pixi/CanvasHost.tsx` — PixiJS Application host. **`Application.init()` is async in v8:** `const app = new Application(); await app.init({ resizeTo: containerRef.current, antialias: true, background: '...' })`. Canvas element is `app.canvas` (NOT `app.view`). Append to container div. If using imperative mount (no @pixi/react), guard against Strict Mode with a `destroyed` flag checked after `await`
+- [ ] Register WebGL context loss handler — listen on `app.canvas` (not app itself) for `webglcontextlost`/`webglcontextrestored`. Show "Canvas lost, click to restore" overlay. **Caveat:** Text objects have a known v8 bug (issue #11685) where they disappear after context restore — may need to force re-render all Text/BitmapText after restore
+- [ ] Configure render-on-demand loop — `await app.init({ autoStart: false }); app.ticker.stop();` then use a `dirty` flag + `requestAnimationFrame` loop that only calls `app.renderer.render({ container: app.stage })` when dirty (v8 uses options object). Mark dirty on any user interaction, store change, or scene mutation. Configure `renderer.textureGC.maxIdle` for render-on-demand cadence (default 3600 frames assumes 60fps continuous rendering)
+- [ ] Set `worldContainer.isRenderGroup = true` — v8's headline camera optimization. Pan/zoom applies a single GPU matrix transform over the entire world without recalculating per-child transforms
 - [ ] Wire viewport: read `useViewportStore` (panX, panY, zoom) and apply as PixiJS stage transform
 - [ ] Implement pan (hand tool, middle-click) and wheel zoom via PixiJS FederatedPointerEvent
 - [ ] Implement cursor world-position tracking (feed `useCursorStore`) — use `event.global` coordinates and apply inverse viewport transform via `toWorld()` from `viewport.ts` (NOT `getLocalPosition()` which returns container-local coords, not world coords)
 - [ ] Define cursor management strategy: use wrapper div `style.cursor` (same as current Konva approach), NOT PixiJS `displayObject.cursor`
 - [ ] Create `src/canvas-pixi/utils/dashedLine.ts` — `drawDashedLine(graphics, x1, y1, x2, y2, dashArray)` utility that computes dash segments as individual `moveTo/lineTo` calls (~20 LOC)
-- [ ] Create `src/canvas-pixi/GridRenderer.ts` — render dot grid using pre-rendered dashed-line Canvas2D pattern as TilingSprite, respecting `gridVisible` and `snapIncrementCm`
-- [ ] Create `src/canvas-pixi/DisposalManager.ts` — tracks all created Textures, RenderTextures, and Graphics objects. Provides `register(resource)` and `destroyAll()`. Wire `destroyAll()` to CanvasHost unmount and project-switch events. **PixiJS does NOT garbage-collect GPU resources** — every texture/renderTexture must be explicitly destroyed
+- [ ] Create `src/canvas-pixi/GridRenderer.ts` — render dot grid using pre-rendered Canvas2D pattern as `new TilingSprite({ texture, width, height })` (v8 options-object constructor), respecting `gridVisible` and `snapIncrementCm`
+- [ ] Create `src/canvas-pixi/DisposalManager.ts` — tracks all created Textures, RenderTextures, and Graphics objects. Provides `register(resource)` and `destroyAll()`. Wire `destroyAll()` to CanvasHost unmount and project-switch events. **v8 destroy options:** `container.destroy({ children: true })`, texture options use `{ texture: true, textureSource: true }` (NOT `baseTexture` — renamed in v8). For Assets-managed textures use `Assets.unload(url)` instead of `.destroy()`. **Caveat:** Known intermittent GPU crash on `Application.destroy()` in v8 (issue #10331 — `gpuBuffer is null`)
 - [ ] Create `src/canvas-pixi/connectStore.ts` — `connectStore<T>(store, selector, callback) → unsubscribe` utility for imperative renderer modules to subscribe to Zustand stores. Returns cleanup handle. All renderers must use this pattern (not direct `store.subscribe()`)
 - [ ] Wire `ResizeObserver` on container div — calls `app.renderer.resize()`, updates interaction hit area dimensions, and triggers terrain chunk visibility recompute on container size change
 - [ ] Add feature flag `USE_PIXI` in app config — when true, render `CanvasHost` via `React.lazy(() => import('./canvas-pixi/CanvasHost'))`; when false, render `CanvasRoot` via `React.lazy(() => import('./canvas/CanvasRoot'))`. Use dynamic `import()` so only the active renderer loads (avoids ~350KB bundle bloat from shipping both)
@@ -288,7 +307,7 @@ _None yet._
 
 ##### Tasks
 
-- [ ] Create `src/canvas-pixi/BaseRenderer.ts` — shared utilities for all renderers: dirty tracking (`markDirty()` / `isDirty()`), visibility and locked-opacity handling (0.5 alpha when locked), Y-sort key computation (`computeSortKey(el)`), and zoom-dependent text resolution management (debounced `updateTextResolution()`). All element renderers extend or compose this base
+- [ ] Create `src/canvas-pixi/BaseRenderer.ts` — shared utilities for all renderers: dirty tracking (`markDirty()` / `isDirty()` → triggers render-on-demand dirty flag), visibility and locked-opacity handling (0.5 alpha when locked), Y-sort key computation (`computeSortKey(el)`), `cullable = true` setup for world-space objects, and Graphics reuse helper (call `g.clear()` not destroy/recreate — v8 known memory leak with rapid Graphics create/destroy, issue #10586). All element renderers extend or compose this base
 - [ ] Set up visual regression test harness — screenshot comparison tests for terrain rendering, Y-sort ordering, and boundary overlay. Use PixiJS `renderer.extract` to capture snapshots in headless WebGL (e.g., via `@pixi/node` or headless Chrome)
 
 ##### Decisions
@@ -305,10 +324,10 @@ _None yet._
 ##### Tasks
 
 - [ ] Create `src/canvas-pixi/TerrainRenderer.ts` — reads `project.elements` where `type === 'terrain'`, renders each cell as a 100x100 textured `Sprite` (NOT TilingSprite — each cell can have a different terrain type)
-- [ ] Implement terrain chunk caching — group terrain cells into 10x10 chunks, render each chunk to a `RenderTexture` at **fixed 512x512 resolution** (NOT 1:1 world pixels — 1100x1100 at full res = ~4.8MB VRAM per chunk, which exceeds mobile GPU budgets at scale). **Chunks need a 1-cell overlap buffer** to correctly blend transition cells at chunk boundaries
-- [ ] Implement chunk pool with LRU eviction — `MAX_CHUNK_POOL = 24` RenderTextures. When pool is full, evict least-recently-used chunks. Register all RenderTextures with `DisposalManager`
-- [ ] Implement dirty-chunk tracking — when terrain cells change (paint tool), mark only the affected chunk(s) as dirty and re-render them, NOT all chunks. This is critical for paint tool responsiveness
-- [ ] Implement chunk-level viewport culling — compute AABB for each chunk, set `chunk.visible = false` when entirely outside viewport bounds (from `useViewportStore`). ~15 LOC, prevents rendering off-screen chunks. Element-level sub-chunk culling is deferred to Phase 5
+- [ ] Implement terrain chunk caching using v8's `cacheAsTexture()` — group terrain cells into 10x10 chunk Containers, then `chunk.cacheAsTexture({ resolution: devicePixelRatio })`. This is the v8 replacement for manual RenderTexture management. Call `chunk.updateCacheTexture()` when tile data changes (paint tool). **Hard limit:** 4096×4096 px per cached container — with 10x10 cells at 100px each = 1000×1000, well within limit. **Chunks need a 1-cell overlap buffer** for transition blending
+- [ ] Implement chunk pool with LRU eviction — `MAX_CHUNK_POOL = 24` cached chunks. When pool is full, call `chunk.cacheAsTexture(false)` on LRU chunks to free GPU memory. Do NOT toggle cacheAsTexture rapidly — each toggle re-renders
+- [ ] Implement dirty-chunk tracking — when terrain cells change (paint tool), call `chunk.updateCacheTexture()` on only the affected chunk(s), NOT all chunks. Mark dirty flag → re-render on next frame (render-on-demand). This is critical for paint tool responsiveness
+- [ ] Implement viewport culling — set `sprite.cullable = true` on all world-space terrain sprites (v8 built-in frustum culling, opt-in). Additionally, set `chunk.visible = false` for entire chunks whose AABB is outside viewport bounds (from `useViewportStore`). Element-level sub-chunk culling is deferred to Phase 5
 - [ ] Implement terrain transition blending — when cell A borders a different terrain type cell B, render B's texture on top of A's with an alpha-gradient mask fading from opaque at center to transparent at the transition edge
 - [ ] Handle layer visibility and locked opacity (0.5 when locked)
 - [ ] Verify: terrain cells display with textures matching their `terrainTypeId`, transitions blend smoothly
@@ -326,10 +345,10 @@ _None yet._
 
 ##### Tasks
 
-- [ ] Create `src/canvas-pixi/BoundaryRenderer.ts` — reads `project.yardBoundary`, draws polygon outline using Graphics (dashed stroke, vertex circles)
+- [ ] Create `src/canvas-pixi/BoundaryRenderer.ts` — reads `project.yardBoundary`, draws polygon outline using Graphics (v8 API: `g.poly(points).stroke({ color, width })`, dashed via `drawDashedLine` utility, vertex circles via `g.circle(x,y,r).fill(color)`). Reuse a single Graphics instance via `g.clear()` on each update (avoid create/destroy cycle)
 - [ ] Implement arc edge rendering — use `sampleArc()` from arcGeometry.ts to generate polyline points for arc edges
 - [ ] Implement overflow dim overlay — draw full-viewport rect, then `Graphics.cut()` the boundary polygon to create the hole (PixiJS v8 does not expose fill-rule; `cut()` subtracts the last shape from the previous)
-- [ ] Render edge length labels using Text objects at edge midpoints
+- [ ] Render edge length labels using BitmapText (MSDF) at edge midpoints — crisp at all zoom levels
 - [ ] Render arc drag handles (small circles at edge midpoints)
 - [ ] Render boundary placement mode preview (placed vertices + live edge)
 
@@ -374,7 +393,7 @@ _None yet._
 - [ ] Implement height extrusion: structures with category `boundary`, `feature`, or `furniture` get a south-face strip (darkened color, `EXTRUSION_SCALE=0.5`). Add ambient occlusion gradient at wall base (15-20px wide, alpha 0-25%)
 - [ ] `surface` category structures (patios, decks) render flat with texture pattern (no extrusion)
 - [ ] `overhead` category structures render semi-transparent with dashed outline
-- [ ] Render structure name label centered on top face
+- [ ] Render structure name label centered on top face using BitmapText (MSDF)
 - [ ] Handle curved structures — render arc outline using sampleArc()
 - [ ] Y-sort structures: extruded categories (boundary, feature, furniture) by top edge (`el.y`), flat categories (surface, overhead) by bottom edge (`el.y + el.height`) — see Architecture Overview Y-Sort section
 
@@ -392,7 +411,7 @@ _None yet._
 ##### Tasks
 
 - [ ] Create `src/canvas-pixi/PathRenderer.ts` — render paths as textured strokes
-- [ ] Use Graphics to draw path segments with `strokeWidthCm` thickness
+- [ ] Use Graphics (v8 API: `g.moveTo().lineTo().stroke({ color, width: strokeWidthCm })`) to draw path segments. Reuse Graphics instance via `g.clear()` on update
 - [ ] Apply path type color as tinted texture fill
 - [ ] Render arc segments using sampleArc() polyline
 - [ ] Add subtle edge lines (1px darker stroke on both sides of path)
@@ -411,8 +430,9 @@ _None yet._
 
 ##### Tasks
 
-- [ ] Create `src/canvas-pixi/LabelRenderer.ts` — render text labels using PixiJS `Text` with matching font/size/color/bold/italic. **Text resolution strategy:** clamp to `Math.min(zoom * devicePixelRatio, 4)` to prevent enormous internal canvases. **Debounce re-rasterization** (150ms after zoom settles) — during active zoom, use sprite `scale` for free GPU scaling (slight blur during animation is acceptable). Only call `updateText()` once zoom gesture completes
-- [ ] Create `src/canvas-pixi/DimensionRenderer.ts` — render dimension lines with arrows, offset, and distance text. Same debounced zoom-dependent resolution strategy as LabelRenderer
+- [ ] Generate MSDF bitmap font atlas at build time using `msdf-bmfont-xml` or similar tool — produces a font atlas + `.fnt` descriptor that renders crisp at any zoom level without re-rasterization. This is the v8-recommended approach for world-space text (PixiJS `Text.resolution` is no longer a per-object property in v8)
+- [ ] Create `src/canvas-pixi/LabelRenderer.ts` — render text labels using PixiJS `BitmapText` with MSDF font for zoom-crisp rendering. `new BitmapText({ text: '...', style: { fontFamily: 'msdf-font' } })`. MSDF provides sharp text at all zoom levels with zero re-rasterization cost. Fall back to regular `Text` (options-object constructor: `new Text({ text, style })`) only for rich styled text that MSDF doesn't support
+- [ ] Create `src/canvas-pixi/DimensionRenderer.ts` — render dimension lines using `Graphics` (v8 API: `g.moveTo().lineTo().stroke({ color, width })`) with arrows, offset, and distance text via BitmapText. Use the same MSDF font as LabelRenderer
 - [ ] Handle label text alignment (left, center, right)
 - [ ] Handle dimension linked endpoints (follow element positions)
 - [ ] Consider keeping editable text in HTML overlays (already exist) rather than PixiJS Text for editing UX
@@ -477,7 +497,7 @@ _None yet._
 
 ##### Tasks
 
-- [ ] Create `src/canvas-pixi/SelectionOverlay.ts` — render selection bounding box, resize handles (8 positions), rotation handle using PixiJS Graphics
+- [ ] Create `src/canvas-pixi/SelectionOverlay.ts` — render selection bounding box, resize handles (8 positions), rotation handle using a single reused Graphics instance (v8: `g.clear()` then `g.rect().stroke()`, `g.circle().fill()` per update). Avoid creating new Graphics per frame
 - [ ] Wire SelectionStateMachine commands to PixiJS rendering updates
 - [ ] Implement element move visual feedback (ghost positions during drag)
 - [ ] Implement element resize visual feedback
@@ -599,9 +619,9 @@ _None yet._
 
 ##### Tasks
 
-- [ ] Migrate `exportPNG.ts` to use PixiJS v8 `renderer.extract` — **note: v8 extract methods are async (return Promises)**, unlike Konva's sync `toDataURL()`. Update export flow to `await renderer.extract.canvas({ target: stage })`
+- [ ] Migrate `exportPNG.ts` to use PixiJS v8 `renderer.extract` — **all methods are async in v8** (return Promises), unlike Konva's sync `toDataURL()`. Update export flow: `const canvas = await app.renderer.extract.canvas(stage)` or `await app.renderer.extract.image(stage)`. Also available: `.base64()`, `.pixels()`, `.download(stage, 'file.png')`. Carry forward existing `MAX_EXPORT_PX = 8192` cap and filename sanitization from current `exportPNG.ts`
 - [ ] Verify exported PNG matches canvas content at correct resolution
-- [ ] Support high-DPI export via `resolution` option: `await renderer.extract.canvas({ target: stage, resolution: 2 })`
+- [ ] Support high-DPI export via `resolution` option: `await app.renderer.extract.canvas({ target: stage, resolution: 2 })`. Check total pixel budget: `width * height * resolution^2 < MAX_PIXELS`
 
 ##### Decisions
 
@@ -634,18 +654,24 @@ _None yet._
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | `@pixi/react` incompatible with React 19 | Cannot use React bindings | Phase 1 spike task tests this first; fallback is imperative PixiJS mount via `useEffect` |
-| PixiJS text rendering blurry at zoom | Labels/dimensions look bad zoomed in | Set `text.resolution = zoom * devicePixelRatio` and re-rasterize on zoom change; keep editable text in HTML overlays |
+| PixiJS text rendering blurry at zoom | Labels/dimensions look bad zoomed in | Use BitmapText with MSDF fonts — crisp at all scales without re-rasterization. `Text.resolution` is no longer per-object in v8. Keep editable text in HTML overlays |
 | Selection/manipulation is 916 LOC of complex interaction logic | Migration may introduce regressions | Extract framework-agnostic state machine first (Phase 4), unit test it, then wire to PixiJS events |
 | WebGL context loss under memory pressure | Canvas goes blank | Register context loss/restore handlers in Phase 1; show recovery overlay |
 | Procedural textures look bad (white noise, visible tile grid) | Users perceive quality regression | Use simplex noise + seamless tiling; Phase 5 replaces with hand-drawn autotile assets |
 | Performance regression with many sprites | Large projects may lag | Terrain chunk batching with dirty-chunk tracking (Phase 2) + chunk-level culling (Phase 2) + element-level culling (Phase 5) |
 | VRAM exhaustion on mobile/integrated GPUs | WebGL context loss, app crash | Fixed 512x512 chunk resolution, MAX_CHUNK_POOL=24 with LRU eviction, atlas capped at 2048x2048, total budget <64MB |
-| Text re-rasterization thrash during zoom | Frame drops during pinch-zoom with many labels | Debounce updateText() (150ms), use sprite scale during active zoom, clamp resolution to max 4 |
+| Text re-rasterization thrash during zoom | Frame drops during pinch-zoom with many labels | Use BitmapText+MSDF (no re-rasterization needed). For any remaining regular Text, use sprite scale during zoom, re-render only on settle |
 | GPU resource leaks on project switch/unmount | Growing VRAM until context loss | DisposalManager tracks all resources, destroyAll() on unmount/switch |
 | Double bundle size from feature flag | ~350KB extra gzipped | Dynamic import() for both renderer paths via React.lazy |
 | HTML overlay positioning breaks | Overlays no longer align with canvas | HTML overlays use the same viewport transform — test early in Phase 1 |
 | No built-in dashed line support in PixiJS | Grid, boundary outline, snap guides look wrong | Custom `drawDashedLine()` utility in Phase 1 (~20 LOC) |
 | Y-sort depth ordering wrong for extruded walls | Plants/structures overlap incorrectly | Two-key sort with type layer priority; extruded elements sort by top edge, not bottom |
+| GPU crash on Application.destroy() (v8 issue #10331) | `gpuBuffer is null` error during React cleanup | Guard with try/catch in DisposalManager; use `destroyed` flag for Strict Mode race. Monitor issue for upstream fix |
+| Text disappears after WebGL context restore (v8 issue #11685) | Labels/dimensions vanish after GPU recovery | Force re-render all BitmapText/Text objects after `webglcontextrestored` event fires |
+| Graphics memory leak on rapid create/destroy (v8 issue #10586) | VRAM growth during interactions | Always reuse Graphics via `g.clear()` — never destroy/recreate per frame. Use GraphicsContext for shared shapes |
+| VRAM degradation with Texture.from (v8 issue #11331) | Silent VRAM growth | Pin to PixiJS v8.15+, destroy sprites with `{ texture: false }` when pool owns the texture |
+| React Strict Mode double-mount breaks @pixi/react (issue #602) | App unusable after first unmount in dev | Guard async init with `destroyed` flag; test in Strict Mode early |
+| Stale TextureGCSystem in render-on-demand | Textures never evicted (frame counter doesn't advance) | Configure `textureGC.maxIdle` or call `renderer.textureGC.run()` manually on a timer |
 
 ---
 
@@ -671,6 +697,13 @@ _None yet._
 | 2026-04-07 | Debounce text re-rasterization (150ms), clamp resolution to max 4 | Prevents 50+ GPU texture uploads per frame during pinch-zoom; sprite scale provides free GPU scaling during animation |
 | 2026-04-07 | Fixed 512x512 chunk resolution + MAX_CHUNK_POOL=24 with LRU eviction | 1:1 world-pixel chunks (1100x1100) consume ~4.8MB each; at scale this exceeds mobile VRAM budgets |
 | 2026-04-07 | Chunk-level AABB culling in Phase 2, not Phase 5 | Without culling, 10k terrain cells render every frame; ~15 LOC prevents painful Phase 2-4 development |
+| 2026-04-07 | Render-on-demand with dirty flag, NOT continuous 60fps ticker | Design tool, not game — GPU idles when scene is static. `autoStart: false` + `ticker.stop()` + manual `renderer.render()` on dirty |
+| 2026-04-07 | `isRenderGroup = true` on world container | v8 headline camera feature — pan/zoom applies single GPU matrix transform, no per-child recalculation |
+| 2026-04-07 | `cacheAsTexture()` for terrain chunks instead of manual RenderTexture | v8 replacement for `cacheAsBitmap`. Simpler API: `chunk.cacheAsTexture()`, `chunk.updateCacheTexture()`. 4096×4096 max |
+| 2026-04-07 | BitmapText + MSDF fonts for world-space text, NOT Text with resolution tricks | `Text.resolution` is no longer per-object in v8. MSDF provides crisp rendering at all zoom levels with zero re-rasterization cost |
+| 2026-04-07 | v8 Graphics API: shape().fill/stroke() pattern, reuse via clear() | `beginFill/endFill` deprecated in v8. New: `g.rect().fill()`, `g.circle().stroke()`. Known memory leak with rapid create/destroy (#10586) — always reuse |
+| 2026-04-07 | `sprite.cullable = true` for built-in v8 frustum culling | Opt-in per display object. Supplements chunk-level AABB culling with per-element culling |
+| 2026-04-07 | Guard async Application.init() against Strict Mode double-mount | React 19 Strict Mode unmounts before async init resolves — need `destroyed` flag to prevent use-after-destroy |
 
 ---
 
@@ -714,4 +747,28 @@ _None yet._
   - Changed feature flag to use dynamic import() for code splitting
   - Added Resource Lifecycle section to architecture overview
   - Added 9 new decision log entries, 5 new risks to mitigation table
+2026-04-07 — Comprehensive v8 API research by 3 specialist agents (PixiJS v8 API, @pixi/react, Best Practices). Major corrections applied:
+  API FIXES:
+  - Application.init() is async in v8: must `await app.init()`, canvas is `app.canvas` not `app.view`
+  - Graphics API rewritten: beginFill/endFill deprecated → shape().fill/stroke() pattern
+  - Text constructor: options object `{ text, style }`, resolution NOT per-object in v8
+  - TilingSprite constructor: options object `{ texture, width, height }`
+  - renderer.render(): options object `{ container, target }` not positional args
+  - destroy() options: `textureSource` not `baseTexture`, use Assets.unload() for managed textures
+  - interactive=true removed → must use eventMode
+  BEST PRACTICE CHANGES:
+  - Switched to render-on-demand (dirty flag + rAF) — design tool, not game
+  - Added isRenderGroup=true on world container (v8 camera optimization)
+  - Replaced manual RenderTexture with cacheAsTexture() for terrain chunks
+  - Replaced Text+resolution with BitmapText+MSDF for world-space labels (zoom-crisp, zero re-rasterization)
+  - Added sprite.cullable=true (v8 built-in frustum culling)
+  - Added Graphics reuse via clear() (known memory leak on rapid create/destroy)
+  - Added TextureGCSystem config for render-on-demand
+  - Added Strict Mode double-mount guard for async init
+  - Added @pixi/devtools integration with initDevtools()
+  KNOWN V8 BUGS ADDED TO RISKS:
+  - GPU crash on destroy (#10331), Text post-context-restore (#11685)
+  - Graphics memory leak (#10586), VRAM degradation (#11331)
+  - React Strict Mode breaks @pixi/react (#602)
+  - 7 new decision log entries, 7 new risks added
 ```
