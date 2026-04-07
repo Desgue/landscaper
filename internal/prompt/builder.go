@@ -68,8 +68,9 @@ var botanicalNames = map[string]string{
 }
 
 // Build assembles the structured prompt parts from filtered elements and effective options.
-// The returned PromptParts are interleaved with image blobs by the Gemini client.
-func Build(elements []filter.FilteredElement, opts model.EffectiveOptions, hasYardPhoto bool) model.PromptParts {
+// photoCount is the number of yard photos (0 = none). The returned PromptParts are
+// interleaved with image blobs by the Gemini client.
+func Build(elements []filter.FilteredElement, opts model.EffectiveOptions, photoCount int) model.PromptParts {
 	subject := buildSubject(opts)
 	elemStr := buildElementList(elements)
 	style := buildStyle(opts.Viewpoint)
@@ -104,8 +105,19 @@ func Build(elements []filter.FilteredElement, opts model.EffectiveOptions, hasYa
 		ScenePrompt:       scene.String(),
 	}
 
-	if hasYardPhoto {
+	if photoCount == 1 {
 		parts.YardPhotoInstruction = yardPhotoInstruction
+		parts.YardPhotoInstructions = []string{yardPhotoInstruction}
+	} else if photoCount > 1 {
+		instructions := make([]string, photoCount)
+		for i := range instructions {
+			instructions[i] = fmt.Sprintf(
+				"This is yard photo %d of %d. Use all yard photos together to understand the yard's perspective, lighting, and surroundings from different angles.",
+				i+1, photoCount,
+			)
+		}
+		parts.YardPhotoInstruction = instructions[0] // backward compat field
+		parts.YardPhotoInstructions = instructions
 	}
 
 	return parts
