@@ -1,8 +1,13 @@
-.PHONY: build run dev clean
+.PHONY: build build-frontend build-backend run dev clean
 
-build:
-	@mkdir -p frontend/dist
-	@test -f frontend/dist/index.html || echo "placeholder" > frontend/dist/index.html
+build: build-frontend build-backend
+
+build-frontend:
+	npm run build
+	@rm -rf frontend/dist
+	@mv dist frontend/dist
+
+build-backend:
 	go build -o server/server ./cmd/server/
 
 run:
@@ -11,4 +16,4 @@ run:
 dev: build run
 
 clean:
-	rm -rf server/
+	rm -rf server/ frontend/dist/
