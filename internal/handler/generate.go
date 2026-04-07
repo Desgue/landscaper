@@ -16,7 +16,7 @@ import (
 
 // GeminiFunc is the signature for the Gemini image generation call.
 // Swappable for testing via geminiGenerateFunc.
-type GeminiFunc func(ctx context.Context, prompt string, segMapBytes []byte, yardPhotoBytes []byte, yardPhotoMIMEType string, opts model.EffectiveOptions, apiKey string, modelName string) ([]byte, *gemini.Error)
+type GeminiFunc func(ctx context.Context, promptParts model.PromptParts, segMapBytes []byte, yardPhotoBytes []byte, yardPhotoMIMEType string, opts model.EffectiveOptions, apiKey string, modelName string) ([]byte, string, *gemini.Error)
 
 // geminiGenerateFunc is the Gemini call used by the handler. Tests replace this with a mock.
 var geminiGenerateFunc GeminiFunc = gemini.Generate
@@ -58,9 +58,10 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 
 	// Stage 3: Construct prompt
 	hasPhoto := photo != nil
-	promptStr := prompt.Build(filtered, eff, hasPhoto)
+	promptParts := prompt.Build(filtered, eff, hasPhoto)
 	logger.Info("prompt constructed",
-		"prompt_length", len(promptStr),
+		"scene_prompt_length", len(promptParts.ScenePrompt),
+		"has_yard_photo_instruction", promptParts.YardPhotoInstruction != "",
 		"element_count", len(filtered),
 	)
 
@@ -83,7 +84,7 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 		"seed", eff.Seed,
 	)
 	geminiStart := time.Now()
-	imageBytes, gemErr := geminiGenerateFunc(r.Context(), promptStr, segMapBytes, photoBytes, photoMIME, eff, apiKey, modelName)
+	imageBytes, imageMIME, gemErr := geminiGenerateFunc(r.Context(), promptParts, segMapBytes, photoBytes, photoMIME, eff, apiKey, modelName)
 	if gemErr != nil {
 		logger.Error("gemini error", "status", gemErr.StatusCode, "error", gemErr.Message)
 		writeJSONError(w, gemErr.StatusCode, gemErr.Message)
@@ -94,8 +95,8 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 		"image_bytes", len(imageBytes),
 	)
 
-	// Write PNG response
-	w.Header().Set("Content-Type", "image/png")
+	// Write image response
+	w.Header().Set("Content-Type", imageMIME)
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(imageBytes); err != nil {
 		logger.Error("failed to write response", "error", err.Error())
@@ -114,10 +115,10 @@ func writeJSONError(w http.ResponseWriter, status int, message string) {
 func renderDimensions(aspectRatio string) [2]int {
 	switch aspectRatio {
 	case "landscape":
-		return [2]int{1024, 576}
+		return [2]int{1024, 768} // 4:3
 	case "portrait":
-		return [2]int{576, 1024}
+		return [2]int{768, 1024} // 3:4
 	default:
-		return [2]int{1024, 1024}
+		return [2]int{1024, 1024} // 1:1
 	}
 }
