@@ -5,13 +5,13 @@ const galleryCards = [
     style: 'Contemporary',
     season: 'Summer',
     time: 'Golden hour',
-    gradient: 'linear-gradient(135deg, #2D6A4F 0%, #40916C 40%, #E8A838 100%)',
+    image: '/images/gallery/contemporary-summer.png',
   },
   {
     style: 'Cottage',
     season: 'Spring',
     time: 'Morning',
-    gradient: 'linear-gradient(135deg, #F2C6D0 0%, #A7C4A0 50%, #EDF2E8 100%)',
+    image: '/images/gallery/cottage-spring.png',
   },
   {
     style: 'Japanese',
@@ -20,22 +20,22 @@ const galleryCards = [
     gradient: 'linear-gradient(135deg, #D4763C 0%, #C45B28 40%, #2D6A4F 100%)',
   },
   {
-    style: 'Tropical',
-    season: 'Summer',
-    time: 'Midday',
-    gradient: 'linear-gradient(135deg, #40916C 0%, #2D6A4F 40%, #5BC0BE 100%)',
-  },
-  {
     style: 'Formal',
-    season: 'Winter',
-    time: 'Overcast',
-    gradient: 'linear-gradient(135deg, #8A8D84 0%, #A8B5A0 40%, #C4CCC0 100%)',
+    season: 'Summer',
+    time: 'Golden hour',
+    image: '/images/gallery/formal-golden-hour.png',
   },
   {
     style: 'Mediterranean',
     season: 'Summer',
-    time: 'Sunset',
-    gradient: 'linear-gradient(135deg, #C67B4E 0%, #D4923C 40%, #5C8A50 100%)',
+    time: 'Afternoon',
+    image: '/images/gallery/mediterranean-sunset.png',
+  },
+  {
+    style: 'Tropical',
+    season: 'Summer',
+    time: 'Midday',
+    gradient: 'linear-gradient(135deg, #40916C 0%, #2D6A4F 40%, #5BC0BE 100%)',
   },
 ]
 
@@ -81,10 +81,19 @@ export default function OutputGallery() {
               role="listitem"
               className={`rounded-xl shadow-md overflow-hidden bg-bg-card animate-on-scroll ${staggerDelays[i]} ${isInView ? 'animate-fade-up' : ''}`}
             >
-              <div
-                className="h-48"
-                style={{ background: card.gradient }}
-              />
+              {'image' in card ? (
+                <img
+                  src={card.image}
+                  alt={`AI-generated ${card.style.toLowerCase()} landscape in ${card.season.toLowerCase()}`}
+                  className="h-48 w-full object-cover"
+                  loading={i < 3 ? 'eager' : 'lazy'}
+                />
+              ) : (
+                <div
+                  className="h-48"
+                  style={{ background: card.gradient }}
+                />
+              )}
               <div className="p-4 text-left">
                 <p className="font-bold text-text">{card.style}</p>
                 <p className="text-sm text-text-muted">
