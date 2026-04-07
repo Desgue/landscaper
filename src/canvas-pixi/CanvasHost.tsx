@@ -21,6 +21,11 @@ import { createGridRenderer } from './GridRenderer'
 import { createTerrainRenderer } from './TerrainRenderer'
 import { createBoundaryRenderer } from './BoundaryRenderer'
 import { createTextureAtlas } from './textures/TextureAtlas'
+import { createPlantRenderer } from './PlantRenderer'
+import { createStructureRenderer } from './StructureRenderer'
+import { createPathRenderer } from './PathRenderer'
+import { createLabelRenderer } from './LabelRenderer'
+import { createDimensionRenderer } from './DimensionRenderer'
 
 interface CanvasHostProps {
   width: number
@@ -263,9 +268,16 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         setContextLost(true)
       }
 
+      // Renderers with Text objects need update() on context restore (v8 bug #11685).
+      // The rendererUpdaters array is populated after renderer creation below.
+      const rendererUpdaters: Array<() => void> = []
+
       const onContextRestored = () => {
         console.info('[CanvasHost] WebGL context restored')
         setContextLost(false)
+        // Force re-render all Text-bearing renderers (v8 bug #11685:
+        // Text objects disappear after WebGL context restore)
+        for (const update of rendererUpdaters) update()
         scheduler.markDirty()
       }
 
@@ -319,6 +331,40 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       )
 
       // ------------------------------------------------------------------
+      // Path renderer (Phase 3) — paths sub-container
+      // ------------------------------------------------------------------
+      const pathRenderer = createPathRenderer(pathsContainer, scheduler)
+
+      // ------------------------------------------------------------------
+      // Plant renderer (Phase 3) — elements sub-container (Y-sorted)
+      // ------------------------------------------------------------------
+      const plantRenderer = createPlantRenderer(elementsContainer, scheduler, textureAtlas)
+
+      // ------------------------------------------------------------------
+      // Structure renderer (Phase 3) — elements sub-container (Y-sorted)
+      // ------------------------------------------------------------------
+      const structureRenderer = createStructureRenderer(elementsContainer, scheduler, textureAtlas)
+
+      // ------------------------------------------------------------------
+      // Label renderer (Phase 3) — labels sub-container
+      // ------------------------------------------------------------------
+      const labelRenderer = createLabelRenderer(labelsContainer, scheduler)
+
+      // ------------------------------------------------------------------
+      // Dimension renderer (Phase 3) — labels sub-container
+      // ------------------------------------------------------------------
+      const dimensionRenderer = createDimensionRenderer(labelsContainer, scheduler)
+
+      // Register Text-bearing renderers for context restore (v8 bug #11685)
+      rendererUpdaters.push(
+        () => plantRenderer.update(),
+        () => structureRenderer.update(),
+        () => labelRenderer.update(),
+        () => dimensionRenderer.update(),
+        () => boundaryRenderer.update(),
+      )
+
+      // ------------------------------------------------------------------
       // Render scheduler
       // ------------------------------------------------------------------
       scheduler.start(app)
@@ -328,6 +374,11 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       // ------------------------------------------------------------------
       cleanupRef.current = () => {
         scheduler.stop()
+        dimensionRenderer.destroy()
+        labelRenderer.destroy()
+        structureRenderer.destroy()
+        plantRenderer.destroy()
+        pathRenderer.destroy()
         boundaryRenderer.destroy()
         terrainRenderer.destroy()
         textureAtlas.destroy()
@@ -460,12 +511,16 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
 
         if (project?.elements) {
           for (const el of project.elements) {
-            fitElements.push({
-              x: el.x,
-              y: el.y,
-              width: el.width,
-              height: el.height,
-            })
+            const bounds = { x: el.x, y: el.y, width: el.width, height: el.height }
+            // Skip elements with non-finite bounds to prevent NaN viewport corruption
+            if (
+              Number.isFinite(bounds.x) &&
+              Number.isFinite(bounds.y) &&
+              Number.isFinite(bounds.width) &&
+              Number.isFinite(bounds.height)
+            ) {
+              fitElements.push(bounds)
+            }
           }
         }
 
