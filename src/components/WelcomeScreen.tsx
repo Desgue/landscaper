@@ -91,26 +91,46 @@ export default function WelcomeScreen() {
 
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file) {
+      console.debug('[import] No file selected')
+      return
+    }
+    console.debug('[import] File selected: name=%s size=%d bytes', file.name, file.size)
     // Reset so the same file can be re-imported
     e.target.value = ''
     let parsed: unknown
     try {
       const text = await file.text()
       parsed = JSON.parse(text)
-    } catch {
+      console.debug('[import] JSON parsed successfully')
+    } catch (err) {
+      console.error('[import] JSON parse failed:', err)
       alert('Invalid file: not valid JSON')
       return
     }
     const result = validateImport(parsed, BUILTIN_REGISTRIES)
+    console.debug(
+      '[import] Validation complete: project=%s id=%s warnings=%d',
+      result.project.name,
+      result.project.id,
+      result.report.warnings.length
+    )
     if (result.report.warnings.length > 0) {
+      console.warn('[import] Warnings:', result.report.warnings)
       alert('Import warnings:\n' + result.report.warnings.join('\n'))
     }
     const existingNames = projects.map((p) => p.name)
     const finalName = uniqueName(result.project.name, existingNames)
     const importedProject: Project = { ...result.project, name: finalName }
-    await saveProject(importedProject)
+    try {
+      await saveProject(importedProject)
+      console.debug('[import] Project saved to IndexedDB: id=%s name=%s', importedProject.id, importedProject.name)
+    } catch (err) {
+      console.error('[import] saveProject failed:', err)
+      return
+    }
     loadProject(importedProject, result.registries)
+    console.debug('[import] loadProject called, navigating to /app/canvas')
     router.navigate({ to: '/app/canvas' })
   }
 
