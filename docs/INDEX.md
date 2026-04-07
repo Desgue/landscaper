@@ -70,6 +70,7 @@ Workflows, UI, and non-element features.
 | [PLAN_TEMPLATE.md](plans/PLAN_TEMPLATE.md) | AI-first plan template — copy this to create a new implementation plan; includes agent protocol and context map structure |
 | [IMPLEMENTATION_PLAN.md](plans/frontend/IMPLEMENTATION_PLAN.md) | Full implementation plan for all features; living document updated by agents throughout development |
 | [PLAN-F.md](plans/frontend/PLAN-F.md) | Image generation UI plan — Generate button, options panel, API client, loading overlay, result modal, error handling |
+| [landingpage-plan.md](plans/frontend/landingpage-plan.md) | PLAN-G: Landing page redesign — performance infrastructure, SEO, Blueprint Garden visual identity, section-by-section rebuild |
 
 ---
 

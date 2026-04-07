@@ -13,7 +13,7 @@ Tracked bugs and improvement requests found during manual QA testing.
 | BUG-1 | Terrain painting does nothing | RESOLVED |
 | BUG-2 | Done button doesn't close boundary modal | RESOLVED |
 | BUG-3 | Brush size doesn't work | RESOLVED (unblocked by BUG-1) |
-| BUG-4 | Arc tool UX is broken | OPEN |
+| BUG-4 | Arc tool UX is broken | RESOLVED |
 | BUG-5 | Toolbar/palette tab not synced | RESOLVED |
 | BUG-6 | Inspector position fields bypass collision | RESOLVED |
 | BUG-7 | No zoom-out limit enforced | RESOLVED (already implemented) |
@@ -63,15 +63,23 @@ Tracked bugs and improvement requests found during manual QA testing.
 
 ---
 
-### BUG-4: Arc tool UX is broken and confusing (OPEN)
+### BUG-4: Arc tool UX is broken and confusing (RESOLVED)
 
 **Symptom:** When using the Arc tool, the red control square does not fixate on click. The interaction model is unclear — clicking does not anchor points, and dragging does not produce expected arc geometry. The tool feels non-functional.
 
-**Expected behavior:** Click to set start point (anchored), click to set end point (anchored), drag to define arc radius/curvature. Each click should commit a control point visually.
+**Root cause:** The arc tool was a stub that reused the structure tool's two-click placement, always creating `shape: 'straight'` structures with `arcSagitta: null`. No visual distinction from the structure tool existed.
 
-**Why not addressed:** Requires a deeper UX redesign of the arc interaction model. The current arc support works for boundary edges (drag midpoint handles on existing edges) but the standalone Arc tool's click-to-place workflow needs rethinking. This is not a simple bug fix — it's an interaction design task.
+**Fix (StructureLayer.tsx, SidePalette.tsx):**
+- Implemented a 3-step workflow for the arc tool:
+  1. Click to anchor start endpoint (blue dot appears)
+  2. Click to anchor end endpoint (chord line + two blue dots)
+  3. Move mouse to define arc curvature (sagitta), click to commit
+- Arc tool now creates structures with `shape: 'curved'` and computed `arcSagitta`
+- Curved structures render with arc outlines using `sampleArc()` instead of plain rectangles
+- Live arc preview shown during curvature adjustment (step 3)
+- Auto-selects first structure type when arc tool activates (palette syncs to Structures tab)
 
-**Priority:** High — arc tool is unusable.
+**Priority:** High — arc tool is now functional.
 
 ---
 
