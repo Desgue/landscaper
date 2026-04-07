@@ -16,6 +16,7 @@ import { useHistoryStore } from '../store/useHistoryStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { useToolStore } from '../store/useToolStore'
 import { snapPoint } from '../snap/snapSystem'
+import { useBoundaryUIStore } from '../store/useBoundaryUIStore'
 import type { RendererHandle } from './BaseRenderer'
 
 // ---------------------------------------------------------------------------
@@ -77,6 +78,9 @@ export function propagateEdge(
   return cloned
 }
 
+/** Hard cap on placement vertices to prevent resource exhaustion. */
+const MAX_PLACEMENT_VERTICES = 500
+
 // ---------------------------------------------------------------------------
 // Snap helper
 // ---------------------------------------------------------------------------
@@ -133,6 +137,10 @@ export function createBoundaryHandler(): BoundaryHandle {
   let preDragSnapshot: Project | null = null
   let preArcDragSnapshot: Project | null = null
 
+  function syncPlacementState(): void {
+    useBoundaryUIStore.getState().setPlacementState({ isPlacing, placedVertices, cursorWorld })
+  }
+
   // Auto-enter placement mode when no boundary exists
   function checkAutoPlacement(): void {
     const proj = useProjectStore.getState().currentProject
@@ -140,6 +148,7 @@ export function createBoundaryHandler(): BoundaryHandle {
       isPlacing = true
       placedVertices = []
       cursorWorld = null
+      syncPlacementState()
     }
   }
 
@@ -152,6 +161,8 @@ export function createBoundaryHandler(): BoundaryHandle {
 
   function doCommitBoundary(verts: Vec2[]): void {
     if (verts.length < 3) return
+    if (hasSelfIntersection(verts)) return
+    useBoundaryUIStore.getState().setEditingEdgeIndex(null)
     const n = verts.length
     const edgeTypes: YardBoundaryEdge[] = Array.from(
       { length: n },
@@ -167,6 +178,7 @@ export function createBoundaryHandler(): BoundaryHandle {
     isPlacing = false
     placedVertices = []
     cursorWorld = null
+    syncPlacementState()
   }
 
   return {
@@ -180,7 +192,9 @@ export function createBoundaryHandler(): BoundaryHandle {
         doCommitBoundary(placedVertices)
         return
       }
+      if (placedVertices.length >= MAX_PLACEMENT_VERTICES) return
       placedVertices = [...placedVertices, snapped]
+      syncPlacementState()
     },
 
     onPlacementMove(worldX: number, worldY: number, altKey: boolean): void {
@@ -188,6 +202,7 @@ export function createBoundaryHandler(): BoundaryHandle {
       if (useToolStore.getState().activeTool !== 'select') return
       const snapped = snapWorldPoint(worldX, worldY, altKey)
       cursorWorld = snapped
+      syncPlacementState()
     },
 
     commitBoundary(): void {
@@ -262,10 +277,8 @@ export function createBoundaryHandler(): BoundaryHandle {
     },
 
     // ---- Editing mode: edge label ----
-    onEdgeLabelClick(_edgeIndex: number): void {
-      // Edge label editing is handled by the existing HTML overlay
-      // (YardBoundaryHTMLOverlays). This handler is a placeholder
-      // for the interaction routing — the actual UI is in React.
+    onEdgeLabelClick(edgeIndex: number): void {
+      useBoundaryUIStore.getState().setEditingEdgeIndex(edgeIndex)
     },
 
     applyEdgeLength(edgeIndex: number, newLengthMeters: number): void {
@@ -289,6 +302,7 @@ export function createBoundaryHandler(): BoundaryHandle {
     },
 
     deleteBoundary(): void {
+      useBoundaryUIStore.getState().setEditingEdgeIndex(null)
       const proj = useProjectStore.getState().currentProject
       if (!proj?.yardBoundary) return
       const snapshot = structuredClone(proj)
@@ -306,6 +320,8 @@ export function createBoundaryHandler(): BoundaryHandle {
       cursorWorld = null
       preDragSnapshot = null
       preArcDragSnapshot = null
+      useBoundaryUIStore.getState().setEditingEdgeIndex(null)
+      syncPlacementState()
     },
   }
 }

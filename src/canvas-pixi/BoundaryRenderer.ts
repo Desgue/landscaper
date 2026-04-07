@@ -15,6 +15,7 @@ import { Container, Graphics, Text } from 'pixi.js'
 import { connectStore } from './connectStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { useViewportStore } from '../store/useViewportStore'
+import { useBoundaryUIStore } from '../store/useBoundaryUIStore'
 import { sampleArc } from '../canvas/arcGeometry'
 import { drawDashedLine } from './utils/dashedLine'
 import type { RendererHandle } from './BaseRenderer'
@@ -88,11 +89,76 @@ export function createBoundaryRenderer(
   labelsContainer.eventMode = 'none'
   boundaryContainer.addChild(labelsContainer)
 
+  // Placement preview graphics (drawn while user clicks vertices, before committing)
+  const placementGraphics = new Graphics()
+  placementGraphics.eventMode = 'none'
+  placementGraphics.label = 'boundary-placement-preview'
+  boundaryContainer.addChild(placementGraphics)
+
   // Pool of Text objects for edge labels
   let labelPool: Text[] = []
 
   // Track last zoom to avoid full re-render on pan-only changes
   let lastZoom = useViewportStore.getState().zoom
+
+  // ---------------------------------------------------------------------------
+  // Placement preview
+  // ---------------------------------------------------------------------------
+
+  /** Snap-close tolerance in screen pixels. */
+  const CLOSE_TOL_PX = 8
+
+  function renderPlacementPreview(): void {
+    placementGraphics.clear()
+
+    const { isPlacing, placedVertices, cursorWorld } = useBoundaryUIStore.getState().placementState
+    if (!isPlacing || placedVertices.length === 0) return
+
+    const { zoom } = useViewportStore.getState()
+    const strokeWidth = BOUNDARY_STROKE_BASE / zoom
+    const vertexRadius = VERTEX_RADIUS_BASE / zoom
+    const dashPattern = DASH_PATTERN.map((d) => d / zoom)
+
+    const verts = placedVertices.filter(isFiniteVec)
+    if (verts.length === 0) return
+
+    // Draw edges between placed vertices
+    for (let i = 0; i < verts.length - 1; i++) {
+      drawDashedLine(placementGraphics, verts[i].x, verts[i].y, verts[i + 1].x, verts[i + 1].y, dashPattern)
+    }
+
+    // Draw line from last vertex to cursor
+    if (cursorWorld && isFiniteVec(cursorWorld)) {
+      drawDashedLine(
+        placementGraphics,
+        verts[verts.length - 1].x, verts[verts.length - 1].y,
+        cursorWorld.x, cursorWorld.y,
+        dashPattern,
+      )
+    }
+
+    placementGraphics.stroke({ color: BOUNDARY_COLOR, width: strokeWidth })
+
+    // Draw vertex dots
+    for (const v of verts) {
+      placementGraphics.circle(v.x, v.y, vertexRadius)
+        .fill({ color: BOUNDARY_COLOR })
+        .stroke({ color: 0xffffff, width: 1.5 / zoom })
+    }
+
+    // Highlight first vertex when cursor is near (close detection)
+    if (cursorWorld && isFiniteVec(cursorWorld) && verts.length >= 3) {
+      const closeTol = CLOSE_TOL_PX / zoom
+      const dx = cursorWorld.x - verts[0].x
+      const dy = cursorWorld.y - verts[0].y
+      if (Math.sqrt(dx * dx + dy * dy) <= closeTol) {
+        placementGraphics.circle(verts[0].x, verts[0].y, vertexRadius * 1.8)
+          .stroke({ color: 0x40c057, width: 2 / zoom })
+      }
+    }
+
+    scheduler.markDirty()
+  }
 
   // ---------------------------------------------------------------------------
   // Rendering
@@ -107,6 +173,7 @@ export function createBoundaryRenderer(
     outlineGraphics.clear()
     overflowGraphics.clear()
     handlesGraphics.clear()
+    placementGraphics.clear()
 
     // Hide label texts
     for (const label of labelPool) {
@@ -124,9 +191,9 @@ export function createBoundaryRenderer(
       return
     }
 
-    // Filter to finite vertices only
-    const verts = boundary.vertices.slice(0, n).filter(isFiniteVec)
-    if (verts.length < 3) return
+    // Use vertices directly (skip non-finite at draw time to keep index alignment with edgeTypes)
+    const verts = boundary.vertices.slice(0, n)
+    if (verts.filter(isFiniteVec).length < 3) return
 
     // Scale-independent sizes
     const strokeWidth = BOUNDARY_STROKE_BASE / zoom
@@ -162,8 +229,8 @@ export function createBoundaryRenderer(
     const n = Math.min(boundary.vertices.length, MAX_VERTICES)
     if (boundary.edgeTypes.length < n) return
 
-    const verts = boundary.vertices.slice(0, n).filter(isFiniteVec)
-    if (verts.length < 3) return
+    const verts = boundary.vertices.slice(0, n)
+    if (verts.filter(isFiniteVec).length < 3) return
 
     renderOverflowDim(verts, boundary, zoom)
     scheduler.markDirty()
@@ -180,6 +247,7 @@ export function createBoundaryRenderer(
     for (let i = 0; i < n; i++) {
       const p1 = verts[i]
       const p2 = verts[(i + 1) % n]
+      if (!isFiniteVec(p1) || !isFiniteVec(p2)) continue
       const edge = boundary.edgeTypes[i]
 
       if (edge?.type === 'arc' && edge.arcSagitta !== null) {
@@ -224,15 +292,18 @@ export function createBoundaryRenderer(
     // Draw outer rectangle (unfilled — fill after cut)
     overflowGraphics.rect(wl, wt, wr - wl, wb - wt)
 
-    // Draw boundary polygon as hole path
-    overflowGraphics.moveTo(verts[0].x, verts[0].y)
+    // Draw boundary polygon as hole path (skip non-finite vertices)
+    const firstFinite = verts.find(isFiniteVec)
+    if (!firstFinite) return
+    overflowGraphics.moveTo(firstFinite.x, firstFinite.y)
 
     for (let i = 0; i < n; i++) {
+      const p1 = verts[i]
       const p2 = verts[(i + 1) % n]
+      if (!isFiniteVec(p1) || !isFiniteVec(p2)) continue
       const edge = boundary.edgeTypes[i]
 
       if (edge?.type === 'arc' && edge.arcSagitta !== null) {
-        const p1 = verts[i]
         const pts = sampleArc(p1, p2, edge.arcSagitta, ARC_SAMPLE_STEPS)
         for (const pt of pts.slice(1)) {
           overflowGraphics.lineTo(pt.x, pt.y)
@@ -255,6 +326,7 @@ export function createBoundaryRenderer(
     zoom: number,
   ): void {
     for (const v of verts) {
+      if (!isFiniteVec(v)) continue
       handlesGraphics.circle(v.x, v.y, vertexRadius)
         .fill({ color: BOUNDARY_COLOR })
         .stroke({ color: 0xffffff, width: 1.5 / zoom })
@@ -295,6 +367,7 @@ export function createBoundaryRenderer(
     for (let i = 0; i < n; i++) {
       const p1 = verts[i]
       const p2 = verts[(i + 1) % n]
+      if (!isFiniteVec(p1) || !isFiniteVec(p2)) continue
       const mid = edgeMidpoint(p1, p2)
       const lenCm = dist(p1, p2)
       const labelText = (lenCm / 100).toFixed(2) + 'm'
@@ -347,6 +420,15 @@ export function createBoundaryRenderer(
     ),
   )
 
+  // Re-render placement preview when placement state changes
+  unsubs.push(
+    connectStore(
+      useBoundaryUIStore,
+      (s) => s.placementState,
+      () => renderPlacementPreview(),
+    ),
+  )
+
   // Viewport changes: full re-render on zoom change, overflow-dim-only on pan
   unsubs.push(
     connectStore(
@@ -388,12 +470,14 @@ export function createBoundaryRenderer(
       // Remove graphics from parents before destroying
       boundaryContainer.removeChild(outlineGraphics)
       boundaryContainer.removeChild(handlesGraphics)
+      boundaryContainer.removeChild(placementGraphics)
       boundaryContainer.removeChild(labelsContainer)
       overflowDimContainer.removeChild(overflowGraphics)
 
       outlineGraphics.destroy()
       overflowGraphics.destroy()
       handlesGraphics.destroy()
+      placementGraphics.destroy()
       labelsContainer.destroy({ children: true })
     },
   }

@@ -41,6 +41,7 @@ import {
 } from './PlacementHandlers'
 import { createPathDrawingHandler } from './PathDrawingHandler'
 import { createBoundaryHandler } from './BoundaryHandler'
+import { useBoundaryUIStore } from '../store/useBoundaryUIStore'
 import { setPixiApp } from './exportPNG'
 
 interface CanvasHostProps {
@@ -469,6 +470,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       const measurementHandler = createMeasurementHandler()
       const pathDrawingHandler = createPathDrawingHandler()
       const boundaryHandler = createBoundaryHandler()
+      useBoundaryUIStore.getState().setBoundaryHandle(boundaryHandler)
 
       // Canvas rect accessor for coordinate conversion
       const getCanvasRect = () => container.getBoundingClientRect()
@@ -514,6 +516,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         labelPlacementHandler.destroy()
         measurementHandler.destroy()
         pathDrawingHandler.destroy()
+        useBoundaryUIStore.getState().setBoundaryHandle(null)
         boundaryHandler.destroy()
         interactionManagerRef.current = null
         dimensionRenderer.destroy()
