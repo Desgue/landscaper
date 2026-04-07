@@ -13,6 +13,7 @@ dist-ssr
 *.dylib
 bin/
 build/
+/server
 
 # Test and coverage artifacts
 *.test
