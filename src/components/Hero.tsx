@@ -1,55 +1,63 @@
+import { useInView } from '../hooks/useInView'
+
 export default function Hero() {
+  const { ref, isInView } = useInView({ threshold: 0.1 })
+
   return (
-    <section
-      className="relative overflow-hidden bg-white pt-20 pb-20 px-6"
-      style={{
-        background: 'radial-gradient(ellipse at 20% 50%, rgba(25,113,194,0.05) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(74,222,128,0.04) 0%, transparent 50%), #ffffff',
-      }}
-    >
+    <section id="hero" aria-label="Hero" ref={ref} className="relative overflow-hidden bg-bg pt-24 pb-20 px-6">
       {/* Subtle dot grid background */}
-      <svg className="absolute inset-0 w-full h-full opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
+      <svg className="absolute inset-0 w-full h-full opacity-[0.03]" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
           <pattern id="hero-dots" width="24" height="24" patternUnits="userSpaceOnUse">
-            <circle cx="12" cy="12" r="1" fill="#1971c2" />
+            <circle cx="12" cy="12" r="1" fill="#2D6A4F" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#hero-dots)" />
       </svg>
 
-      <div className="relative max-w-6xl mx-auto grid md:grid-cols-[1fr_1.2fr] gap-12 items-center">
-        {/* Left column — copy */}
-        <div>
-          <div className="inline-flex items-center gap-2 bg-[#e8f0fb] text-[#1971c2] text-sm font-medium px-3 py-1 rounded-full mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#1971c2] inline-block" />
-            Free. No account. Runs in your browser.
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900 leading-tight mb-5">
-            Draw your yard.
-            <br />
-            <span className="text-[#1971c2]">See it finished.</span>
-          </h1>
-
-          <p className="text-lg text-gray-500 max-w-md mb-8 leading-relaxed">
-            Lay out plants, walkways, and structures on a canvas. Upload a yard
-            photo. Hit generate and get a realistic image of the finished
-            landscape in any style or season.
-          </p>
-
-          <div>
-            <a
-              href="/app"
-              className="inline-block bg-[#1971c2] hover:bg-[#1562a8] text-white font-semibold px-8 py-3.5 rounded-lg text-base transition-colors shadow-sm"
-            >
-              Open the canvas &rarr;
-            </a>
-            <p className="text-sm text-gray-400 mt-3">
-              No signup, no install. Opens right here.
-            </p>
-          </div>
+      {/* Centered copy */}
+      <div className="relative max-w-4xl mx-auto text-center">
+        {/* Trust badge */}
+        <div
+          className={`inline-flex items-center gap-2 bg-bg-alt text-primary text-sm font-medium px-4 py-1.5 rounded-full mb-6 border border-primary/15 animate-on-scroll ${isInView ? 'animate-fade-up' : ''}`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
+          Free to Start. No Account. Works in Your Browser.
         </div>
 
-        {/* Right column — transformation preview */}
+        {/* H1 */}
+        <h1
+          className={`text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-tight mb-6 animate-on-scroll animate-delay-100 ${isInView ? 'animate-fade-up' : ''}`}
+        >
+          <span className="text-text">Free Online Landscape Planner</span>
+          <br />
+          <span className="text-primary">Draw Your Yard, See It Built</span>
+        </h1>
+
+        {/* Subtext */}
+        <p
+          className={`text-lg text-text-secondary max-w-2xl mx-auto mb-8 leading-relaxed animate-on-scroll animate-delay-200 ${isInView ? 'animate-fade-up' : ''}`}
+        >
+          Sketch your yard with plants, paths, and structures. Upload a real photo.
+          Hit generate — and get an AI-rendered image of your finished landscape.
+        </p>
+
+        {/* CTA button */}
+        <div className={`animate-on-scroll animate-delay-300 ${isInView ? 'animate-fade-up' : ''}`}>
+          <a
+            href="/app"
+            className="inline-block bg-accent hover:bg-accent-hover text-text font-semibold px-8 py-3.5 rounded-lg text-base transition-all shadow-sm hover:shadow-md"
+          >
+            Start planning — it's free <span aria-hidden="true">&rarr;</span>
+          </a>
+          <p className="text-sm text-text-muted mt-3">
+            No signup, no download. Opens instantly.
+          </p>
+        </div>
+      </div>
+
+      {/* Transformation preview */}
+      <div aria-hidden="true" className={`relative max-w-3xl mx-auto mt-14 animate-on-scroll animate-delay-400 ${isInView ? 'animate-fade-up' : ''}`}>
         <TransformationPreview />
       </div>
     </section>
@@ -58,7 +66,7 @@ export default function Hero() {
 
 function TransformationPreview() {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+    <div className="rounded-xl border border-border bg-bg-card shadow-lg overflow-hidden">
       {/* Plan panel */}
       <div className="p-4 pb-2">
         {/* Fake toolbar */}
@@ -68,15 +76,15 @@ function TransformationPreview() {
             <div className="w-2.5 h-2.5 rounded-full bg-yellow-300" />
             <div className="w-2.5 h-2.5 rounded-full bg-green-300" />
           </div>
-          <span className="text-[10px] text-gray-400 font-medium ml-1">Your layout</span>
+          <span className="text-[10px] text-text-muted font-medium ml-1">Your layout</span>
         </div>
 
-        <div className="bg-gray-50 rounded-lg relative overflow-hidden" style={{ height: 160 }}>
+        <div className="bg-bg-alt rounded-lg relative overflow-hidden" style={{ height: 160 }}>
           {/* Dot grid */}
           <svg className="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="prev-dots" width="16" height="16" patternUnits="userSpaceOnUse">
-                <circle cx="8" cy="8" r="0.6" fill="#94a3b8" />
+                <circle cx="8" cy="8" r="0.6" fill="#8A8D84" />
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#prev-dots)" />
@@ -85,7 +93,7 @@ function TransformationPreview() {
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 360 160" xmlns="http://www.w3.org/2000/svg">
             {/* Boundary */}
             <rect x="16" y="12" width="328" height="136" rx="4"
-              fill="none" stroke="#1971c2" strokeWidth="1.2" strokeDasharray="5,3" />
+              fill="none" stroke="#2D6A4F" strokeWidth="1.2" strokeDasharray="5,3" />
             {/* Lawn */}
             <rect x="24" y="20" width="312" height="120" rx="3"
               fill="#bbf7d0" fillOpacity="0.45" />
@@ -115,18 +123,18 @@ function TransformationPreview() {
       </div>
 
       {/* AI connector strip */}
-      <div className="flex items-center justify-center gap-3 py-3 bg-gray-50/50">
-        <div className="h-px flex-1 bg-gray-200 ml-4" />
+      <div className="flex items-center justify-center gap-3 py-3 bg-bg-alt/50">
+        <div className="h-px flex-1 bg-border ml-4" />
         <div
-          className="w-10 h-10 rounded-full bg-[#e8f0fb] flex items-center justify-center shrink-0"
+          className="w-10 h-10 rounded-full bg-bg-alt flex items-center justify-center shrink-0"
           style={{ animation: 'pulse-glow 2.5s ease-in-out infinite' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="#1971c2" />
-            <path d="M19 14L19.75 16.25L22 17L19.75 17.75L19 20L18.25 17.75L16 17L18.25 16.25L19 14Z" fill="#1971c2" fillOpacity="0.5" />
+            <path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="#2D6A4F" />
+            <path d="M19 14L19.75 16.25L22 17L19.75 17.75L19 20L18.25 17.75L16 17L18.25 16.25L19 14Z" fill="#2D6A4F" fillOpacity="0.5" />
           </svg>
         </div>
-        <div className="h-px flex-1 bg-gray-200 mr-4" />
+        <div className="h-px flex-1 bg-border mr-4" />
       </div>
 
       {/* Render panel */}
@@ -204,7 +212,7 @@ function TransformationPreview() {
 
           {/* Style chip */}
           <div className="absolute bottom-1.5 right-1.5 bg-white/70 backdrop-blur-sm rounded px-1.5 py-0.5">
-            <p className="text-[8px] text-gray-500 font-medium">Contemporary &middot; Autumn &middot; Golden hour</p>
+            <p className="text-[8px] text-text-muted font-medium">Contemporary &middot; Autumn &middot; Golden hour</p>
           </div>
         </div>
       </div>
