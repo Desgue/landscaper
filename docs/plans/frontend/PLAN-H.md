@@ -322,7 +322,81 @@ _None yet._
 
 ### Phase 4 — Built-in Sprite Assets [ ]
 
-> Add the actual PNG sprite images to `public/sprites/` and populate `iconUrl` fields in the builtin registries so the system renders real sprites out of the box.
+> Add PNG sprite images to `public/sprites/` and populate `iconUrl` fields in builtin registries. Sprites are sourced from free asset packs where available and custom-created for gaps. Procedural fallbacks remain for any sprite that cannot be sourced.
+
+#### Sprite Sourcing Research (2026-04-07)
+
+> Comprehensive search of Kenney.nl, itch.io, OpenGameArt, CraftPix, and TonyTextures. Key finding: **no single free pack covers all needs**. The free game asset ecosystem provides generic sprites, not botanically-specific ones. Approximately 21 of 40 required sprites have no viable free source.
+
+##### Approved Source Packs
+
+| Pack | License | Use For | Notes |
+|------|---------|---------|-------|
+| [TonyTextures — Top-View Trees](https://www.tonytextures.com/top-view-trees-cutout-plan-view-tree-library-for-architecture-design-png/) | Free commercial, no redistribution of raw assets | All 6 tree species (oak, maple, birch, fruit tree, ornamental pear, japanese maple) | 270 images across 30 species, 4000x4000px → downscale to 256x256. Architectural plan-view style. Primary source for trees |
+| [TonyTextures — Top-View Plants](https://www.tonytextures.com/top-view-plants-01-cutout-plan-view-plant-graphics-png-for-landscape-design/) | Free commercial, no redistribution of raw assets | Shrubs (boxwood, holly, privet — match from hedge/bush variants), ground cover | 80 cutout graphics. Same style as tree pack. Primary source for shrubs |
+
+##### Coverage Matrix
+
+| Sprite | Source | Strategy |
+|--------|--------|----------|
+| **Trees** | | |
+| `oak.png` | TonyTextures Top-View Trees | Download, select best oak canopy, downscale to 256x256 |
+| `maple.png` | TonyTextures Top-View Trees | Download, select maple/fall-color variant, downscale |
+| `birch.png` | TonyTextures Top-View Trees | Download, select lighter-canopy deciduous, downscale |
+| `fruit-tree.png` | TonyTextures Top-View Trees | Download, select compact flowering/fruiting variant, downscale |
+| `ornamental-pear.png` | TonyTextures Top-View Trees | Download, select columnar/upright deciduous, downscale |
+| `japanese-maple.png` | TonyTextures Top-View Trees | Download, select small red/purple-leaf canopy, downscale |
+| **Shrubs** | | |
+| `boxwood.png` | TonyTextures Top-View Plants | Download, select dense rounded hedge variant, downscale |
+| `lavender.png` | Custom | Create illustrated overhead — purple-tinted low mounding shrub |
+| `hydrangea.png` | Custom | Create illustrated overhead — large rounded bloom clusters |
+| `rose-bush.png` | Custom | Create illustrated overhead — thorny bush with bloom dots |
+| `holly.png` | TonyTextures Top-View Plants | Download, select dense evergreen bush variant, downscale |
+| `privet.png` | TonyTextures Top-View Plants | Download, select hedge/screening shrub variant, downscale |
+| **Vegetables** | | |
+| `tomato.png` | Custom | Create illustrated overhead — bushy green plant, small red dots |
+| `cherry-tomato.png` | Custom | Create illustrated overhead — smaller variant of tomato |
+| `onion.png` | Custom | Create illustrated overhead — upright green shoots from bulb |
+| `eggplant.png` | Custom | Create illustrated overhead — broad dark-green leaves |
+| `pepper.png` | Custom | Create illustrated overhead — compact bushy plant |
+| `lettuce.png` | Custom | Create illustrated overhead — rosette of light-green leaves |
+| `carrot.png` | Custom | Create illustrated overhead — feathery green tops |
+| **Herbs** | | |
+| `basil.png` | Custom | Create illustrated overhead — rounded green leaf clusters |
+| `rosemary.png` | Custom | Create illustrated overhead — narrow needle-like leaves |
+| `mint.png` | Custom | Create illustrated overhead — spreading oval leaves |
+| `thyme.png` | Custom | Create illustrated overhead — tiny dense leaf clusters |
+| **Structures** | | |
+| `brick-wall.png` | Custom | Create illustrated overhead — brick-pattern linear element |
+| `fence.png` | Custom | Create illustrated overhead — wood slat pattern, narrow depth |
+| `retaining-wall.png` | Custom | Create illustrated overhead — stone/concrete linear element with shadow |
+| `raised-bed.png` | Custom | Create illustrated overhead — wood-frame rectangle, soil fill |
+| `planter-box.png` | Custom | Create illustrated overhead — smaller wood container |
+| `patio.png` | Custom | Create illustrated overhead — stone/tile pattern surface |
+| `deck.png` | Custom | Create illustrated overhead — wood plank pattern surface |
+| `pergola.png` | Custom | Create illustrated overhead — semi-transparent lattice/beam pattern |
+| `water-feature.png` | Custom | Create illustrated overhead — circular water with stone edge |
+| `fire-pit.png` | Custom | Create illustrated overhead — circular stone ring |
+| `bench.png` | Custom | Create illustrated overhead — rectangular wood slat seat |
+| `table.png` | Custom | Create illustrated overhead — rectangular/round tabletop |
+
+**Summary:** ~9 sprites (6 trees + 3 shrubs) sourceable from TonyTextures. ~26 need custom creation in matching architectural illustration style. All custom sprites must match TonyTextures visual language: soft shadows, natural muted colors, subtle texture, transparent background, directly overhead perspective.
+
+##### Style Strategy Decision — DECIDED: Architectural Illustration (Option B)
+
+**Chosen style: Professional landscape architecture plan view.** Clean illustrated overhead sprites matching the visual language used by real landscape designers and architects. NOT pixel art, NOT game-aesthetic. This produces a professional planner look appropriate for the app's target audience.
+
+**Primary source: TonyTextures overhead packs** (free commercial use, no redistribution of raw assets):
+- [Top-View Trees](https://www.tonytextures.com/top-view-trees-cutout-plan-view-tree-library-for-architecture-design-png/) — 270 images, 30 tree species, 4000x4000px → downscale to 256x256
+- [Top-View Plants](https://www.tonytextures.com/top-view-plants-01-cutout-plan-view-plant-graphics-png-for-landscape-design/) — 80 images, hedges/shrubs/ground cover, same resolution
+
+**For gaps (vegetables, herbs, structures):** Custom-create in the same clean illustrated overhead style. Characteristics: soft shadows, natural color palette, slight texture detail, transparent background, viewed from directly above.
+
+**Rejected alternatives:**
+- ~~Option A: Pixel art style~~ — game aesthetic, unprofessional for a planner app
+- ~~Option C: Enhanced procedural only~~ — misses the opportunity for visual quality upgrade; Phases 1-3 still support custom `iconUrl` for future use
+
+---
 
 #### Feature: Plant Sprite Assets [ ]
 
@@ -331,9 +405,13 @@ _None yet._
 
 ##### Tasks
 
+- [x] Decide on style strategy — Option B (architectural illustration) selected 2026-04-07
 - [ ] Create `public/sprites/plants/` directory
-- [ ] Add top-down illustrated PNG sprites (64-256px, transparent background, max 256x256 per `MAX_SPRITE_SIZE`) for all 23 builtin plant types. Filenames must exactly match registry IDs: `tomato.png`, `cherry-tomato.png`, `onion.png`, `eggplant.png`, `pepper.png`, `lettuce.png`, `carrot.png`, `basil.png`, `rosemary.png`, `mint.png`, `thyme.png`, `oak.png`, `maple.png`, `birch.png`, `fruit-tree.png`, `ornamental-pear.png`, `japanese-maple.png`, `boxwood.png`, `lavender.png`, `hydrangea.png`, `rose-bush.png`, `holly.png`, `privet.png`
+- [ ] Source/create top-down PNG sprites (64-256px, transparent background, max 256x256 per `MAX_SPRITE_SIZE`) for all 23 builtin plant types. Filenames must exactly match registry IDs: `tomato.png`, `cherry-tomato.png`, `onion.png`, `eggplant.png`, `pepper.png`, `lettuce.png`, `carrot.png`, `basil.png`, `rosemary.png`, `mint.png`, `thyme.png`, `oak.png`, `maple.png`, `birch.png`, `fruit-tree.png`, `ornamental-pear.png`, `japanese-maple.png`, `boxwood.png`, `lavender.png`, `hydrangea.png`, `rose-bush.png`, `holly.png`, `privet.png`
+- [ ] For sourced sprites: download from approved packs, resize to max 256x256, ensure transparent background, verify license compliance, add attribution file if required (CC-BY packs)
+- [ ] For custom sprites: create in the chosen style, matching the visual weight and color palette of sourced sprites
 - [ ] Update `builtinRegistries.ts` to set `iconUrl: 'builtin:<slug>'` for each plant type (slug = the ID, matching filename without extension)
+- [ ] Add `public/sprites/ATTRIBUTION.md` documenting source pack, license, and attribution for each sourced sprite
 - [ ] Manual verify: start the app → all plants on canvas render with image sprites instead of procedural shapes → delete one PNG file → reload → that plant gracefully falls back to procedural while others show images
 
 ##### Decisions
@@ -350,7 +428,9 @@ _None yet._
 ##### Tasks
 
 - [ ] Create `public/sprites/structures/` directory
-- [ ] Add top-down illustrated PNG sprites (max 256x256) for all 12 builtin structure types. Filenames must exactly match registry IDs: `brick-wall.png`, `fence.png`, `retaining-wall.png`, `raised-bed.png`, `planter-box.png`, `patio.png`, `deck.png`, `pergola.png`, `water-feature.png`, `fire-pit.png`, `bench.png`, `table.png`
+- [ ] Source/create top-down PNG sprites (max 256x256) for all 12 builtin structure types. Filenames must exactly match registry IDs: `brick-wall.png`, `fence.png`, `retaining-wall.png`, `raised-bed.png`, `planter-box.png`, `patio.png`, `deck.png`, `pergola.png`, `water-feature.png`, `fire-pit.png`, `bench.png`, `table.png`
+- [ ] For sourced sprites: download, resize, verify license, add to `ATTRIBUTION.md`
+- [ ] For custom sprites: create in the chosen style consistent with plant sprites
 - [ ] Update `builtinRegistries.ts` to set `iconUrl: 'builtin:<slug>'` for each structure type
 - [ ] Manual verify: start the app → all structures with iconUrl render with image sprites → 2.5D extrusion still works on top of the sprite → mixed canvas with plants and structures renders correctly
 
@@ -398,6 +478,9 @@ _None yet._
 | 2026-04-07 | Pinned cache capped at MAX_PINNED_SPRITES=200 | Guards against unbounded VRAM growth from projects with many custom iconUrl values. ~30 builtins fit comfortably; cap warns and falls back to procedural if exceeded |
 | 2026-04-07 | MAX_SPRITE_SIZE enforced by AssetLoader | Textures exceeding 256x256 are rejected (marked as error). Prevents accidental VRAM overconsumption from oversized source images |
 | 2026-04-07 | Debounce flush order: rebuildFromStore() before markDirty() | Ensures sprites have updated texture references before the frame renders. Independent markDirty() during the debounce window is benign (one extra frame with procedural textures) |
+| 2026-04-07 | Sprite sourcing research: no single free pack covers all needs | Searched Kenney.nl, itch.io (CC0 + top-down tags), OpenGameArt, CraftPix freebies, TonyTextures. ~12/35 sprites sourceable from free packs, ~23 require custom creation. Free game asset ecosystem provides generic sprites, not botanically-specific species |
+| 2026-04-07 | Style strategy decided: architectural illustration (Option B) | User confirmed professional planner aesthetic, not game aesthetic. TonyTextures overhead plan-view packs as primary source for trees/shrubs. Custom sprites for vegetables, herbs, structures in matching illustrated style. Pixel art options (CraftPix, LPC, Cainos) rejected |
+| 2026-04-07 | Attribution tracking required for non-CC0 sourced sprites | CraftPix (royalty-free, no redistribution of raw assets), Cottage Pack (CC-BY 4.0, attribution required), TonyTextures (no redistribution). Must add `public/sprites/ATTRIBUTION.md` documenting sources |
 
 ---
 
@@ -409,4 +492,6 @@ _None yet._
 2026-04-07 — Plan initialized. 4 phases covering asset loader, atlas integration, renderer migration, and sprite assets. Procedural generators preserved as permanent fallbacks.
 2026-04-07 — Plan refined after 5-agent review (architect, code, performance, technical-writer, QA). Critical fixes: corrected plant/structure asset IDs to match actual registry, added pinned image cache (no LRU eviction for images), added texturesUpdated callback path (markDirty alone insufficient), added 50ms debounce, added terrain regression tests, expanded test cases, documented edge cases, added RenderScheduler to context map, added execution rules.
 2026-04-07 — Second review pass (5 agents). All critical issues confirmed resolved. Minor fixes applied: optional opts parameter for createTextureAtlas(), MAX_SPRITE_SIZE enforcement in AssetLoader, explicit cleanup ordering (atlas before AssetLoader), DisposalManager ownership clarified (atlas owns pinned textures exclusively), pinned cache capped at 200, debounce flush ordering documented, StructureRenderer z-sort spike noted, 4 additional test cases added (oversized image, idempotent subscriptions, empty preload, no-arg atlas creation).
+2026-04-07 — Sprite sourcing research completed. Searched 8 sites (Kenney, itch.io, OpenGameArt, CraftPix, TonyTextures). No single pack covers all 35 plant+structure sprites. Three style strategies documented.
+2026-04-07 — Style strategy decided: Option B (architectural illustration). User confirmed professional planner aesthetic over game aesthetic. TonyTextures packs approved as primary source for trees/shrubs (~9 sprites). ~26 custom sprites needed in matching style. Phase 4 features unblocked.
 ```
