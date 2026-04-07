@@ -1,3 +1,4 @@
+import React, { Suspense } from 'react'
 import {
   createRootRoute,
   createRoute,
@@ -6,9 +7,37 @@ import {
   Outlet,
 } from '@tanstack/react-router'
 import LandingPage from './pages/LandingPage'
-import WelcomeScreen from './components/WelcomeScreen'
-import AppLayout from './components/AppLayout'
-import './components/registerInspectorSlots'
+
+const LazyWelcomeScreen = React.lazy(() => import('./components/WelcomeScreen'))
+const LazyAppLayout = React.lazy(() =>
+  import('./components/registerInspectorSlots').then(() =>
+    import('./components/AppLayout')
+  )
+)
+
+function LoadingFallback() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      Loading…
+    </div>
+  )
+}
+
+function SuspenseWelcome() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <LazyWelcomeScreen />
+    </Suspense>
+  )
+}
+
+function SuspenseAppLayout() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <LazyAppLayout />
+    </Suspense>
+  )
+}
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -23,13 +52,13 @@ const indexRoute = createRoute({
 const appRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app',
-  component: WelcomeScreen,
+  component: SuspenseWelcome,
 })
 
 const appCanvasRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app/canvas',
-  component: AppLayout,
+  component: SuspenseAppLayout,
 })
 
 const routeTree = rootRoute.addChildren([indexRoute, appRoute, appCanvasRoute])

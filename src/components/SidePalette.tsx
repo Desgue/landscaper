@@ -14,6 +14,7 @@ const TOOL_TO_TAB: Partial<Record<ToolId, Tab>> = {
   terrain: 'Terrain',
   plant: 'Plants',
   structure: 'Structures',
+  arc: 'Structures',
   path: 'Paths',
 }
 
@@ -22,22 +23,10 @@ export default function SidePalette() {
   const [activeTab, setActiveTab] = useState<Tab>('Terrain')
   const activeTool = useToolStore((s) => s.activeTool)
 
+  // ── Hook declarations (all before effects) ─────────────────────────────────
   const terrainTypes = useProjectStore((s) => s.registries.terrain)
   const selectedTerrainTypeId = useTerrainPaintStore((s) => s.selectedTerrainTypeId)
   const setSelectedTerrainTypeId = useTerrainPaintStore((s) => s.setSelectedTerrainTypeId)
-
-  // BUG-5 fix: Sync palette tab when toolbar tool changes
-  useEffect(() => {
-    const tab = TOOL_TO_TAB[activeTool]
-    if (tab) setActiveTab(tab)
-  }, [activeTool])
-
-  // BUG-1 fix: Auto-select first terrain type when switching to terrain tool with none selected
-  useEffect(() => {
-    if (activeTool === 'terrain' && !selectedTerrainTypeId && terrainTypes.length > 0) {
-      setSelectedTerrainTypeId(terrainTypes[0].id)
-    }
-  }, [activeTool, selectedTerrainTypeId, terrainTypes, setSelectedTerrainTypeId])
   const brushSize = useTerrainPaintStore((s) => s.brushSize)
   const brushSetBrushSize = useTerrainPaintStore((s) => s.setBrushSize)
 
@@ -52,6 +41,28 @@ export default function SidePalette() {
   const pathTypes = useProjectStore((s) => s.registries.paths)
   const selectedPathTypeId = usePathToolStore((s) => s.selectedPathTypeId)
   const setSelectedPathTypeId = usePathToolStore((s) => s.setSelectedPathTypeId)
+
+  // ── Effects ────────────────────────────────────────────────────────────────
+
+  // BUG-5 fix: Sync palette tab when toolbar tool changes
+  useEffect(() => {
+    const tab = TOOL_TO_TAB[activeTool]
+    if (tab) setActiveTab(tab)
+  }, [activeTool])
+
+  // BUG-1 fix: Auto-select first terrain type when switching to terrain tool with none selected
+  useEffect(() => {
+    if (activeTool === 'terrain' && !selectedTerrainTypeId && terrainTypes.length > 0) {
+      setSelectedTerrainTypeId(terrainTypes[0].id)
+    }
+  }, [activeTool, selectedTerrainTypeId, terrainTypes, setSelectedTerrainTypeId])
+
+  // BUG-4 fix: Auto-select first structure type when switching to arc tool with none selected
+  useEffect(() => {
+    if (activeTool === 'arc' && !selectedStructureTypeId && structureTypes.length > 0) {
+      setSelectedStructureTypeId(structureTypes[0].id)
+    }
+  }, [activeTool, selectedStructureTypeId, structureTypes, setSelectedStructureTypeId])
 
   function handleTerrainSwatchClick(id: string) {
     setSelectedTerrainTypeId(id)

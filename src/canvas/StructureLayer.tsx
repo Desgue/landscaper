@@ -4,16 +4,16 @@
  * Phase B2 of PLAN-B. Implements:
  *   - Rendering structure elements as colored Rect nodes with labels
  *   - Structure tool (activeTool === 'structure'): two-click placement
- *   - Arc tool (activeTool === 'arc'): places straight structure (arc deferred to PLAN-C)
+ *   - Arc tool (activeTool === 'arc'): 3-step placement (start → end → curvature)
  *   - AABB collision detection (blocks placement on boundary/feature/furniture)
  *   - Ghost preview during placement
  *
  * All coordinates are world units (centimeters). Y-axis points DOWN.
  */
 
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { create } from 'zustand'
-import { Layer, Rect, Group, Text } from 'react-konva'
+import { Layer, Rect, Group, Text, Line, Circle } from 'react-konva'
 import type Konva from 'konva'
 import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore } from '../store/useHistoryStore'
@@ -21,7 +21,8 @@ import { useToolStore } from '../store/useToolStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { useInspectorStore } from '../store/useInspectorStore'
 import { snapPoint } from '../snap/snapSystem'
-import type { StructureElement, StructureType } from '../types/schema'
+import { sampleArc, arcAABB } from './arcGeometry'
+import type { StructureElement, StructureType, Vec2 } from '../types/schema'
 
 // ─── Structure tool store ───────────────────────────────────────────────────
 
@@ -112,12 +113,34 @@ interface PlacingState {
   anchorY: number
 }
 
+/** Arc tool 3-step state: after both endpoints are set, user adjusts curvature. */
+interface ArcPlacingState {
+  p1: Vec2
+  p2: Vec2
+  sagitta: number
+}
+
 interface GhostState {
   x: number
   y: number
   width: number
   height: number
   blocked: boolean
+}
+
+/** Helper: convert two endpoints + sagitta to bounding rect using correct arc AABB. */
+function arcToRect(p1: Vec2, p2: Vec2, sagitta: number, depthCm: number): { x: number; y: number; width: number; height: number } {
+  const { minX, minY, maxX, maxY } = arcAABB(p1, p2, sagitta)
+  const w = Math.max(maxX - minX, depthCm)
+  const h = Math.max(maxY - minY, depthCm)
+  return { x: minX, y: minY, width: w, height: h }
+}
+
+/** Helper: convert Vec2[] to flat Konva points array. */
+function toKonvaPoints(pts: Vec2[]): number[] {
+  const flat: number[] = []
+  for (const p of pts) flat.push(p.x, p.y)
+  return flat
 }
 
 export default function StructureLayer({ width: _width, height: _height }: StructureLayerProps) {
@@ -132,10 +155,40 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
 
   const placingRef = useRef<PlacingState | null>(null)
   const [ghost, setGhost] = useState<GhostState | null>(null)
+  // Arc tool 3-step state
+  const arcPlacingRef = useRef<ArcPlacingState | null>(null)
+  const [arcPreview, setArcPreview] = useState<{ p1: Vec2; p2: Vec2; sagitta: number } | null>(null)
+  const [arcAnchor, setArcAnchor] = useState<Vec2 | null>(null) // First endpoint (visible dot)
 
   const isStructureTool = activeTool === 'structure'
   const isArcTool = activeTool === 'arc'
   const isActive = (isStructureTool || isArcTool) && selectedStructureTypeId !== null
+
+  // Reset all placement state when tool changes
+  useEffect(() => {
+    placingRef.current = null
+    arcPlacingRef.current = null
+    setGhost(null)
+    setArcPreview(null)
+    setArcAnchor(null)
+  }, [activeTool])
+
+  // Escape key cancels in-progress placement
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (arcPlacingRef.current || arcAnchor || placingRef.current) {
+        e.preventDefault()
+        placingRef.current = null
+        arcPlacingRef.current = null
+        setGhost(null)
+        setArcPreview(null)
+        setArcAnchor(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [arcAnchor])
 
   /** Get snapped world coordinates from a Konva event. */
   const getSnappedWorld = useCallback(
@@ -190,6 +243,53 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
     [],
   )
 
+  /** Commit a structure element to the project. */
+  const commitStructure = useCallback(
+    (rect: { x: number; y: number; width: number; height: number }, shape: 'straight' | 'curved', sagitta: number | null) => {
+      const proj = useProjectStore.getState().currentProject
+      if (!proj || !selectedStructureTypeId) return
+
+      const regs = useProjectStore.getState().registries
+      const existingStructures = proj.elements.filter(
+        (el): el is StructureElement => el.type === 'structure',
+      )
+      if (hasStructureCollision(rect.x, rect.y, rect.width, rect.height, existingStructures, regs.structures)) {
+        return
+      }
+
+      const snapshot = structuredClone(proj)
+      const id = crypto.randomUUID()
+      const now = new Date().toISOString()
+      const layerId = proj.layers[0]?.id ?? 'default'
+
+      updateProject((draft) => {
+        draft.elements.push({
+          id,
+          type: 'structure',
+          structureTypeId: selectedStructureTypeId,
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+          rotation: 0,
+          zIndex: 0,
+          locked: false,
+          layerId,
+          groupId: null,
+          createdAt: now,
+          updatedAt: now,
+          shape,
+          arcSagitta: sagitta,
+          notes: null,
+        } satisfies StructureElement)
+      })
+
+      pushHistory(snapshot)
+      useInspectorStore.getState().setInspectedElementId(id)
+    },
+    [selectedStructureTypeId, updateProject, pushHistory],
+  )
+
   const handleMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
       if (!isActive || !selectedStructureTypeId) return
@@ -204,10 +304,37 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
 
       const world = getSnappedWorld(e)
 
+      // ── Arc tool: 3-step workflow ──────────────────────────────────────
+      if (isArcTool) {
+        if (!arcAnchor) {
+          // Step 1: Set first endpoint
+          setArcAnchor(world)
+          return
+        }
+        if (!arcPlacingRef.current) {
+          // Step 2: Set second endpoint → enter curvature mode
+          const p1 = arcAnchor
+          const p2 = world
+          arcPlacingRef.current = { p1, p2, sagitta: 0 }
+          setArcPreview({ p1, p2, sagitta: 0 })
+          return
+        }
+        // Step 3: Commit with current sagitta
+        const { p1, p2, sagitta } = arcPlacingRef.current
+        const depthCm = structureType.defaultDepthCm
+        // If sagitta is ~0, treat as straight (no meaningful arc)
+        const isCurved = Math.abs(sagitta) > 1
+        const rect = arcToRect(p1, p2, sagitta, depthCm)
+        commitStructure(rect, isCurved ? 'curved' : 'straight', isCurved ? sagitta : null)
+        arcPlacingRef.current = null
+        setArcPreview(null)
+        setArcAnchor(null)
+        return
+      }
+
+      // ── Structure tool: 2-click workflow ───────────────────────────────
       if (!placingRef.current) {
-        // First click: set anchor
         placingRef.current = { anchorX: world.x, anchorY: world.y }
-        // Show ghost at default size
         const w = structureType.defaultWidthCm
         const h = structureType.defaultDepthCm
         const existingStructures = proj.elements.filter(
@@ -217,67 +344,46 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
           world.x - w / 2, world.y - h / 2, w, h,
           existingStructures, regs.structures,
         )
-        setGhost({
-          x: world.x - w / 2,
-          y: world.y - h / 2,
-          width: w,
-          height: h,
-          blocked,
-        })
+        setGhost({ x: world.x - w / 2, y: world.y - h / 2, width: w, height: h, blocked })
       } else {
-        // Second click: finalize placement
         const rect = computeRect(placingRef.current, world, structureType)
-
-        // Collision check
-        const existingStructures = proj.elements.filter(
-          (el): el is StructureElement => el.type === 'structure',
-        )
-        if (hasStructureCollision(rect.x, rect.y, rect.width, rect.height, existingStructures, regs.structures)) {
-          // Blocked: don't place, keep placing state
-          return
-        }
-
-        // Capture snapshot BEFORE mutation
-        const snapshot = structuredClone(proj)
-
-        const id = crypto.randomUUID()
-        const now = new Date().toISOString()
-        const layerId = proj.layers[0]?.id ?? 'default'
-
-        updateProject((draft) => {
-          draft.elements.push({
-            id,
-            type: 'structure',
-            structureTypeId: selectedStructureTypeId,
-            x: rect.x,
-            y: rect.y,
-            width: rect.width,
-            height: rect.height,
-            rotation: 0,
-            zIndex: 0,
-            locked: false,
-            layerId,
-            groupId: null,
-            createdAt: now,
-            updatedAt: now,
-            shape: 'straight',
-            arcSagitta: null,
-            notes: null,
-          } satisfies StructureElement)
-        })
-
-        pushHistory(snapshot)
-        useInspectorStore.getState().setInspectedElementId(id)
+        commitStructure(rect, 'straight', null)
         placingRef.current = null
         setGhost(null)
       }
     },
-    [isActive, selectedStructureTypeId, getSnappedWorld, computeRect, updateProject, pushHistory],
+    [isActive, isArcTool, selectedStructureTypeId, getSnappedWorld, computeRect, commitStructure, arcAnchor],
   )
 
   const handleMouseMove = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
       if (!isActive || !selectedStructureTypeId) return
+
+      const world = getSnappedWorld(e)
+
+      // ── Arc tool curvature adjustment (step 3) ─────────────────────────
+      if (isArcTool && arcPlacingRef.current) {
+        const { p1, p2 } = arcPlacingRef.current
+        // Compute sagitta from cursor position perpendicular to chord
+        const chordDx = p2.x - p1.x, chordDy = p2.y - p1.y
+        const chordLen = Math.sqrt(chordDx * chordDx + chordDy * chordDy)
+        if (chordLen > 1e-6) {
+          const midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2
+          const perpX = -chordDy / chordLen, perpY = chordDx / chordLen
+          const sagitta = (world.x - midX) * perpX + (world.y - midY) * perpY
+          arcPlacingRef.current.sagitta = sagitta
+          setArcPreview({ p1, p2, sagitta })
+        }
+        return
+      }
+
+      // ── Arc tool: show preview line from anchor to cursor (step 2) ─────
+      if (isArcTool && arcAnchor && !arcPlacingRef.current) {
+        setArcPreview({ p1: arcAnchor, p2: world, sagitta: 0 })
+        return
+      }
+
+      // ── Structure tool ghost preview ───────────────────────────────────
       if (!placingRef.current) return
 
       const proj = useProjectStore.getState().currentProject
@@ -287,9 +393,7 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
       const structureType = regs.structures.find((s) => s.id === selectedStructureTypeId)
       if (!structureType) return
 
-      const world = getSnappedWorld(e)
       const rect = computeRect(placingRef.current, world, structureType)
-
       const existingStructures = proj.elements.filter(
         (el): el is StructureElement => el.type === 'structure',
       )
@@ -297,16 +401,9 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
         rect.x, rect.y, rect.width, rect.height,
         existingStructures, regs.structures,
       )
-
-      setGhost({
-        x: rect.x,
-        y: rect.y,
-        width: rect.width,
-        height: rect.height,
-        blocked,
-      })
+      setGhost({ x: rect.x, y: rect.y, width: rect.width, height: rect.height, blocked })
     },
-    [isActive, selectedStructureTypeId, getSnappedWorld, computeRect],
+    [isActive, isArcTool, selectedStructureTypeId, getSnappedWorld, computeRect, arcAnchor],
   )
 
   if (!project) return null
@@ -344,6 +441,40 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
 
         const isEffectivelyLocked = el.locked || (layerMap.get(el.layerId)?.locked ?? false)
 
+        // Curved structures: render arc outline
+        if (el.shape === 'curved' && el.arcSagitta !== null) {
+          const p1: Vec2 = { x: el.x, y: el.y + el.height / 2 }
+          const p2: Vec2 = { x: el.x + el.width, y: el.y + el.height / 2 }
+          const arcPts = sampleArc(p1, p2, el.arcSagitta, 32)
+          return (
+            <Group key={el.id} listening={false} opacity={isEffectivelyLocked ? 0.5 : 1}>
+              <Line
+                points={toKonvaPoints(arcPts)}
+                stroke={color}
+                strokeWidth={Math.max(el.height * 0.3, 8)}
+                opacity={isOverhead ? 0.5 : 1}
+                lineCap="round"
+                lineJoin="round"
+              />
+              <Line
+                points={toKonvaPoints(arcPts)}
+                stroke="#1e293b"
+                strokeWidth={1.5 / zoom}
+              />
+              <Text
+                x={(p1.x + p2.x) / 2 - el.width / 2}
+                y={(p1.y + p2.y) / 2 - (12 / zoom)}
+                width={el.width}
+                text={structureType.name}
+                fontSize={12 / zoom}
+                fill="#fff"
+                align="center"
+                listening={false}
+              />
+            </Group>
+          )
+        }
+
         return (
           <Group key={el.id} listening={false} opacity={isEffectivelyLocked ? 0.5 : 1}>
             <Rect
@@ -371,7 +502,7 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
         )
       })}
 
-      {/* Ghost preview while placing */}
+      {/* Ghost preview while placing (structure tool) */}
       {ghost && (
         <Rect
           x={ghost.x}
@@ -384,6 +515,65 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
           dash={[6 / zoom, 4 / zoom]}
           listening={false}
         />
+      )}
+
+      {/* Arc tool: anchored first endpoint */}
+      {isArcTool && arcAnchor && (
+        <Circle
+          x={arcAnchor.x}
+          y={arcAnchor.y}
+          radius={6 / zoom}
+          fill="#3b82f6"
+          stroke="#fff"
+          strokeWidth={1.5 / zoom}
+          listening={false}
+        />
+      )}
+
+      {/* Arc tool: preview line or arc curve */}
+      {arcPreview && (
+        <>
+          {Math.abs(arcPreview.sagitta) > 1 ? (
+            <Line
+              points={toKonvaPoints(sampleArc(arcPreview.p1, arcPreview.p2, arcPreview.sagitta, 32))}
+              stroke="#3b82f6"
+              strokeWidth={2 / zoom}
+              dash={[6 / zoom, 4 / zoom]}
+              listening={false}
+            />
+          ) : (
+            <Line
+              points={[arcPreview.p1.x, arcPreview.p1.y, arcPreview.p2.x, arcPreview.p2.y]}
+              stroke="#3b82f6"
+              strokeWidth={2 / zoom}
+              dash={[6 / zoom, 4 / zoom]}
+              listening={false}
+            />
+          )}
+          {/* Both endpoint dots (visible during curvature adjustment — step 3) */}
+          {arcAnchor && arcPreview.sagitta !== 0 && (
+            <>
+              <Circle
+                x={arcPreview.p1.x}
+                y={arcPreview.p1.y}
+                radius={6 / zoom}
+                fill="#3b82f6"
+                stroke="#fff"
+                strokeWidth={1.5 / zoom}
+                listening={false}
+              />
+              <Circle
+                x={arcPreview.p2.x}
+                y={arcPreview.p2.y}
+                radius={6 / zoom}
+                fill="#3b82f6"
+                stroke="#fff"
+                strokeWidth={1.5 / zoom}
+                listening={false}
+              />
+            </>
+          )}
+        </>
       )}
     </Layer>
   )
