@@ -1,0 +1,309 @@
+{
+  "version": "1.0",
+  "exportedAt": "2026-04-07T00:00:00.000Z",
+  "project": {
+    "id": "real-yard-test",
+    "name": "Real Yard",
+    "createdAt": "2026-04-07T00:00:00.000Z",
+    "updatedAt": "2026-04-07T00:00:00.000Z",
+    "location": { "lat": 41.15, "lng": -8.61 },
+    "yardBoundary": {
+      "vertices": [
+        { "x": 0, "y": 0 },
+        { "x": 1500, "y": 0 },
+        { "x": 1500, "y": 4667 },
+        { "x": 0, "y": 4667 }
+      ]
+    },
+    "layers": [
+      { "id": "a0000000-0000-4000-8000-000000000001", "visible": true, "locked": false, "name": "Default", "order": 0 }
+    ],
+    "elements": [
+
+      { "id": "t-grass-01", "type": "terrain", "layerId": "a0000000-0000-4000-8000-000000000001", "x": 0,   "y": 0,   "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-02", "type": "terrain", "layerId": "a0000000-0000-4000-8000-000000000001", "x": 100, "y": 0,   "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-03", "type": "terrain", "layerId": "a0000000-0000-4000-8000-000000000001", "x": 200, "y": 0,   "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-04", "type": "terrain", "layerId": "a0000000-0000-4000-8000-000000000001", "x": 0,   "y": 100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-05", "type": "terrain", "layerId": "a0000000-0000-4000-8000-000000000001", "x": 100, "y": 100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+
+      { "id": "t-mulch-01", "type": "terrain", "layerId": "a0000000-0000-4000-8000-000000000001", "x": 1000, "y": 500, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t-mulch-02", "type": "terrain", "layerId": "a0000000-0000-4000-8000-000000000001", "x": 1100, "y": 500, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t-mulch-03", "type": "terrain", "layerId": "a0000000-0000-4000-8000-000000000001", "x": 1000, "y": 600, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t-mulch-04", "type": "terrain", "layerId": "a0000000-0000-4000-8000-000000000001", "x": 1100, "y": 600, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+
+      { "id": "t-gravel-01", "type": "terrain", "layerId": "a0000000-0000-4000-8000-000000000001", "x": 300, "y": 2200, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t-gravel-02", "type": "terrain", "layerId": "a0000000-0000-4000-8000-000000000001", "x": 400, "y": 2200, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t-gravel-03", "type": "terrain", "layerId": "a0000000-0000-4000-8000-000000000001", "x": 300, "y": 2300, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t-gravel-04", "type": "terrain", "layerId": "a0000000-0000-4000-8000-000000000001", "x": 400, "y": 2300, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+
+      {
+        "id": "fruit-tree-1",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 1000, "y": 1600,
+        "width": 400, "height": 400,
+        "plantTypeId": "fruit-tree",
+        "status": "planted",
+        "quantity": 1
+      },
+
+      {
+        "id": "hydrangea-1",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 50, "y": 1200,
+        "width": 120, "height": 120,
+        "plantTypeId": "hydrangea",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "hydrangea-2",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 200, "y": 1350,
+        "width": 120, "height": 120,
+        "plantTypeId": "hydrangea",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "hydrangea-3",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 50, "y": 1500,
+        "width": 120, "height": 120,
+        "plantTypeId": "hydrangea",
+        "status": "planted",
+        "quantity": 1
+      },
+
+      {
+        "id": "lavender-1",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 1000, "y": 800,
+        "width": 60, "height": 60,
+        "plantTypeId": "lavender",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "lavender-2",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 1100, "y": 800,
+        "width": 60, "height": 60,
+        "plantTypeId": "lavender",
+        "status": "planted",
+        "quantity": 1
+      },
+
+      {
+        "id": "rosemary-1",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 1200, "y": 500,
+        "width": 45, "height": 45,
+        "plantTypeId": "rosemary",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "thyme-1",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 1300, "y": 500,
+        "width": 23, "height": 23,
+        "plantTypeId": "thyme",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "mint-1",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 1200, "y": 600,
+        "width": 38, "height": 38,
+        "plantTypeId": "mint",
+        "status": "planted",
+        "quantity": 1
+      },
+
+      {
+        "id": "lettuce-1",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 880, "y": 2950,
+        "width": 25, "height": 25,
+        "plantTypeId": "lettuce",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "lettuce-2",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 930, "y": 2950,
+        "width": 25, "height": 25,
+        "plantTypeId": "lettuce",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "onion-1",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 1000, "y": 2950,
+        "width": 15, "height": 15,
+        "plantTypeId": "onion",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "onion-2",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 1030, "y": 2950,
+        "width": 15, "height": 15,
+        "plantTypeId": "onion",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "pepper-1",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 880, "y": 3300,
+        "width": 45, "height": 45,
+        "plantTypeId": "pepper",
+        "status": "planned",
+        "quantity": 1
+      },
+
+      {
+        "id": "rose-bush-1",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 1300, "y": 1200,
+        "width": 90, "height": 90,
+        "plantTypeId": "rose-bush",
+        "status": "planted",
+        "quantity": 1
+      },
+
+      {
+        "id": "boxwood-1",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 50, "y": 2000,
+        "width": 80, "height": 80,
+        "plantTypeId": "boxwood",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "boxwood-2",
+        "type": "plant",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 50, "y": 2150,
+        "width": 80, "height": 80,
+        "plantTypeId": "boxwood",
+        "status": "planted",
+        "quantity": 1
+      },
+
+      {
+        "id": "raised-bed-1",
+        "type": "structure",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 850, "y": 2850,
+        "width": 400, "height": 200,
+        "structureTypeId": "raised-bed",
+        "shape": "straight",
+        "rotation": 0
+      },
+      {
+        "id": "raised-bed-2",
+        "type": "structure",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 850, "y": 3150,
+        "width": 350, "height": 200,
+        "structureTypeId": "raised-bed",
+        "shape": "straight",
+        "rotation": 0
+      },
+
+      {
+        "id": "bench-1",
+        "type": "structure",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 200, "y": 2500,
+        "width": 150, "height": 50,
+        "structureTypeId": "bench",
+        "shape": "straight",
+        "rotation": 0
+      },
+
+      {
+        "id": "path-main",
+        "type": "path",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 0, "y": 0,
+        "width": 0, "height": 0,
+        "pathTypeId": "flagstone",
+        "strokeWidthCm": 60,
+        "points": [
+          { "x": 750, "y": 50 },
+          { "x": 730, "y": 900 },
+          { "x": 700, "y": 1800 },
+          { "x": 680, "y": 2700 },
+          { "x": 700, "y": 3600 },
+          { "x": 750, "y": 4600 }
+        ]
+      },
+      {
+        "id": "path-herb-garden",
+        "type": "path",
+        "layerId": "a0000000-0000-4000-8000-000000000001",
+        "x": 0, "y": 0,
+        "width": 0, "height": 0,
+        "pathTypeId": "gravel-path",
+        "strokeWidthCm": 50,
+        "points": [
+          { "x": 730, "y": 700 },
+          { "x": 900, "y": 650 },
+          { "x": 1050, "y": 600 }
+        ]
+      }
+    ]
+  },
+  "registries": {
+    "terrain": [
+      { "id": "grass", "name": "Grass", "category": "natural", "color": "#4CAF50" },
+      { "id": "mulch", "name": "Mulch", "category": "natural", "color": "#6D4C41" },
+      { "id": "gravel", "name": "Gravel", "category": "hardscape", "color": "#9E9E9E" }
+    ],
+    "plants": [
+      { "id": "fruit-tree", "name": "Fruit Tree", "iconUrl": "builtin:fruit-tree", "category": "tree", "growthForm": "tree", "spacingCm": 400, "rowSpacingCm": 400, "canopyWidthCm": 400, "heightCm": 500, "trunkWidthCm": 25, "sunRequirement": "full", "waterNeed": "medium", "season": ["spring", "summer", "fall", "winter"] },
+      { "id": "hydrangea", "name": "Hydrangea", "iconUrl": "builtin:hydrangea", "category": "shrub", "growthForm": "shrub", "spacingCm": 120, "rowSpacingCm": 120, "canopyWidthCm": 120, "heightCm": 150, "sunRequirement": "partial", "waterNeed": "medium", "season": ["spring", "summer", "fall", "winter"] },
+      { "id": "lavender", "name": "Lavender", "iconUrl": "builtin:lavender", "category": "shrub", "growthForm": "shrub", "spacingCm": 60, "rowSpacingCm": 60, "canopyWidthCm": 60, "heightCm": 60, "sunRequirement": "full", "waterNeed": "low", "season": ["spring", "summer", "fall", "winter"] },
+      { "id": "rose-bush", "name": "Rose Bush", "iconUrl": "builtin:rose-bush", "category": "shrub", "growthForm": "shrub", "spacingCm": 90, "rowSpacingCm": 90, "canopyWidthCm": 90, "heightCm": 120, "sunRequirement": "full", "waterNeed": "medium", "season": ["spring", "summer", "fall", "winter"] },
+      { "id": "boxwood", "name": "Boxwood", "iconUrl": "builtin:boxwood", "category": "shrub", "growthForm": "shrub", "spacingCm": 80, "rowSpacingCm": 80, "canopyWidthCm": 80, "heightCm": 100, "sunRequirement": "partial", "waterNeed": "medium", "season": ["spring", "summer", "fall", "winter"] },
+      { "id": "rosemary", "name": "Rosemary", "iconUrl": "builtin:rosemary", "category": "herb", "growthForm": "herb", "spacingCm": 30, "rowSpacingCm": 45, "heightCm": 60, "sunRequirement": "full", "waterNeed": "low", "season": ["spring", "summer"] },
+      { "id": "thyme", "name": "Thyme", "iconUrl": "builtin:thyme", "category": "herb", "growthForm": "herb", "spacingCm": 15, "rowSpacingCm": 23, "heightCm": 25, "sunRequirement": "full", "waterNeed": "low", "season": ["spring", "summer"] },
+      { "id": "mint", "name": "Mint", "iconUrl": "builtin:mint", "category": "herb", "growthForm": "herb", "spacingCm": 25, "rowSpacingCm": 38, "heightCm": 40, "sunRequirement": "partial", "waterNeed": "medium", "season": ["spring", "summer"] },
+      { "id": "lettuce", "name": "Lettuce", "iconUrl": "builtin:lettuce", "category": "vegetable", "growthForm": "herb", "spacingCm": 25, "rowSpacingCm": 38, "heightCm": 30, "sunRequirement": "partial", "waterNeed": "medium", "season": ["spring", "summer"] },
+      { "id": "onion", "name": "Onion", "iconUrl": "builtin:onion", "category": "vegetable", "growthForm": "herb", "spacingCm": 10, "rowSpacingCm": 15, "heightCm": 40, "sunRequirement": "full", "waterNeed": "medium", "season": ["spring", "summer"] },
+      { "id": "pepper", "name": "Pepper", "iconUrl": "builtin:pepper", "category": "vegetable", "growthForm": "herb", "spacingCm": 45, "rowSpacingCm": 68, "heightCm": 80, "sunRequirement": "full", "waterNeed": "medium", "season": ["spring", "summer"] }
+    ],
+    "structures": [
+      { "id": "raised-bed", "name": "Raised Bed", "iconUrl": "builtin:raised-bed", "category": "container", "defaultWidthCm": 200, "defaultDepthCm": 100 },
+      { "id": "bench", "name": "Bench", "iconUrl": "builtin:bench", "category": "furniture", "defaultWidthCm": 150, "defaultDepthCm": 50 }
+    ],
+    "paths": [
+      { "id": "flagstone", "name": "Flagstone", "defaultWidthCm": 90, "color": "#90A4AE" },
+      { "id": "gravel-path", "name": "Gravel Path", "defaultWidthCm": 60, "color": "#A5A5A5" }
+    ]
+  }
+}

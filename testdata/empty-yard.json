@@ -1,16 +1,23 @@
 {
-  "id": "test-empty-yard",
-  "location": null,
-  "yardBoundary": {
-    "vertices": [
-      { "x": 0, "y": 0 },
-      { "x": 500, "y": 0 },
-      { "x": 500, "y": 500 },
-      { "x": 0, "y": 500 }
-    ]
+  "version": "1.0",
+  "exportedAt": "2026-04-07T00:00:00.000Z",
+  "project": {
+    "id": "test-empty-yard",
+    "name": "Empty Yard",
+    "createdAt": "2026-04-07T00:00:00.000Z",
+    "updatedAt": "2026-04-07T00:00:00.000Z",
+    "location": null,
+    "yardBoundary": {
+      "vertices": [
+        { "x": 0, "y": 0 },
+        { "x": 500, "y": 0 },
+        { "x": 500, "y": 500 },
+        { "x": 0, "y": 500 }
+      ]
+    },
+    "layers": [],
+    "elements": []
   },
-  "layers": [],
-  "elements": [],
   "registries": {
     "terrain": [],
     "plants": [],
