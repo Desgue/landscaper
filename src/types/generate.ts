@@ -29,38 +29,25 @@ export const TIMES_OF_DAY = [
   { value: 'morning', label: 'Morning' },
   { value: 'midday', label: 'Midday' },
   { value: 'golden hour', label: 'Golden Hour' },
-  { value: 'dusk', label: 'Dusk' },
-] as const;
-
-export const CAMERA_ANGLES = [
-  { value: 'eye-level', label: 'Eye Level' },
-  { value: '3/4 elevated', label: '3/4 Elevated' },
-  { value: 'birds-eye', label: "Bird's Eye" },
-] as const;
-
-export const WEATHER_OPTIONS = [
-  { value: 'clear', label: 'Clear' },
   { value: 'overcast', label: 'Overcast' },
-  { value: 'light rain', label: 'Light Rain' },
 ] as const;
 
-export const RENDER_STYLES = [
-  { value: 'photorealistic', label: 'Photorealistic' },
-  { value: 'watercolor', label: 'Watercolor' },
-  { value: 'architectural', label: 'Architectural' },
-  { value: 'sketch', label: 'Sketch' },
+export const VIEWPOINTS = [
+  { value: 'eye-level', label: 'Eye Level' },
+  { value: 'elevated', label: 'Elevated' },
+  { value: 'isometric', label: 'Isometric' },
 ] as const;
 
-export const RESOLUTIONS = [
-  { value: 'draft', label: 'Draft (512px)' },
-  { value: 'standard', label: 'Standard (1K)' },
-  { value: 'final', label: 'Final (4K)' },
+export const IMAGE_SIZES = [
+  { value: '1K', label: '1K' },
+  { value: '2K', label: '2K' },
+  { value: '4K', label: '4K' },
 ] as const;
 
 export const ASPECT_RATIOS = [
-  { value: 'landscape', label: '16:9' },
+  { value: 'landscape', label: '4:3' },
   { value: 'square', label: '1:1' },
-  { value: 'portrait', label: '9:16' },
+  { value: 'portrait', label: '3:4' },
 ] as const;
 
 // ── Derived union types ─────────────────────────────────────────────────────
@@ -68,10 +55,8 @@ export const ASPECT_RATIOS = [
 export type GardenStyle = (typeof GARDEN_STYLES)[number]['value'];
 export type Season = (typeof SEASONS)[number]['value'];
 export type TimeOfDay = (typeof TIMES_OF_DAY)[number]['value'];
-export type CameraAngle = (typeof CAMERA_ANGLES)[number]['value'];
-export type Weather = (typeof WEATHER_OPTIONS)[number]['value'];
-export type RenderStyle = (typeof RENDER_STYLES)[number]['value'];
-export type Resolution = (typeof RESOLUTIONS)[number]['value'];
+export type Viewpoint = (typeof VIEWPOINTS)[number]['value'];
+export type ImageSize = (typeof IMAGE_SIZES)[number]['value'];
 export type AspectRatio = (typeof ASPECT_RATIOS)[number]['value'];
 
 // ── Generation options (persisted in UIState.lastGenerateOptions) ────────────
@@ -80,13 +65,10 @@ export interface GenerateOptions {
   gardenStyle: GardenStyle;
   season: Season;
   timeOfDay: TimeOfDay;
-  cameraAngle: CameraAngle;
-  weather: Weather;
-  renderStyle: RenderStyle;
-  resolution: Resolution;
+  viewpoint: Viewpoint;
   aspectRatio: AspectRatio;
+  imageSize: ImageSize;
   includePlanned: boolean;
-  thinkingMode: boolean;
   seed: number | null; // null = random
 }
 
@@ -94,13 +76,10 @@ export const DEFAULT_OPTIONS: GenerateOptions = {
   gardenStyle: 'garden',
   season: 'auto',
   timeOfDay: 'golden hour',
-  cameraAngle: 'eye-level',
-  weather: 'clear',
-  renderStyle: 'photorealistic',
-  resolution: 'standard',
+  viewpoint: 'eye-level',
   aspectRatio: 'square',
+  imageSize: '1K',
   includePlanned: true,
-  thinkingMode: false,
   seed: null,
 };
 
