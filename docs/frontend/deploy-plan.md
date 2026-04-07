@@ -81,7 +81,7 @@ The Greenprint frontend is a standalone React SPA that:
 - Is built with **Vite 8** + **React 19** + **TypeScript 6**
 - Uses **TanStack Router** for client-side routing (`/`, `/app`, `/app/canvas`)
 - Uses **Zustand** for state management and **IndexedDB** (via `idb`) for local project persistence
-- Uses **Konva** / **react-konva** for canvas-based landscape design rendering
+- Uses **PixiJS v8** for WebGL2-accelerated canvas rendering (2.5D textured engine)
 - Proxies `/api/*` requests to the Go backend during development (`vite.config.ts` proxy)
 - Has **no server-side rendering** — purely client-side
 - Build output goes to `dist/` via `npm run build` (`tsc -b && vite build`)

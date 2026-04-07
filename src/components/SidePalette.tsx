@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useProjectStore } from '../store/useProjectStore'
 import { useToolStore } from '../store/useToolStore'
-import { useTerrainPaintStore } from '../canvas/TerrainLayer'
-import { usePlantToolStore } from '../canvas/PlantLayer'
-import { useStructureToolStore } from '../canvas/StructureLayer'
-import { usePathToolStore } from '../canvas/PathLayer'
+import { useTerrainPaintStore, usePlantToolStore, useStructureToolStore, usePathToolStore } from '../canvas/toolStores'
 import type { ToolId } from '../types/schema'
 
 type Tab = 'Terrain' | 'Plants' | 'Structures' | 'Paths'

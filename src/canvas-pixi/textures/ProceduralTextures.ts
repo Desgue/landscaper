@@ -17,6 +17,7 @@ const TERRAIN_COLORS: Record<string, string> = {
   'decking-surface': '#C8A96E',
   mulch: '#6D4C41',
   'bark-chips': '#8D6E63',
+  water: '#2196F3',
 }
 
 // ---------------------------------------------------------------------------
@@ -312,6 +313,37 @@ function generateMulch(ctx: CanvasRenderingContext2D, size: number): void {
   }
 }
 
+function generateWater(ctx: CanvasRenderingContext2D, size: number): void {
+  const noise = createNoise2D()
+  const noise2 = createNoise2D()
+  const imageData = ctx.createImageData(size, size)
+  const data = imageData.data
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      // Low frequency noise for large wavy bands
+      const n1 = wrappedNoise2D(noise, x, y, size, 0.02) * 0.5
+      const n2 = wrappedNoise2D(noise, x, y, size, 0.04) * 0.3
+      // Higher frequency for surface ripple detail
+      const n3 = wrappedNoise2D(noise2, x, y, size, 0.08) * 0.2
+      const n = n1 + n2 + n3
+
+      // Hue 195-210 (turquoise to blue), Sat 55-70%, Light 35-50%
+      const hue = 195 + n * 15
+      const sat = 55 + n * 15
+      const light = 35 + n * 15
+
+      const [r, g, b] = hslToRgb(hue, sat, light)
+      const idx = (y * size + x) * 4
+      data[idx] = r
+      data[idx + 1] = g
+      data[idx + 2] = b
+      data[idx + 3] = 255
+    }
+  }
+  ctx.putImageData(imageData, 0, 0)
+}
+
 function generateBarkChips(ctx: CanvasRenderingContext2D, size: number): void {
   const baseHex = TERRAIN_COLORS['bark-chips']!
   const [br, bg, bb] = hexToRgb(baseHex)
@@ -390,6 +422,9 @@ export function generateTerrainTexture(
       break
     case 'bark-chips':
       generateBarkChips(ctx, size)
+      break
+    case 'water':
+      generateWater(ctx, size)
       break
     default: {
       // Unknown terrain type — fill with base color if available, else fallback

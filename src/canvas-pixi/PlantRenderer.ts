@@ -15,6 +15,7 @@
 import { Container, Sprite, Graphics, Text } from 'pixi.js'
 import { connectStore } from './connectStore'
 import { useProjectStore } from '../store/useProjectStore'
+import { useViewportStore } from '../store/useViewportStore'
 import {
   setupWorldObject,
   clearGraphics,
@@ -30,6 +31,9 @@ import type { PlantElement, PlantType, PlantStatus, Layer } from '../types/schem
 
 /** Max rendered plant sprites (prevents unbounded VRAM growth). */
 const MAX_PLANTS = 500
+
+/** Culling margin in world cm — generous to avoid pop-in during fast panning. */
+const CULLING_MARGIN = 200
 
 /** Status indicator icon size relative to plant radius. */
 const STATUS_ICON_SCALE = 0.25
@@ -76,6 +80,7 @@ export function createPlantRenderer(
   container: Container,
   scheduler: RenderScheduler,
   atlas: TextureAtlas,
+  getCanvasSize: () => { width: number; height: number },
 ): RendererHandle {
   const entries = new Map<string, PlantEntry>()
   const unsubs: Array<() => void> = []
@@ -217,6 +222,62 @@ export function createPlantRenderer(
   }
 
   // ---------------------------------------------------------------------------
+  // Viewport culling
+  // ---------------------------------------------------------------------------
+
+  /** Viewport world bounds for element-level visibility culling. */
+  function getViewportWorldBounds(): {
+    worldLeft: number; worldTop: number; worldRight: number; worldBottom: number
+  } {
+    const { panX, panY, zoom } = useViewportStore.getState()
+    const { width: viewW, height: viewH } = getCanvasSize()
+    return {
+      worldLeft: -panX / zoom,
+      worldTop: -panY / zoom,
+      worldRight: (-panX + viewW) / zoom,
+      worldBottom: (-panY + viewH) / zoom,
+    }
+  }
+
+  /**
+   * Set .visible = false for plants whose position (with radius margin)
+   * falls entirely outside the current viewport. Layer-hidden plants
+   * remain hidden regardless of viewport.
+   */
+  function updateElementVisibility(): void {
+    const { worldLeft, worldTop, worldRight, worldBottom } = getViewportWorldBounds()
+    const project = useProjectStore.getState().currentProject
+
+    for (const entry of entries.values()) {
+      // Find the element to get its position and compute radius
+      const el = project?.elements.find(
+        (e): e is PlantElement => e.id === entry.elementId && e.type === 'plant',
+      )
+      if (!el) continue
+
+      // Layer visibility takes precedence — if layer is hidden, stay hidden
+      const layer = project?.layers.find((l: Layer) => l.id === el.layerId)
+      if (layer && !layer.visible) continue
+
+      const pt = resolvePlantType(el.plantTypeId)
+      const radius = pt ? effectiveRadius(el, pt) : 30
+      const margin = radius + CULLING_MARGIN
+
+      const inViewport =
+        el.x + margin >= worldLeft &&
+        el.x - margin <= worldRight &&
+        el.y + margin >= worldTop &&
+        el.y - margin <= worldBottom
+
+      entry.sprite.visible = inViewport
+      entry.shadow.visible = inViewport
+      entry.statusText.visible = inViewport
+    }
+
+    scheduler.markDirty()
+  }
+
+  // ---------------------------------------------------------------------------
   // Full rebuild from store
   // ---------------------------------------------------------------------------
 
@@ -280,7 +341,8 @@ export function createPlantRenderer(
       }
     }
 
-    scheduler.markDirty()
+    // Apply viewport culling after rebuild
+    updateElementVisibility()
   }
 
   // ---------------------------------------------------------------------------
@@ -311,6 +373,15 @@ export function createPlantRenderer(
       useProjectStore,
       (s) => s.currentProject?.layers,
       () => rebuildFromStore(),
+    ),
+  )
+
+  // Update element visibility when viewport changes (pan/zoom)
+  unsubs.push(
+    connectStore(
+      useViewportStore,
+      (s) => `${s.panX},${s.panY},${s.zoom}`,
+      () => updateElementVisibility(),
     ),
   )
 

@@ -11,7 +11,7 @@ import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useToolStore } from '../store/useToolStore'
 import { useInspectorStore } from '../store/useInspectorStore'
-import { useTerrainPaintStore } from '../canvas/TerrainLayer'
+import { useTerrainPaintStore } from '../canvas/toolStores'
 import type { RendererHandle } from './BaseRenderer'
 
 // ---------------------------------------------------------------------------

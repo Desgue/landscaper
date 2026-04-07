@@ -10,6 +10,12 @@
  */
 import type { Application } from 'pixi.js'
 
+/**
+ * Enable to log per-frame render time (ms) to the console.
+ * Toggle at build time or patch at runtime via `(scheduler as any).perfLogging = true`.
+ */
+const PERF_LOGGING = false
+
 type RenderCallback = () => void
 
 export class RenderScheduler {
@@ -18,6 +24,9 @@ export class RenderScheduler {
   private rafId = 0
   private callbacks: Set<RenderCallback> = new Set()
   private running = false
+
+  /** Runtime-toggleable perf logging (mirrors the module-level default). */
+  perfLogging = PERF_LOGGING
 
   /** Bind to an Application instance and begin accepting dirty signals. */
   start(app: Application): void {
@@ -65,6 +74,8 @@ export class RenderScheduler {
     this.dirty = false
     if (!this.running || !this.app) return
 
+    const t0 = this.perfLogging ? performance.now() : 0
+
     // Run pre-render callbacks
     for (const cb of this.callbacks) {
       cb()
@@ -72,5 +83,10 @@ export class RenderScheduler {
 
     // Render the scene
     this.app.renderer.render({ container: this.app.stage })
+
+    if (this.perfLogging) {
+      const elapsed = performance.now() - t0
+      console.debug(`[RenderScheduler] frame: ${elapsed.toFixed(2)}ms`)
+    }
   }
 }

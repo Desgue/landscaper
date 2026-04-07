@@ -7,29 +7,19 @@ import type { CanvasElement, Layer } from '../types/schema'
 import { SELECTION_PRIORITY } from './selectionPriority'
 
 import {
-  hitTest as terrainHitTest,
-  getAABB as terrainGetAABB,
-} from './TerrainLayer'
-import {
-  hitTest as plantHitTest,
-  getAABB as plantGetAABB,
-} from './PlantLayer'
-import {
-  hitTest as structureHitTest,
-  getAABB as structureGetAABB,
-} from './StructureLayer'
-import {
-  hitTest as pathHitTest,
-  getAABB as pathGetAABB,
-} from './PathLayer'
-import {
-  hitTest as labelHitTest,
-  getAABB as labelGetAABB,
-} from './LabelLayer'
-import {
-  hitTest as dimensionHitTest,
-  getAABB as dimensionGetAABB,
-} from './DimensionLayer'
+  terrainHitTest,
+  terrainGetAABB,
+  plantHitTest,
+  plantGetAABB,
+  structureHitTest,
+  structureGetAABB,
+  pathHitTest,
+  pathGetAABB,
+  labelHitTest,
+  labelGetAABB,
+  dimensionHitTest,
+  dimensionGetAABB,
+} from './elementAABB'
 
 export interface AABB {
   x: number

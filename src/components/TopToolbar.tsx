@@ -18,8 +18,8 @@ import { useToolStore } from '../store/useToolStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { exportProjectAsJSON } from '../db/projectsDb'
-import { exportToPNG } from '../canvas/exportPNG'
 import { useRouter } from '@tanstack/react-router'
+
 
 // Design tokens
 const ACCENT = '#1971c2'
@@ -302,9 +302,10 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
             </button>
             <button
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              onClick={() => {
+              onClick={async () => {
                 if (currentProject) {
-                  exportToPNG(currentProject)
+                  const { exportToPNG } = await import('../canvas-pixi/exportPNG')
+                  await exportToPNG(currentProject)
                 }
                 setMenuOpen(false)
               }}

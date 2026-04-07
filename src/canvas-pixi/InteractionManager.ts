@@ -18,7 +18,7 @@ import { useSelectionStore } from '../store/useSelectionStore'
 import { useInspectorStore } from '../store/useInspectorStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { getElementsAtPoint } from '../canvas/hitTestAll'
-import { useLabelToolStore } from '../canvas/LabelLayer'
+import { useLabelToolStore } from '../canvas/toolStores'
 import { connectStore } from './connectStore'
 import type { RenderScheduler } from './RenderScheduler'
 import type { RendererHandle } from './BaseRenderer'
@@ -191,6 +191,16 @@ export function createInteractionManager(
       const ssmEvent = makeSSMEvent(e, 'move')
       const visual = ssm.handlePointer(ssmEvent)
       selectionOverlay.updateVisualState(visual)
+
+      // Hover highlight on pointermove when select tool is active
+      if (tool === 'select') {
+        const project = useProjectStore.getState().currentProject
+        if (project) {
+          const hits = getElementsAtPoint(project.elements, project.layers, worldX, worldY)
+          const topHitId = hits.length > 0 ? hits[0].id : null
+          selectionOverlay.setHoveredId(topHitId)
+        }
+      }
       return
     }
 
