@@ -106,6 +106,23 @@ export function createTerrainRenderer(
   // Spatial index of terrain cells
   let terrainCells = new Map<string, TerrainElement>()
 
+  // Water animation state: maps sprite to its base position
+  const waterSpriteBasePos = new Map<Sprite, { baseX: number; baseY: number }>()
+  let waterAnimTick = 0
+  const WATER_ANIM_RANGE = 3 // max pixel offset range
+
+  const waterAnimInterval = setInterval(() => {
+    if (waterSpriteBasePos.size === 0) return
+    waterAnimTick++
+    for (const [sprite, base] of waterSpriteBasePos) {
+      // Oscillating offset using sin/cos for smooth wave motion
+      const offsetX = Math.sin(waterAnimTick * 0.15) * WATER_ANIM_RANGE
+      const offsetY = Math.cos(waterAnimTick * 0.12) * WATER_ANIM_RANGE * 0.6
+      sprite.position.set(base.baseX + offsetX, base.baseY + offsetY)
+    }
+    scheduler.markDirty()
+  }, 100)
+
   // ---------------------------------------------------------------------------
   // Chunk management
   // ---------------------------------------------------------------------------
@@ -175,6 +192,7 @@ export function createTerrainRenderer(
 
     // Destroy individual sprites with { texture: false } — atlas owns textures
     for (const sprite of chunk.cellSprites.values()) {
+      waterSpriteBasePos.delete(sprite)
       sprite.destroy({ texture: false })
     }
     chunk.cellSprites.clear()
@@ -245,6 +263,7 @@ export function createTerrainRenderer(
     // Remove sprites for cells that no longer exist
     for (const [cellKey, sprite] of chunk.cellSprites) {
       if (!currentCellKeys.has(cellKey)) {
+        waterSpriteBasePos.delete(sprite)
         chunk.container.removeChild(sprite)
         sprite.destroy({ texture: false })
         chunk.cellSprites.delete(cellKey)
@@ -268,13 +287,28 @@ export function createTerrainRenderer(
           if (existing.texture !== texture) {
             existing.texture = texture
           }
+          // Track/untrack water sprites
+          if (cell.terrainTypeId === 'water') {
+            if (!waterSpriteBasePos.has(existing)) {
+              waterSpriteBasePos.set(existing, { baseX: dx * CELL_SIZE, baseY: dy * CELL_SIZE })
+            }
+          } else {
+            waterSpriteBasePos.delete(existing)
+          }
         } else {
           // Create new sprite
           const sprite = new Sprite(texture)
-          sprite.position.set(dx * CELL_SIZE, dy * CELL_SIZE)
+          const baseX = dx * CELL_SIZE
+          const baseY = dy * CELL_SIZE
+          sprite.position.set(baseX, baseY)
           sprite.width = CELL_SIZE
           sprite.height = CELL_SIZE
           setupWorldObject(sprite)
+
+          // Track water sprites for animation
+          if (cell.terrainTypeId === 'water') {
+            waterSpriteBasePos.set(sprite, { baseX, baseY })
+          }
 
           chunk.container.addChild(sprite)
           chunk.cellSprites.set(cellKey, sprite)
@@ -554,6 +588,8 @@ export function createTerrainRenderer(
       // Reactivity handled by store subscriptions
     },
     destroy() {
+      clearInterval(waterAnimInterval)
+      waterSpriteBasePos.clear()
       for (const unsub of unsubs) unsub()
       for (const [key, chunk] of chunks) {
         destroyChunk(key, chunk)

@@ -17,8 +17,8 @@ import { useCursorStore } from '../store/useCursorStore'
 import { useSelectionStore } from '../store/useSelectionStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useInspectorStore } from '../store/useInspectorStore'
-import { toWorld, fitToView } from '../canvas/viewport'
-import { getAABB } from '../canvas/YardBoundaryLayer'
+import { toWorld, fitToView, clampZoom } from '../canvas/viewport'
+import { boundaryGetAABB as getAABB } from '../canvas/elementAABB'
 import { RenderScheduler } from './RenderScheduler'
 import { DisposalManager } from './DisposalManager'
 import { createGridRenderer } from './GridRenderer'
@@ -41,6 +41,7 @@ import {
 } from './PlacementHandlers'
 import { createPathDrawingHandler } from './PathDrawingHandler'
 import { createBoundaryHandler } from './BoundaryHandler'
+import { setPixiApp } from './exportPNG'
 
 interface CanvasHostProps {
   width: number
@@ -137,6 +138,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       // Mount canvas element
       container.appendChild(app.canvas)
       appRef.current = app
+      setPixiApp(app)
 
       // ------------------------------------------------------------------
       // Scene graph
@@ -267,13 +269,54 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       interaction.on('pointerupoutside', onPointerUp)
 
       // ------------------------------------------------------------------
-      // Wheel zoom
+      // Wheel zoom with smooth animation (lerp over ~150ms)
       // ------------------------------------------------------------------
+      let zoomAnimRaf = 0
+      let zoomAnimStart = 0
+      let zoomAnimFrom = 1
+      let zoomAnimTo = 1
+      let zoomAnimCursorX = 0
+      let zoomAnimCursorY = 0
+      const ZOOM_ANIM_DURATION = 150
+
+      function animateZoom(now: number): void {
+        const elapsed = now - zoomAnimStart
+        const t = Math.min(1, elapsed / ZOOM_ANIM_DURATION)
+        // Smooth ease-out
+        const eased = 1 - (1 - t) * (1 - t)
+        const currentZoom = zoomAnimFrom + (zoomAnimTo - zoomAnimFrom) * eased
+
+        useViewportStore.getState().applyZoomTowardCursor(
+          zoomAnimCursorX, zoomAnimCursorY, currentZoom,
+        )
+
+        if (t < 1) {
+          zoomAnimRaf = requestAnimationFrame(animateZoom)
+        } else {
+          zoomAnimRaf = 0
+        }
+      }
+
       const onWheel = (e: WheelEvent) => {
         e.preventDefault()
         const { clientX, clientY, deltaX, deltaY, ctrlKey } = e
         if (ctrlKey) {
-          useViewportStore.getState().applyWheelZoom(clientX, clientY, deltaY)
+          // Cancel any in-flight zoom animation
+          if (zoomAnimRaf) {
+            cancelAnimationFrame(zoomAnimRaf)
+            zoomAnimRaf = 0
+          }
+
+          const { zoom } = useViewportStore.getState()
+          const factor = deltaY < 0 ? 1.1 : 1 / 1.1
+          const targetZoom = clampZoom(zoom * factor)
+
+          zoomAnimFrom = zoom
+          zoomAnimTo = targetZoom
+          zoomAnimCursorX = clientX
+          zoomAnimCursorY = clientY
+          zoomAnimStart = performance.now()
+          zoomAnimRaf = requestAnimationFrame(animateZoom)
         } else if (e.deltaMode === 0) {
           // Trackpad two-finger pan
           const { panX, panY } = useViewportStore.getState()
@@ -374,12 +417,12 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       // ------------------------------------------------------------------
       // Plant renderer (Phase 3) — elements sub-container (Y-sorted)
       // ------------------------------------------------------------------
-      const plantRenderer = createPlantRenderer(elementsContainer, scheduler, textureAtlas)
+      const plantRenderer = createPlantRenderer(elementsContainer, scheduler, textureAtlas, getCanvasSize)
 
       // ------------------------------------------------------------------
       // Structure renderer (Phase 3) — elements sub-container (Y-sorted)
       // ------------------------------------------------------------------
-      const structureRenderer = createStructureRenderer(elementsContainer, scheduler, textureAtlas)
+      const structureRenderer = createStructureRenderer(elementsContainer, scheduler, textureAtlas, getCanvasSize)
 
       // ------------------------------------------------------------------
       // Label renderer (Phase 3) — labels sub-container
@@ -483,6 +526,10 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
           cancelAnimationFrame(cursorRafRef.current)
           cursorRafRef.current = 0
         }
+        if (zoomAnimRaf) {
+          cancelAnimationFrame(zoomAnimRaf)
+          zoomAnimRaf = 0
+        }
         clearInterval(gcInterval)
         app.canvas.removeEventListener('wheel', onWheel)
         app.canvas.removeEventListener('dblclick', onDblClick)
@@ -496,6 +543,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         if (container.contains(app.canvas)) {
           container.removeChild(app.canvas)
         }
+        setPixiApp(null)
         app.destroy(true)
         appRef.current = null
         worldRef.current = null

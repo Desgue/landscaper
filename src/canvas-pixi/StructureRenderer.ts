@@ -18,6 +18,7 @@
 import { Container, Graphics, Text } from 'pixi.js'
 import { connectStore } from './connectStore'
 import { useProjectStore } from '../store/useProjectStore'
+import { useViewportStore } from '../store/useViewportStore'
 import {
   computeStructureSortKey,
   setupWorldObject,
@@ -37,6 +38,9 @@ import { sampleArc } from '../canvas/arcGeometry'
 
 /** Max rendered structures to prevent unbounded VRAM growth. */
 const MAX_STRUCTURES = 500
+
+/** Culling margin in world cm — generous to avoid pop-in during fast panning. */
+const CULLING_MARGIN = 200
 
 /** Ambient occlusion gradient height in world cm. */
 const AO_HEIGHT = 18
@@ -93,6 +97,8 @@ interface StructureEntry {
   southFace: Graphics | null
   aoGradient: Graphics | null
   outline: Graphics | null
+  castShadow: Graphics | null
+  overheadShadow: Graphics | null
   label: Text
   elementId: string
 }
@@ -105,6 +111,7 @@ export function createStructureRenderer(
   container: Container,
   scheduler: RenderScheduler,
   atlas: TextureAtlas,
+  getCanvasSize: () => { width: number; height: number },
 ): RendererHandle {
   // atlas reserved for future textured structure sprites (Phase 5 polish)
   void atlas
@@ -196,6 +203,26 @@ export function createStructureRenderer(
     }
   }
 
+  function drawCastShadow(
+    g: Graphics,
+    el: StructureElement,
+  ): void {
+    clearGraphics(g)
+    const { w, h } = safeDims(el)
+    // Shadow offset to south-east
+    g.rect(15, 20, w, h).fill({ color: 0x000000, alpha: 0.15 })
+  }
+
+  function drawOverheadShadow(
+    g: Graphics,
+    el: StructureElement,
+  ): void {
+    clearGraphics(g)
+    const { w, h } = safeDims(el)
+    // Ground-level shadow fill for overhead structures (pergolas, arbors)
+    g.rect(0, 0, w, h).fill({ color: 0x000000, alpha: 0.12 })
+  }
+
   function drawOverheadOutline(
     g: Graphics,
     el: StructureElement,
@@ -252,6 +279,22 @@ export function createStructureRenderer(
     setupWorldObject(group)
     group.position.set(el.x, el.y)
     group.rotation = (safeRotation * Math.PI) / 180
+
+    // Cast shadow (drawn first, underneath everything)
+    let castShadow: Graphics | null = null
+    if (extruded) {
+      castShadow = new Graphics()
+      drawCastShadow(castShadow, el)
+      group.addChild(castShadow)
+    }
+
+    // Overhead ground shadow
+    let overheadShadow: Graphics | null = null
+    if (category === 'overhead') {
+      overheadShadow = new Graphics()
+      drawOverheadShadow(overheadShadow, el)
+      group.addChild(overheadShadow)
+    }
 
     // Top face
     const topFace = new Graphics()
@@ -310,7 +353,7 @@ export function createStructureRenderer(
 
     container.addChild(group)
 
-    return { group, topFace, southFace, aoGradient, outline, label, elementId: el.id }
+    return { group, topFace, southFace, aoGradient, outline, castShadow, overheadShadow, label, elementId: el.id }
   }
 
   function updateStructureEntry(
@@ -323,10 +366,15 @@ export function createStructureRenderer(
     const hasExtrusion = entry.southFace !== null
     const needsOutline = category === 'overhead'
     const hasOutline = entry.outline !== null
+    const needsCastShadow = needsExtrusion
+    const hasCastShadow = entry.castShadow !== null
+    const needsOverheadShadow = category === 'overhead'
+    const hasOverheadShadow = entry.overheadShadow !== null
 
     // If structural composition changed (extruded↔flat, overhead↔non),
     // destroy and recreate to avoid leaking Graphics objects
-    if (needsExtrusion !== hasExtrusion || needsOutline !== hasOutline) {
+    if (needsExtrusion !== hasExtrusion || needsOutline !== hasOutline ||
+        needsCastShadow !== hasCastShadow || needsOverheadShadow !== hasOverheadShadow) {
       removeEntry(entry)
       entries.delete(entry.elementId)
       const newEntry = createStructureEntry(el, st)
@@ -344,6 +392,12 @@ export function createStructureRenderer(
 
     drawTopFace(entry.topFace, el, color, category)
 
+    if (needsCastShadow && entry.castShadow) {
+      drawCastShadow(entry.castShadow, el)
+    }
+    if (needsOverheadShadow && entry.overheadShadow) {
+      drawOverheadShadow(entry.overheadShadow, el)
+    }
     if (needsExtrusion && entry.southFace) {
       drawSouthFace(entry.southFace, el, color)
     }
@@ -371,6 +425,67 @@ export function createStructureRenderer(
   function removeEntry(entry: StructureEntry): void {
     container.removeChild(entry.group)
     entry.group.destroy({ children: true })
+  }
+
+  // ---------------------------------------------------------------------------
+  // Viewport culling
+  // ---------------------------------------------------------------------------
+
+  /** Viewport world bounds for element-level visibility culling. */
+  function getViewportWorldBounds(): {
+    worldLeft: number; worldTop: number; worldRight: number; worldBottom: number
+  } {
+    const { panX, panY, zoom } = useViewportStore.getState()
+    const { width: viewW, height: viewH } = getCanvasSize()
+    return {
+      worldLeft: -panX / zoom,
+      worldTop: -panY / zoom,
+      worldRight: (-panX + viewW) / zoom,
+      worldBottom: (-panY + viewH) / zoom,
+    }
+  }
+
+  /**
+   * Set .visible = false for structures whose bounding box (including
+   * extrusion height) falls entirely outside the current viewport.
+   * Layer-hidden structures remain hidden regardless of viewport.
+   */
+  function updateElementVisibility(): void {
+    const { worldLeft, worldTop, worldRight, worldBottom } = getViewportWorldBounds()
+    const project = useProjectStore.getState().currentProject
+
+    for (const entry of entries.values()) {
+      const el = project?.elements.find(
+        (e): e is StructureElement => e.id === entry.elementId && e.type === 'structure',
+      )
+      if (!el) continue
+
+      // Layer visibility takes precedence
+      const layer = project?.layers.find((l: Layer) => l.id === el.layerId)
+      if (layer && !layer.visible) continue
+
+      const st = resolveStructureType(el.structureTypeId)
+      const category = st?.category ?? ''
+      const extHeight = isExtrudedCategory(category) ? computeExtrusionHeight(
+        Number.isFinite(el.height) && el.height > 0 ? el.height : 1,
+      ) : 0
+
+      // Full AABB of the structure including extrusion
+      const elLeft = el.x - CULLING_MARGIN
+      const elTop = el.y - CULLING_MARGIN
+      const elRight = el.x + (Number.isFinite(el.width) ? el.width : 1) + CULLING_MARGIN
+      const elBottom = el.y + (Number.isFinite(el.height) ? el.height : 1) + extHeight + CULLING_MARGIN
+
+      const inViewport =
+        elRight >= worldLeft &&
+        elLeft <= worldRight &&
+        elBottom >= worldTop &&
+        elTop <= worldBottom
+
+      entry.group.visible = inViewport
+    }
+
+    scheduler.markDirty()
   }
 
   // ---------------------------------------------------------------------------
@@ -430,7 +545,8 @@ export function createStructureRenderer(
       }
     }
 
-    scheduler.markDirty()
+    // Apply viewport culling after rebuild
+    updateElementVisibility()
   }
 
   // ---------------------------------------------------------------------------
@@ -459,6 +575,15 @@ export function createStructureRenderer(
       useProjectStore,
       (s) => s.currentProject?.layers,
       () => rebuildFromStore(),
+    ),
+  )
+
+  // Update element visibility when viewport changes (pan/zoom)
+  unsubs.push(
+    connectStore(
+      useViewportStore,
+      (s) => `${s.panX},${s.panY},${s.zoom}`,
+      () => updateElementVisibility(),
     ),
   )
 

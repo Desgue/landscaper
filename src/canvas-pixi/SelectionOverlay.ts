@@ -40,7 +40,10 @@ const SNAP_GUIDE_COLOR = 0xef4444
 export function createSelectionOverlay(
   container: Container,
   scheduler: RenderScheduler,
-): RendererHandle & { updateVisualState(state: SelectionVisualState): void } {
+): RendererHandle & {
+  updateVisualState(state: SelectionVisualState): void
+  setHoveredId(id: string | null): void
+} {
   // Single reusable Graphics for all selection visuals
   const g = new Graphics()
   g.label = 'selectionOverlay'
@@ -53,6 +56,9 @@ export function createSelectionOverlay(
     boxSelectRect: null,
     snapGuideLines: [],
   }
+
+  let hoveredId: string | null = null
+  const HOVER_COLOR = 0x2196f3
 
   function redraw(): void {
     g.clear()
@@ -125,6 +131,17 @@ export function createSelectionOverlay(
       }
     }
 
+    // Hover highlight
+    if (hoveredId && !selectedIds.has(hoveredId)) {
+      const hoveredEl = project.elements.find((el) => el.id === hoveredId)
+      if (hoveredEl) {
+        const hoverAABB = getElementAABB(hoveredEl)
+        const hoverStroke = 2 / zoom
+        g.rect(hoverAABB.x, hoverAABB.y, hoverAABB.w, hoverAABB.h)
+          .stroke({ color: HOVER_COLOR, width: hoverStroke, alpha: 0.5 })
+      }
+    }
+
     // Box-select rectangle
     if (currentVisualState.boxSelectRect) {
       const { x1, y1, x2, y2 } = currentVisualState.boxSelectRect
@@ -154,6 +171,13 @@ export function createSelectionOverlay(
   return {
     updateVisualState(state: SelectionVisualState): void {
       currentVisualState = state
+      redraw()
+      scheduler.markDirty()
+    },
+
+    setHoveredId(id: string | null): void {
+      if (id === hoveredId) return
+      hoveredId = id
       redraw()
       scheduler.markDirty()
     },
