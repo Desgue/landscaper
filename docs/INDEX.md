@@ -72,6 +72,7 @@ Workflows, UI, and non-element features.
 | [PLAN-F.md](plans/frontend/PLAN-F.md) | Image generation UI plan — Generate button, options panel, API client, loading overlay, result modal, error handling |
 | [landingpage-plan.md](plans/frontend/landingpage-plan.md) | PLAN-G: Landing page redesign — performance infrastructure, SEO, Blueprint Garden visual identity, section-by-section rebuild |
 | [PLAN-H.md](plans/frontend/PLAN-H.md) | PLAN-H: Image-based sprite loading — async asset loader, TextureAtlas integration, renderer migration, built-in PNG sprites for plants and structures |
+| [PLAN_illustrated-tile-rendering.md](plans/PLAN_illustrated-tile-rendering.md) | PLAN-ITR: Illustrated tile rendering — richer plant sprites, structure texture patterns, per-type differentiation, improved shading/depth |
 
 ---
 

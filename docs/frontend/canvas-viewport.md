@@ -86,7 +86,7 @@ Rendered via PixiJS v8 with three top-level Containers (`world`, `interaction`, 
 7. Overflow dim overlay (outside yard boundary — see Overflow Dimming below)
 8. Selection overlay, handles, snap guides, hover highlight
 
-The `interaction` container provides a transparent hit area for pointer events. HTML overlays (scale bar, boundary editing, label editing) remain as DOM elements.
+The `interaction` container provides a transparent hit area for pointer events. HTML overlays (scale bar, boundary editing, label editing) remain as DOM elements positioned absolutely within the canvas container div in `AppLayout.tsx`. The primary boundary overlay is `YardBoundaryHTMLOverlays` — see [yard-setup.md "## HTML Overlay Component"] for its architecture, coordinate positioning strategy, and store bridge pattern.
 
 Layer visibility [layers-groups.md "## Layer Visibility"] affects which elements are rendered: elements on hidden layers are skipped at their respective layer position. The type-based render order above is always preserved — layers do NOT change render order.
 

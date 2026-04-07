@@ -159,6 +159,8 @@ The `interaction` container needs a transparent hit area sprite covering the ful
 
 HTML overlays (YardBoundaryHTMLOverlays, LabelHTMLOverlays, MeasurementHTMLOverlays, ScaleBar) remain as-is.
 
+> **Retroactive note (2026-04-07):** `YardBoundaryHTMLOverlays` was referenced here but never created during the migration. It has now been implemented as `src/components/YardBoundaryHTMLOverlays.tsx` with a `useBoundaryUIStore` bridge store connecting the imperative `BoundaryHandler` to React. See [yard-setup.md "## HTML Overlay Component"].
+
 ### Coordinate System
 
 **No changes.** World units remain centimeters, Y-axis points DOWN. The PixiJS stage uses the same `panX`, `panY`, `zoom` viewport transform as Konva. `useViewportStore` is unchanged.
@@ -629,6 +631,7 @@ _None yet._
 | 2026-04-07 | PathDrawingHandler manages its own Escape key listener | Path Escape behavior is tool-specific (finalize path); putting it in CanvasHost keyboard handler would require coupling to path state |
 | 2026-04-07 | BoundaryHandler exposes propagateEdge and hasSelfIntersection as exports | These pure functions are needed by both the handler and the HTML overlay components |
 | 2026-04-07 | Boundary HTML overlays (Done button, edge-length input) remain in existing React component | Porting HTML overlays to PixiJS would regress accessibility and text input UX |
+| 2026-04-07 | Created `YardBoundaryHTMLOverlays.tsx` + `useBoundaryUIStore` bridge | Component was referenced but never built during migration; blocks Generate workflow |
 
 ---
 

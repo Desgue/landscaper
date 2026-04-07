@@ -33,3 +33,32 @@ The yard boundary behaves like a regular element on the canvas — it can be sel
 ## Boundary Deletion
 
 When the yard boundary is deleted, the project becomes unbounded: no overflow dimming is applied, and all elements remain fully editable. A non-blocking banner prompts the user to re-add a boundary ("No yard boundary defined — click to set up"). The banner is dismissible. Re-adding a boundary goes through the same setup flow [## Define Boundary].
+
+## HTML Overlay Component
+
+`src/components/YardBoundaryHTMLOverlays.tsx` provides the DOM-based UI that sits above the PixiJS canvas for boundary placement and editing. It is mounted as a sibling of `CanvasHost` inside the canvas container in `AppLayout.tsx`.
+
+### Architecture
+
+The PixiJS `BoundaryHandler` (imperative, closure-scoped inside `CanvasHost`) is bridged to React via `useBoundaryUIStore` — a Zustand store that holds:
+- A reference to the `BoundaryHandle` (set by `CanvasHost` on init, cleared on destroy)
+- Reactive `BoundaryPlacementState` (synced after each handler mutation)
+- `editingEdgeIndex` for inline edge-length editing
+
+### Placement Mode
+
+Shown when `placementState.isPlacing && activeTool === 'select'`. Renders a top-center instruction bar with:
+- Instruction text ("Click to place yard boundary points...")
+- Vertex count badge
+- Self-intersection warning (uses exported `hasSelfIntersection()`)
+- "Done" button (enabled when >= 3 vertices, no self-intersection)
+
+Escape key cancels placement and resets the handler.
+
+### Editing Mode
+
+Shown when `yardBoundary !== null && !isPlacing`. Renders clickable edge-length labels at each edge midpoint, positioned in screen coords via `toScreen()` from `viewport.ts`. Clicking a label opens an inline `<input>` for entering exact dimensions in meters; committing calls `boundaryHandle.applyEdgeLength()`.
+
+### Coordinate Positioning
+
+Edge labels use `position: absolute` within the canvas container. World-to-screen conversion: `toScreen(midX, midY, panX, panY, zoom)` from `src/canvas/viewport.ts`, subscribing to `useViewportStore` for live updates on pan/zoom. Labels use `transform: translate(-50%, -50%)` to center on the midpoint.
