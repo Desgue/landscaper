@@ -1,0 +1,41 @@
+# =============================================================================
+# lefthook — git hook configuration
+#
+# Pre-commit: fast checks (lint + format) — target under 5 seconds.
+# Pre-push: slower checks (tests + build) — acceptable 30–90 seconds.
+#
+# All commands use glob filtering so Go hooks skip when only TS files are
+# staged (and vice versa).
+#
+# Bypass: LEFTHOOK=0 git commit  or  git commit --no-verify
+# Per-developer overrides: lefthook-local.yml (gitignored)
+# =============================================================================
+
+pre-commit:
+  parallel: true
+  commands:
+    go-fmt:
+      glob: "**/*.go"
+      run: 'test -z "$(gofmt -l {staged_files})" || (echo "gofmt needed:" && gofmt -l {staged_files} && exit 1)'
+    go-lint:
+      glob: "**/*.go"
+      run: golangci-lint run --new-from-rev HEAD ./...
+    ts-lint:
+      glob: "**/*.{ts,tsx}"
+      run: npx eslint {staged_files}
+    ts-typecheck:
+      glob: "**/*.{ts,tsx}"
+      run: npx tsc --noEmit
+
+pre-push:
+  parallel: true
+  commands:
+    go-test:
+      glob: "**/*.go"
+      run: go test -race -count=1 -timeout=60s ./...
+    frontend-test:
+      glob: "**/*.{ts,tsx}"
+      run: npm run test
+    frontend-build:
+      glob: "**/*.{ts,tsx,css,html}"
+      run: npm run build
