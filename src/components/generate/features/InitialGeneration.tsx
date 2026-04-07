@@ -1,14 +1,13 @@
-import { useRef } from 'react';
+import React, { useRef } from 'react';
 import { Sparkles, Upload, X, ChevronDown } from 'lucide-react';
 import { useGenerateStore } from '../../../store/useGenerateStore';
+import { useProjectStore } from '../../../store/useProjectStore';
 import {
   GARDEN_STYLES,
   SEASONS,
   TIMES_OF_DAY,
-  CAMERA_ANGLES,
-  WEATHER_OPTIONS,
-  RENDER_STYLES,
-  RESOLUTIONS,
+  VIEWPOINTS,
+  IMAGE_SIZES,
   ASPECT_RATIOS,
 } from '../../../types/generate';
 
@@ -22,6 +21,7 @@ export function InitialGeneration() {
   const cancel = useGenerateStore((s) => s.cancel);
   const status = useGenerateStore((s) => s.status);
   const fileRef = useRef<HTMLInputElement>(null);
+  const hasYardBoundary = useProjectStore((s) => !!s.currentProject?.yardBoundary);
 
   const isLoading = status.kind === 'loading';
 
@@ -34,9 +34,9 @@ export function InitialGeneration() {
       alert('Please upload a JPEG or PNG image.');
       return;
     }
-    // Validate size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Photo too large. Maximum size is 5 MB.');
+    // Validate size (3MB — matches backend per-photo decoded limit)
+    if (file.size > 3 * 1024 * 1024) {
+      alert('Photo too large. Maximum size is 3 MB.');
       return;
     }
 
@@ -110,22 +110,10 @@ export function InitialGeneration() {
             onChange={(v) => setOption('timeOfDay', v as typeof options.timeOfDay)}
           />
           <SelectField
-            label="Camera Angle"
-            value={options.cameraAngle}
-            options={CAMERA_ANGLES}
-            onChange={(v) => setOption('cameraAngle', v as typeof options.cameraAngle)}
-          />
-          <SelectField
-            label="Weather"
-            value={options.weather}
-            options={WEATHER_OPTIONS}
-            onChange={(v) => setOption('weather', v as typeof options.weather)}
-          />
-          <SelectField
-            label="Render Style"
-            value={options.renderStyle}
-            options={RENDER_STYLES}
-            onChange={(v) => setOption('renderStyle', v as typeof options.renderStyle)}
+            label="Viewpoint"
+            value={options.viewpoint}
+            options={VIEWPOINTS}
+            onChange={(v) => setOption('viewpoint', v as typeof options.viewpoint)}
           />
         </div>
       </section>
@@ -134,11 +122,11 @@ export function InitialGeneration() {
       <section>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <SectionLabel>Resolution</SectionLabel>
+            <SectionLabel>Image Size</SectionLabel>
             <SegmentGroup
-              options={RESOLUTIONS}
-              value={options.resolution}
-              onChange={(v) => setOption('resolution', v as typeof options.resolution)}
+              options={IMAGE_SIZES}
+              value={options.imageSize}
+              onChange={(v) => setOption('imageSize', v as typeof options.imageSize)}
             />
           </div>
           <div>
@@ -159,11 +147,6 @@ export function InitialGeneration() {
           checked={options.includePlanned}
           onChange={(v) => setOption('includePlanned', v)}
         />
-        <ToggleField
-          label="Thinking mode"
-          checked={options.thinkingMode}
-          onChange={(v) => setOption('thinkingMode', v)}
-        />
       </section>
 
       {/* Advanced (collapsible) */}
@@ -172,14 +155,23 @@ export function InitialGeneration() {
         onSeedChange={(v) => setOption('seed', v)}
       />
 
+      {/* Yard boundary warning */}
+      {!hasYardBoundary && !isLoading && (
+        <p className="text-xs text-text-muted text-center">
+          Set up a yard boundary on the canvas first.
+        </p>
+      )}
+
       {/* Generate button */}
       <button
         onClick={isLoading ? cancel : generate}
-        disabled={false}
+        disabled={!isLoading && !hasYardBoundary}
         className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold transition-colors ${
           isLoading
             ? 'bg-bg-elevated text-text-secondary hover:bg-error/10 hover:text-error'
-            : 'bg-accent hover:bg-accent-hover text-text shadow-sm'
+            : !hasYardBoundary
+              ? 'bg-accent/50 text-text/50 cursor-not-allowed'
+              : 'bg-accent hover:bg-accent-hover text-text shadow-sm'
         }`}
       >
         {isLoading ? (
@@ -336,5 +328,3 @@ function AdvancedSection({
     </div>
   );
 }
-
-import React from 'react';

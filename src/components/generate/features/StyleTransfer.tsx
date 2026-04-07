@@ -1,7 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { ImageIcon } from 'lucide-react';
 import { useGenerateStore } from '../../../store/useGenerateStore';
-import { RENDER_STYLES } from '../../../types/generate';
+
+const PLACEHOLDER_STYLES = [
+  { value: 'photorealistic', label: 'Photorealistic' },
+] as const;
 
 export function StyleTransfer() {
   const resultUrl = useGenerateStore((s) => s.resultUrl);
@@ -10,7 +13,7 @@ export function StyleTransfer() {
   const acceptStyle = useGenerateStore((s) => s.acceptStyle);
   const status = useGenerateStore((s) => s.status);
 
-  const [selectedStyle, setSelectedStyle] = useState<string>(RENDER_STYLES[0].value);
+  const [selectedStyle, setSelectedStyle] = useState<string>(PLACEHOLDER_STYLES[0].value);
 
   if (!resultUrl) {
     return (
@@ -45,7 +48,7 @@ export function StyleTransfer() {
       <div>
         <div className="text-xs text-text-muted mb-2">Style</div>
         <div className="flex flex-wrap gap-2">
-          {RENDER_STYLES.map((style) => (
+          {PLACEHOLDER_STYLES.map((style) => (
             <button
               key={style.value}
               onClick={() => setSelectedStyle(style.value)}

@@ -2,6 +2,7 @@ import { useGenerateStore } from '../../store/useGenerateStore';
 import { GenerateNav } from './GenerateNav';
 import { GenerateHeader } from './GenerateHeader';
 import { Workspace } from './Workspace';
+import { ErrorToast } from '../ErrorToast';
 import { InitialGeneration } from './features/InitialGeneration';
 import { MultiView } from './features/MultiView';
 import { SeasonalVariants } from './features/SeasonalVariants';
@@ -35,14 +36,13 @@ const FULL_AREA_FEATURES: FeatureId[] = ['conversational', 'material'];
 export function GenerateShell() {
   const activeFeature = useGenerateStore((s) => s.activeFeature);
   const setActiveFeature = useGenerateStore((s) => s.setActiveFeature);
-  const resultUrl = useGenerateStore((s) => s.resultUrl);
-  const status = useGenerateStore((s) => s.status);
 
   const FeatureComponent = FEATURE_COMPONENTS[activeFeature];
   const isFullArea = FULL_AREA_FEATURES.includes(activeFeature);
 
   return (
     <div className="flex flex-col h-full">
+      <ErrorToast />
       <GenerateHeader />
       <div className="flex flex-1 overflow-hidden">
         <GenerateNav
@@ -58,11 +58,7 @@ export function GenerateShell() {
             <>
               {/* Workspace — image area */}
               <div className="flex-1 min-h-0 overflow-auto">
-                <Workspace
-                  resultUrl={resultUrl}
-                  status={status}
-                  activeFeature={activeFeature}
-                />
+                <Workspace />
               </div>
               {/* Controls — feature-specific */}
               <div className="border-t border-border bg-bg-card overflow-auto max-h-[50vh]">
