@@ -9,7 +9,7 @@
 #   go 1.26+, node (version from .nvmrc / engines), npm, golangci-lint
 #
 # Usage:
-#   make            — build the binary (incremental)
+#   make            — run full CI pipeline (lint + test + build)
 #   make ci         — lint + test + build (parallel-safe with -j)
 #   make test       — run all test suites (Go + frontend)
 #   make test-go    — run Go tests only
@@ -74,8 +74,11 @@ FRONTEND_SRC := \
 .PHONY: build ci dev run clean test test-go test-frontend lint lint-go lint-frontend fmt
 
 # ---------------------------------------------------------------------------
-# Default target
+# Default target — "make" with no arguments runs the full CI pipeline.
+# Use "make build" for just the binary.
 # ---------------------------------------------------------------------------
+.DEFAULT_GOAL := ci
+
 build: $(BINARY)
 
 # =============================================================================
@@ -139,7 +142,7 @@ $(BINARY): $(GOFILES) go.mod go.sum .frontend-dist.stamp
 # golangci-lint reads go.mod/go.sum for module context and .golangci.yml
 # for configuration.  go.sum is included for the same reason as the binary.
 # =============================================================================
-.lint-go.stamp: $(GOFILES) go.mod go.sum .golangci.yml
+.lint-go.stamp: $(GOFILES) go.mod go.sum .golangci.yml .frontend-dist.stamp
 	$(LINT_GO) run ./...
 	@touch $@
 
@@ -162,7 +165,7 @@ $(BINARY): $(GOFILES) go.mod go.sum .frontend-dist.stamp
 # terms of build complexity.
 # go.sum is a dependency: a module update could change test behaviour.
 # =============================================================================
-.test-go.stamp: $(GOFILES) go.mod go.sum
+.test-go.stamp: $(GOFILES) go.mod go.sum .frontend-dist.stamp
 	$(GO) test -race -count=1 -timeout=60s ./...
 	@touch $@
 

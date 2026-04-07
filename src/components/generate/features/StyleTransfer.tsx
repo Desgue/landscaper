@@ -94,6 +94,7 @@ function BeforeAfterSlider({
   const [position, setPosition] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
 
   const handleMove = useCallback((clientX: number) => {
     const container = containerRef.current;
@@ -106,6 +107,19 @@ function BeforeAfterSlider({
   const handleMouseDown = () => {
     dragging.current = true;
   };
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    setContainerWidth(container.offsetWidth);
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -140,7 +154,7 @@ function BeforeAfterSlider({
           src={beforeUrl}
           alt="Before"
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ width: containerRef.current?.offsetWidth ?? '100%' }}
+          style={{ width: containerWidth ?? '100%' }}
         />
       </div>
 

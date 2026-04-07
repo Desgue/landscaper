@@ -833,7 +833,7 @@ function validateJournalEntry(
 
   const createdAt = isISODatetime(raw['createdAt']) ? raw['createdAt'] : now;
 
-  warnings.length; // touch to suppress lint if ever needed
+  void warnings.length; // touch to suppress lint if ever needed
   return { id, projectId, date, title, content, tags, linkedElementIds, weather, createdAt };
 }
 

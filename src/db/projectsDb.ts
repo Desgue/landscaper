@@ -64,7 +64,7 @@ export function exportProjectAsJSON(project: Project, registries: Registries): v
     const json = JSON.stringify(exportData, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const safeName = project.name.replace(/[^a-zA-Z0-9 _\-]/g, '_').trim() || 'project';
+    const safeName = project.name.replace(/[^a-zA-Z0-9 _-]/g, '_').trim() || 'project';
     const a = document.createElement('a');
     a.href = url;
     a.download = `${safeName}.json`;

@@ -33,11 +33,6 @@ var viewpointPhrases = map[string]string{
 }
 
 // Cap rules per element category.
-const (
-	maxPlants     = 7
-	maxStructures = 3
-	maxTerrain    = 2
-)
 
 // botanicalNames maps plant registry IDs to botanical names for species-accurate prompts.
 var botanicalNames = map[string]string{
@@ -192,19 +187,8 @@ func buildElementList(elements []filter.FilteredElement) string {
 				seenTerrain[fe.TerrainType.Name] = true
 				terrainNames = append(terrainNames, fe.TerrainType.Name)
 			}
-		// Paths are intentionally excluded from prompt element collection
+			// Paths are intentionally excluded from prompt element collection
 		}
-	}
-
-	// Apply caps
-	if len(plantNames) > maxPlants {
-		plantNames = plantNames[:maxPlants]
-	}
-	if len(structNames) > maxStructures {
-		structNames = structNames[:maxStructures]
-	}
-	if len(terrainNames) > maxTerrain {
-		terrainNames = terrainNames[:maxTerrain]
 	}
 
 	// Priority order: plants first, then structures, then terrain

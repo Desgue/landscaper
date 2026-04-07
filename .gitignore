@@ -8,6 +8,9 @@ frontend/dist
 # ── Make stamp files ─────────────────────────────────────────────────────────
 .*.stamp
 
+# ── Lefthook ────────────────────────────────────────────────────────────────
+lefthook-local.yml
+
 # ── Go / Backend ──────────────────────────────────────────────────────────────
 # Compiled binaries and build output
 *.exe

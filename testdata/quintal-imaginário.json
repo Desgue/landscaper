@@ -1,0 +1,543 @@
+{
+  "version": "1.0",
+  "exportedAt": "2026-04-07T00:00:00.000Z",
+  "project": {
+    "id": "quintal-imaginario",
+    "name": "Quintal Imaginário",
+    "createdAt": "2026-04-07T00:00:00.000Z",
+    "updatedAt": "2026-04-07T00:00:00.000Z",
+    "location": { "lat": 41.15, "lng": -8.61 },
+    "yardBoundary": {
+      "vertices": [
+        { "x": 0, "y": 0 },
+        { "x": 1500, "y": 0 },
+        { "x": 1500, "y": 4667 },
+        { "x": 0, "y": 4667 }
+      ]
+    },
+    "layers": [
+      { "id": "layer-main", "visible": true, "locked": false, "name": "Default", "order": 0 }
+    ],
+    "elements": [
+
+      { "id": "t-concrete-01", "type": "terrain", "layerId": "layer-main", "x": 200, "y": 50,   "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-02", "type": "terrain", "layerId": "layer-main", "x": 300, "y": 50,   "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-03", "type": "terrain", "layerId": "layer-main", "x": 400, "y": 50,   "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-04", "type": "terrain", "layerId": "layer-main", "x": 500, "y": 50,   "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-05", "type": "terrain", "layerId": "layer-main", "x": 600, "y": 50,   "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-06", "type": "terrain", "layerId": "layer-main", "x": 700, "y": 50,   "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-07", "type": "terrain", "layerId": "layer-main", "x": 800, "y": 50,   "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-08", "type": "terrain", "layerId": "layer-main", "x": 900, "y": 50,   "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-09", "type": "terrain", "layerId": "layer-main", "x": 1000, "y": 50,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-10", "type": "terrain", "layerId": "layer-main", "x": 1100, "y": 50,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-11", "type": "terrain", "layerId": "layer-main", "x": 200, "y": 150,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-12", "type": "terrain", "layerId": "layer-main", "x": 300, "y": 150,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-13", "type": "terrain", "layerId": "layer-main", "x": 400, "y": 150,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-14", "type": "terrain", "layerId": "layer-main", "x": 500, "y": 150,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-15", "type": "terrain", "layerId": "layer-main", "x": 600, "y": 150,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-16", "type": "terrain", "layerId": "layer-main", "x": 700, "y": 150,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-17", "type": "terrain", "layerId": "layer-main", "x": 800, "y": 150,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-18", "type": "terrain", "layerId": "layer-main", "x": 900, "y": 150,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-19", "type": "terrain", "layerId": "layer-main", "x": 1000, "y": 150, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-20", "type": "terrain", "layerId": "layer-main", "x": 1100, "y": 150, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-21", "type": "terrain", "layerId": "layer-main", "x": 200, "y": 250,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-22", "type": "terrain", "layerId": "layer-main", "x": 300, "y": 250,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-23", "type": "terrain", "layerId": "layer-main", "x": 400, "y": 250,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-24", "type": "terrain", "layerId": "layer-main", "x": 500, "y": 250,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-25", "type": "terrain", "layerId": "layer-main", "x": 600, "y": 250,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-26", "type": "terrain", "layerId": "layer-main", "x": 700, "y": 250,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-27", "type": "terrain", "layerId": "layer-main", "x": 800, "y": 250,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-28", "type": "terrain", "layerId": "layer-main", "x": 900, "y": 250,  "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-29", "type": "terrain", "layerId": "layer-main", "x": 1000, "y": 250, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-30", "type": "terrain", "layerId": "layer-main", "x": 1100, "y": 250, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+
+      { "id": "t-mulch-01", "type": "terrain", "layerId": "layer-main", "x": 100, "y": 1000, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t-mulch-02", "type": "terrain", "layerId": "layer-main", "x": 200, "y": 1000, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t-mulch-03", "type": "terrain", "layerId": "layer-main", "x": 100, "y": 1100, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t-mulch-04", "type": "terrain", "layerId": "layer-main", "x": 200, "y": 1100, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t-mulch-05", "type": "terrain", "layerId": "layer-main", "x": 1100, "y": 1000, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t-mulch-06", "type": "terrain", "layerId": "layer-main", "x": 1200, "y": 1000, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t-mulch-07", "type": "terrain", "layerId": "layer-main", "x": 1100, "y": 1100, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t-mulch-08", "type": "terrain", "layerId": "layer-main", "x": 1200, "y": 1100, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+
+      { "id": "t-grass-01", "type": "terrain", "layerId": "layer-main", "x": 150,  "y": 1800, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-02", "type": "terrain", "layerId": "layer-main", "x": 250,  "y": 1800, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-03", "type": "terrain", "layerId": "layer-main", "x": 350,  "y": 1800, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-04", "type": "terrain", "layerId": "layer-main", "x": 450,  "y": 1800, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-05", "type": "terrain", "layerId": "layer-main", "x": 550,  "y": 1800, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-06", "type": "terrain", "layerId": "layer-main", "x": 650,  "y": 1800, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-07", "type": "terrain", "layerId": "layer-main", "x": 750,  "y": 1800, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-08", "type": "terrain", "layerId": "layer-main", "x": 850,  "y": 1800, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-09", "type": "terrain", "layerId": "layer-main", "x": 950,  "y": 1800, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-10", "type": "terrain", "layerId": "layer-main", "x": 1050, "y": 1800, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-11", "type": "terrain", "layerId": "layer-main", "x": 1150, "y": 1800, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-12", "type": "terrain", "layerId": "layer-main", "x": 150,  "y": 1900, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-13", "type": "terrain", "layerId": "layer-main", "x": 250,  "y": 1900, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-14", "type": "terrain", "layerId": "layer-main", "x": 350,  "y": 1900, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-15", "type": "terrain", "layerId": "layer-main", "x": 450,  "y": 1900, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-16", "type": "terrain", "layerId": "layer-main", "x": 550,  "y": 1900, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-17", "type": "terrain", "layerId": "layer-main", "x": 650,  "y": 1900, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-18", "type": "terrain", "layerId": "layer-main", "x": 750,  "y": 1900, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-19", "type": "terrain", "layerId": "layer-main", "x": 850,  "y": 1900, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-20", "type": "terrain", "layerId": "layer-main", "x": 950,  "y": 1900, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-21", "type": "terrain", "layerId": "layer-main", "x": 1050, "y": 1900, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-22", "type": "terrain", "layerId": "layer-main", "x": 1150, "y": 1900, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-23", "type": "terrain", "layerId": "layer-main", "x": 150,  "y": 2000, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-24", "type": "terrain", "layerId": "layer-main", "x": 250,  "y": 2000, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-25", "type": "terrain", "layerId": "layer-main", "x": 350,  "y": 2000, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-26", "type": "terrain", "layerId": "layer-main", "x": 450,  "y": 2000, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-27", "type": "terrain", "layerId": "layer-main", "x": 550,  "y": 2000, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-28", "type": "terrain", "layerId": "layer-main", "x": 650,  "y": 2000, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-29", "type": "terrain", "layerId": "layer-main", "x": 750,  "y": 2000, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-30", "type": "terrain", "layerId": "layer-main", "x": 850,  "y": 2000, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-31", "type": "terrain", "layerId": "layer-main", "x": 950,  "y": 2000, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-32", "type": "terrain", "layerId": "layer-main", "x": 1050, "y": 2000, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-33", "type": "terrain", "layerId": "layer-main", "x": 1150, "y": 2000, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-34", "type": "terrain", "layerId": "layer-main", "x": 150,  "y": 2100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-35", "type": "terrain", "layerId": "layer-main", "x": 250,  "y": 2100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-36", "type": "terrain", "layerId": "layer-main", "x": 350,  "y": 2100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-37", "type": "terrain", "layerId": "layer-main", "x": 450,  "y": 2100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-38", "type": "terrain", "layerId": "layer-main", "x": 550,  "y": 2100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-39", "type": "terrain", "layerId": "layer-main", "x": 650,  "y": 2100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-40", "type": "terrain", "layerId": "layer-main", "x": 750,  "y": 2100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-41", "type": "terrain", "layerId": "layer-main", "x": 850,  "y": 2100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-42", "type": "terrain", "layerId": "layer-main", "x": 950,  "y": 2100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-43", "type": "terrain", "layerId": "layer-main", "x": 1050, "y": 2100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-44", "type": "terrain", "layerId": "layer-main", "x": 1150, "y": 2100, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-45", "type": "terrain", "layerId": "layer-main", "x": 150,  "y": 2200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-46", "type": "terrain", "layerId": "layer-main", "x": 250,  "y": 2200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-47", "type": "terrain", "layerId": "layer-main", "x": 350,  "y": 2200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-48", "type": "terrain", "layerId": "layer-main", "x": 450,  "y": 2200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-49", "type": "terrain", "layerId": "layer-main", "x": 550,  "y": 2200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-50", "type": "terrain", "layerId": "layer-main", "x": 650,  "y": 2200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-51", "type": "terrain", "layerId": "layer-main", "x": 750,  "y": 2200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-52", "type": "terrain", "layerId": "layer-main", "x": 850,  "y": 2200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-53", "type": "terrain", "layerId": "layer-main", "x": 950,  "y": 2200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-54", "type": "terrain", "layerId": "layer-main", "x": 1050, "y": 2200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-55", "type": "terrain", "layerId": "layer-main", "x": 1150, "y": 2200, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-56", "type": "terrain", "layerId": "layer-main", "x": 150,  "y": 2300, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-57", "type": "terrain", "layerId": "layer-main", "x": 250,  "y": 2300, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-58", "type": "terrain", "layerId": "layer-main", "x": 350,  "y": 2300, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-59", "type": "terrain", "layerId": "layer-main", "x": 450,  "y": 2300, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-60", "type": "terrain", "layerId": "layer-main", "x": 550,  "y": 2300, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-61", "type": "terrain", "layerId": "layer-main", "x": 650,  "y": 2300, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-62", "type": "terrain", "layerId": "layer-main", "x": 750,  "y": 2300, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-63", "type": "terrain", "layerId": "layer-main", "x": 850,  "y": 2300, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-64", "type": "terrain", "layerId": "layer-main", "x": 950,  "y": 2300, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-65", "type": "terrain", "layerId": "layer-main", "x": 1050, "y": 2300, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t-grass-66", "type": "terrain", "layerId": "layer-main", "x": 1150, "y": 2300, "width": 100, "height": 100, "terrainTypeId": "grass" },
+
+      { "id": "t-concrete-sk-01", "type": "terrain", "layerId": "layer-main", "x": 250,  "y": 3500, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-02", "type": "terrain", "layerId": "layer-main", "x": 350,  "y": 3500, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-03", "type": "terrain", "layerId": "layer-main", "x": 450,  "y": 3500, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-04", "type": "terrain", "layerId": "layer-main", "x": 550,  "y": 3500, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-05", "type": "terrain", "layerId": "layer-main", "x": 650,  "y": 3500, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-06", "type": "terrain", "layerId": "layer-main", "x": 750,  "y": 3500, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-07", "type": "terrain", "layerId": "layer-main", "x": 850,  "y": 3500, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-08", "type": "terrain", "layerId": "layer-main", "x": 950,  "y": 3500, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-09", "type": "terrain", "layerId": "layer-main", "x": 250,  "y": 3600, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-10", "type": "terrain", "layerId": "layer-main", "x": 350,  "y": 3600, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-11", "type": "terrain", "layerId": "layer-main", "x": 450,  "y": 3600, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-12", "type": "terrain", "layerId": "layer-main", "x": 550,  "y": 3600, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-13", "type": "terrain", "layerId": "layer-main", "x": 650,  "y": 3600, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-14", "type": "terrain", "layerId": "layer-main", "x": 750,  "y": 3600, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-15", "type": "terrain", "layerId": "layer-main", "x": 850,  "y": 3600, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+      { "id": "t-concrete-sk-16", "type": "terrain", "layerId": "layer-main", "x": 950,  "y": 3600, "width": 100, "height": 100, "terrainTypeId": "concrete" },
+
+      { "id": "t-gravel-01", "type": "terrain", "layerId": "layer-main", "x": 100,  "y": 4300, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t-gravel-02", "type": "terrain", "layerId": "layer-main", "x": 200,  "y": 4300, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t-gravel-03", "type": "terrain", "layerId": "layer-main", "x": 300,  "y": 4300, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t-gravel-04", "type": "terrain", "layerId": "layer-main", "x": 1000, "y": 4300, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t-gravel-05", "type": "terrain", "layerId": "layer-main", "x": 1100, "y": 4300, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+      { "id": "t-gravel-06", "type": "terrain", "layerId": "layer-main", "x": 1200, "y": 4300, "width": 100, "height": 100, "terrainTypeId": "gravel" },
+
+      {
+        "id": "pergola-1",
+        "type": "structure",
+        "layerId": "layer-main",
+        "x": 200, "y": 50,
+        "width": 1000, "height": 300,
+        "structureTypeId": "pergola",
+        "shape": "straight",
+        "rotation": 0
+      },
+
+      {
+        "id": "outdoor-sofa-1",
+        "type": "structure",
+        "layerId": "layer-main",
+        "x": 250, "y": 100,
+        "width": 250, "height": 100,
+        "structureTypeId": "outdoor-sofa",
+        "shape": "straight",
+        "rotation": 0
+      },
+
+      {
+        "id": "fire-pit-1",
+        "type": "structure",
+        "layerId": "layer-main",
+        "x": 650, "y": 100,
+        "width": 120, "height": 120,
+        "structureTypeId": "fire-pit",
+        "shape": "straight",
+        "rotation": 0
+      },
+
+      {
+        "id": "modern-planter-1",
+        "type": "structure",
+        "layerId": "layer-main",
+        "x": 100, "y": 700,
+        "width": 200, "height": 80,
+        "structureTypeId": "modern-planter",
+        "shape": "straight",
+        "rotation": 0
+      },
+      {
+        "id": "modern-planter-2",
+        "type": "structure",
+        "layerId": "layer-main",
+        "x": 1100, "y": 700,
+        "width": 200, "height": 80,
+        "structureTypeId": "modern-planter",
+        "shape": "straight",
+        "rotation": 0
+      },
+
+      {
+        "id": "football-goal-1",
+        "type": "structure",
+        "layerId": "layer-main",
+        "x": 500, "y": 1750,
+        "width": 300, "height": 30,
+        "structureTypeId": "football-goal",
+        "shape": "straight",
+        "rotation": 0
+      },
+      {
+        "id": "football-goal-2",
+        "type": "structure",
+        "layerId": "layer-main",
+        "x": 500, "y": 2370,
+        "width": 300, "height": 30,
+        "structureTypeId": "football-goal",
+        "shape": "straight",
+        "rotation": 0
+      },
+
+      {
+        "id": "skate-bowl-1",
+        "type": "structure",
+        "layerId": "layer-main",
+        "x": 350, "y": 3400,
+        "width": 500, "height": 500,
+        "structureTypeId": "skate-bowl",
+        "shape": "straight",
+        "rotation": 0
+      },
+
+      {
+        "id": "led-light-1",
+        "type": "structure",
+        "layerId": "layer-main",
+        "x": 50, "y": 500,
+        "width": 20, "height": 20,
+        "structureTypeId": "led-pathway-light",
+        "shape": "straight",
+        "rotation": 0
+      },
+      {
+        "id": "led-light-2",
+        "type": "structure",
+        "layerId": "layer-main",
+        "x": 50, "y": 1200,
+        "width": 20, "height": 20,
+        "structureTypeId": "led-pathway-light",
+        "shape": "straight",
+        "rotation": 0
+      },
+      {
+        "id": "led-light-3",
+        "type": "structure",
+        "layerId": "layer-main",
+        "x": 50, "y": 1700,
+        "width": 20, "height": 20,
+        "structureTypeId": "led-pathway-light",
+        "shape": "straight",
+        "rotation": 0
+      },
+      {
+        "id": "led-light-4",
+        "type": "structure",
+        "layerId": "layer-main",
+        "x": 50, "y": 3400,
+        "width": 20, "height": 20,
+        "structureTypeId": "led-pathway-light",
+        "shape": "straight",
+        "rotation": 0
+      },
+
+      {
+        "id": "japanese-maple-1",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 150, "y": 600,
+        "width": 300, "height": 300,
+        "plantTypeId": "japanese-maple",
+        "status": "planted",
+        "quantity": 1
+      },
+
+      {
+        "id": "ornamental-grass-1",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 1100, "y": 600,
+        "width": 100, "height": 100,
+        "plantTypeId": "ornamental-grass",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "ornamental-grass-2",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 1250, "y": 600,
+        "width": 100, "height": 100,
+        "plantTypeId": "ornamental-grass",
+        "status": "planted",
+        "quantity": 1
+      },
+
+      {
+        "id": "bamboo-1",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 1350, "y": 1200,
+        "width": 100, "height": 100,
+        "plantTypeId": "bamboo",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "bamboo-2",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 1350, "y": 1400,
+        "width": 100, "height": 100,
+        "plantTypeId": "bamboo",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "bamboo-3",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 1350, "y": 1600,
+        "width": 100, "height": 100,
+        "plantTypeId": "bamboo",
+        "status": "planted",
+        "quantity": 1
+      },
+
+      {
+        "id": "lavender-1",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 200, "y": 4400,
+        "width": 60, "height": 60,
+        "plantTypeId": "lavender",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "lavender-2",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 350, "y": 4400,
+        "width": 60, "height": 60,
+        "plantTypeId": "lavender",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "lavender-3",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 500, "y": 4400,
+        "width": 60, "height": 60,
+        "plantTypeId": "lavender",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "lavender-4",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 650, "y": 4400,
+        "width": 60, "height": 60,
+        "plantTypeId": "lavender",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "lavender-5",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 800, "y": 4400,
+        "width": 60, "height": 60,
+        "plantTypeId": "lavender",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "lavender-6",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 950, "y": 4400,
+        "width": 60, "height": 60,
+        "plantTypeId": "lavender",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "lavender-7",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 1100, "y": 4400,
+        "width": 60, "height": 60,
+        "plantTypeId": "lavender",
+        "status": "planted",
+        "quantity": 1
+      },
+
+      {
+        "id": "boxwood-1",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 200, "y": 4500,
+        "width": 80, "height": 80,
+        "plantTypeId": "boxwood",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "boxwood-2",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 400, "y": 4500,
+        "width": 80, "height": 80,
+        "plantTypeId": "boxwood",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "boxwood-3",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 600, "y": 4500,
+        "width": 80, "height": 80,
+        "plantTypeId": "boxwood",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "boxwood-4",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 800, "y": 4500,
+        "width": 80, "height": 80,
+        "plantTypeId": "boxwood",
+        "status": "planted",
+        "quantity": 1
+      },
+      {
+        "id": "boxwood-5",
+        "type": "plant",
+        "layerId": "layer-main",
+        "x": 1000, "y": 4500,
+        "width": 80, "height": 80,
+        "plantTypeId": "boxwood",
+        "status": "planted",
+        "quantity": 1
+      },
+
+      {
+        "id": "path-main",
+        "type": "path",
+        "layerId": "layer-main",
+        "x": 0, "y": 0,
+        "width": 0, "height": 0,
+        "pathTypeId": "concrete-slab",
+        "strokeWidthCm": 80,
+        "points": [
+          { "x": 80, "y": 200 },
+          { "x": 80, "y": 800 },
+          { "x": 80, "y": 1500 },
+          { "x": 80, "y": 2000 },
+          { "x": 80, "y": 2800 },
+          { "x": 80, "y": 3500 },
+          { "x": 80, "y": 4200 }
+        ]
+      },
+
+      {
+        "id": "path-to-pitch",
+        "type": "path",
+        "layerId": "layer-main",
+        "x": 0, "y": 0,
+        "width": 0, "height": 0,
+        "pathTypeId": "concrete-slab",
+        "strokeWidthCm": 60,
+        "points": [
+          { "x": 80, "y": 2000 },
+          { "x": 200, "y": 2050 },
+          { "x": 400, "y": 2050 }
+        ]
+      },
+
+      {
+        "id": "path-to-bowl",
+        "type": "path",
+        "layerId": "layer-main",
+        "x": 0, "y": 0,
+        "width": 0, "height": 0,
+        "pathTypeId": "concrete-slab",
+        "strokeWidthCm": 60,
+        "points": [
+          { "x": 80, "y": 3500 },
+          { "x": 200, "y": 3550 },
+          { "x": 350, "y": 3550 }
+        ]
+      }
+    ]
+  },
+  "registries": {
+    "terrain": [
+      { "id": "grass", "name": "Grass", "category": "natural", "color": "#4CAF50" },
+      { "id": "concrete", "name": "Polished Concrete", "category": "hardscape", "color": "#BDBDBD" },
+      { "id": "mulch", "name": "Dark Bark Mulch", "category": "natural", "color": "#4E342E" },
+      { "id": "gravel", "name": "White Gravel", "category": "hardscape", "color": "#E0E0E0" }
+    ],
+    "plants": [
+      { "id": "japanese-maple", "name": "Japanese Maple", "iconUrl": "builtin:japanese-maple", "category": "tree", "growthForm": "tree", "spacingCm": 350, "rowSpacingCm": 350, "canopyWidthCm": 300, "heightCm": 400, "trunkWidthCm": 20, "sunRequirement": "partial", "waterNeed": "medium", "season": ["spring", "summer", "fall", "winter"] },
+      { "id": "ornamental-grass", "name": "Ornamental Grass", "iconUrl": "builtin:ornamental-grass", "category": "grass", "growthForm": "shrub", "spacingCm": 100, "rowSpacingCm": 100, "canopyWidthCm": 100, "heightCm": 150, "sunRequirement": "full", "waterNeed": "low", "season": ["spring", "summer", "fall", "winter"] },
+      { "id": "bamboo", "name": "Bamboo Screen", "iconUrl": "builtin:bamboo", "category": "grass", "growthForm": "shrub", "spacingCm": 100, "rowSpacingCm": 100, "canopyWidthCm": 100, "heightCm": 300, "sunRequirement": "partial", "waterNeed": "medium", "season": ["spring", "summer", "fall", "winter"] },
+      { "id": "lavender", "name": "Lavender", "iconUrl": "builtin:lavender", "category": "shrub", "growthForm": "shrub", "spacingCm": 60, "rowSpacingCm": 60, "canopyWidthCm": 60, "heightCm": 60, "sunRequirement": "full", "waterNeed": "low", "season": ["spring", "summer", "fall", "winter"] },
+      { "id": "boxwood", "name": "Boxwood Hedge", "iconUrl": "builtin:boxwood", "category": "shrub", "growthForm": "shrub", "spacingCm": 80, "rowSpacingCm": 80, "canopyWidthCm": 80, "heightCm": 100, "sunRequirement": "partial", "waterNeed": "medium", "season": ["spring", "summer", "fall", "winter"] }
+    ],
+    "structures": [
+      { "id": "pergola", "name": "Modern Steel Pergola", "iconUrl": "builtin:pergola", "category": "overhead", "material": "metal", "defaultWidthCm": 1000, "defaultDepthCm": 300 },
+      { "id": "outdoor-sofa", "name": "Outdoor Sectional Sofa", "iconUrl": "builtin:outdoor-sofa", "category": "furniture", "material": "other", "defaultWidthCm": 250, "defaultDepthCm": 100 },
+      { "id": "fire-pit", "name": "Gas Fire Pit", "iconUrl": "builtin:fire-pit", "category": "feature", "material": "stone", "defaultWidthCm": 120, "defaultDepthCm": 120 },
+      { "id": "modern-planter", "name": "Corten Steel Planter", "iconUrl": "builtin:modern-planter", "category": "container", "material": "metal", "defaultWidthCm": 200, "defaultDepthCm": 80 },
+      { "id": "football-goal", "name": "Mini Football Goal", "iconUrl": "builtin:football-goal", "category": "feature", "material": "metal", "defaultWidthCm": 300, "defaultDepthCm": 30 },
+      { "id": "skate-bowl", "name": "Concrete Skate Bowl", "iconUrl": "builtin:skate-bowl", "category": "feature", "material": "masonry", "defaultWidthCm": 500, "defaultDepthCm": 500 },
+      { "id": "led-pathway-light", "name": "LED Pathway Bollard", "iconUrl": "builtin:led-light", "category": "feature", "material": "metal", "defaultWidthCm": 20, "defaultDepthCm": 20 }
+    ],
+    "paths": [
+      { "id": "concrete-slab", "name": "Large Concrete Slabs", "defaultWidthCm": 80, "material": "concrete", "color": "#CFD8DC" }
+    ]
+  }
+}

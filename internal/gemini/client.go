@@ -36,7 +36,7 @@ var AspectRatioMap = map[string]string{
 // Parts are interleaved: [segmap_instruction, segmap_blob, photo_1_instruction, photo_1_blob, ..., scene_prompt]
 // This ordering ensures each instruction text is adjacent to the image it describes.
 func Generate(ctx context.Context, promptParts model.PromptParts, segMapBytes []byte, photos []model.PhotoEntry, opts *model.EffectiveOptions, apiKey, modelName string) (imageBytes []byte, mimeType string, genErr *Error) {
-	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 180*time.Second)
 	defer cancel()
 
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{

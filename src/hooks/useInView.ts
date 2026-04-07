@@ -9,18 +9,16 @@ interface UseInViewOptions {
 export function useInView(options: UseInViewOptions = {}) {
   const { threshold = 0.1, rootMargin = '0px', once = true } = options
   const ref = useRef<HTMLDivElement>(null)
-  const [isInView, setIsInView] = useState(false)
+  const prefersReducedMotion = typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const [isInView, setIsInView] = useState(prefersReducedMotion)
 
   useEffect(() => {
+    // Respect reduced motion preference - immediately show content
+    if (prefersReducedMotion) return
+
     const element = ref.current
     if (!element) return
-
-    // Respect reduced motion preference - immediately show content
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (prefersReducedMotion) {
-      setIsInView(true)
-      return
-    }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -38,7 +36,7 @@ export function useInView(options: UseInViewOptions = {}) {
 
     observer.observe(element)
     return () => observer.disconnect()
-  }, [threshold, rootMargin, once])
+  }, [threshold, rootMargin, once, prefersReducedMotion])
 
   return { ref, isInView }
 }

@@ -16,6 +16,7 @@ const readonlyCls = 'rounded border border-gray-100 bg-gray-50 px-2 py-1 text-sm
  * Compute cost for a single element given its registry type.
  * Returns { cost, formula } or null if no cost applies.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function computeElementCost(
   element: CanvasElement,
   registries: ReturnType<typeof useProjectStore.getState>['registries'],
