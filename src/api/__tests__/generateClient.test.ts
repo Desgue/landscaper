@@ -105,7 +105,7 @@ describe('buildRequestBody', () => {
   });
 
   it('does not mutate the original project object', () => {
-    const _original = { ...baseProject };
+    void { ...baseProject };
     buildRequestBody(baseProject, baseRegistries, DEFAULT_OPTIONS, 'photo');
     expect(baseProject.yardPhoto).toBe('base64data');
     expect(baseProject.uiState).toBeDefined();

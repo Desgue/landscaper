@@ -375,7 +375,7 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
     const project = useProjectStore.getState().currentProject;
     if (project?.uiState.lastGenerateOptions) {
       const validKeys = new Set(Object.keys(DEFAULT_OPTIONS));
-      const persisted = project.uiState.lastGenerateOptions as Record<string, unknown>;
+      const persisted = project.uiState.lastGenerateOptions as unknown as Record<string, unknown>;
       const filtered: Record<string, unknown> = {};
       for (const key of Object.keys(persisted)) {
         if (validKeys.has(key)) {

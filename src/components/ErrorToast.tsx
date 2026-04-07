@@ -24,16 +24,17 @@ export function ErrorToast() {
   }, []);
 
   useEffect(() => {
-    if (status.kind === 'error' && status.message) {
+    if (status.kind === 'error') {
+      const msg = status.message;
       requestAnimationFrame(() => {
-        setMessage(status.message);
+        setMessage(msg);
         setVisible(true);
       });
 
       const timer = setTimeout(dismiss, AUTO_DISMISS_MS);
       return () => clearTimeout(timer);
     }
-  }, [status.kind, status.message, dismiss]);
+  }, [status, dismiss]);
 
   // Cleanup dismiss transition timer on unmount
   useEffect(() => {
