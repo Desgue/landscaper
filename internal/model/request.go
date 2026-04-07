@@ -53,6 +53,7 @@ type EffectiveOptions struct {
 	AspectRatio    string // e.g. "square"
 	ImageSize      string // "1K", "2K", "4K"
 	Seed           int    // -1 = random
+	Themed         bool   // true when user explicitly provided garden_style or time_of_day
 }
 
 // ProjectPayload is the project object as sent by the frontend in the API request.

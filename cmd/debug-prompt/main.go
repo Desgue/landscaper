@@ -27,7 +27,7 @@ func main() {
 	if len(os.Args) >= 3 {
 		outDir = os.Args[2]
 	}
-	os.MkdirAll(outDir, 0755)
+	os.MkdirAll(outDir, 0o755)
 
 	data, err := os.ReadFile(inputFile)
 	if err != nil {
@@ -49,9 +49,10 @@ func main() {
 	}
 
 	logger := slog.Default()
-	filtered := filter.Filter(ef.Project, eff, logger)
+	filtered := filter.Filter(&ef.Project, &eff, logger)
 	fmt.Printf("Filtered: %d elements (from %d total)\n", len(filtered), len(ef.Project.Elements))
-	for _, fe := range filtered {
+	for i := range filtered {
+		fe := &filtered[i]
 		name := ""
 		switch fe.Element.Type {
 		case "plant":
@@ -80,10 +81,10 @@ func main() {
 		os.Exit(1)
 	}
 	segFile := outDir + "/debug-segmap.png"
-	os.WriteFile(segFile, segMapBytes, 0644)
+	os.WriteFile(segFile, segMapBytes, 0o644)
 	fmt.Printf("\nSegmap saved: %s (%d bytes)\n", segFile, len(segMapBytes))
 
-	parts := prompt.Build(filtered, eff, 1)
+	parts := prompt.Build(filtered, &eff, 1)
 
 	promptFile := outDir + "/debug-prompt.txt"
 	f, _ := os.Create(promptFile)

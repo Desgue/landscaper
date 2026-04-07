@@ -44,11 +44,6 @@ const (
 	ColorNoMaterial    = "#C0C0C0" // silver — fallback for path or structure with no material field
 )
 
-// Output resolution.
-const (
-	maxDimension = 1024
-)
-
 // Render produces a segmentation map PNG from filtered elements and a yard boundary.
 func Render(elements []filter.FilteredElement, boundary *model.YardBoundary, aspectRatio string) ([]byte, error) {
 	// Determine output dimensions from aspect ratio
@@ -106,7 +101,7 @@ func Render(elements []filter.FilteredElement, boundary *model.YardBoundary, asp
 	return buf.Bytes(), nil
 }
 
-func outputDimensions(aspectRatio string) (int, int) {
+func outputDimensions(aspectRatio string) (w, h int) {
 	switch aspectRatio {
 	case "landscape":
 		return 1024, 576 // 16:9
@@ -226,29 +221,29 @@ func approximateArc(p0, p1 model.Point, sagitta float64) []model.Point {
 
 func drawElements(dc *gg.Context, elements []filter.FilteredElement, toCanvas func(float64, float64) (float64, float64), scale float64) {
 	// Draw order: terrain cells → paths → structures → plants
-	for _, fe := range elements {
-		if fe.Element.Type == "terrain" {
-			drawTerrain(dc, fe, toCanvas, scale)
+	for i := range elements {
+		if elements[i].Element.Type == "terrain" {
+			drawTerrain(dc, &elements[i], toCanvas, scale)
 		}
 	}
-	for _, fe := range elements {
-		if fe.Element.Type == "path" {
-			drawPath(dc, fe, toCanvas, scale)
+	for i := range elements {
+		if elements[i].Element.Type == "path" {
+			drawPath(dc, &elements[i], toCanvas, scale)
 		}
 	}
-	for _, fe := range elements {
-		if fe.Element.Type == "structure" {
-			drawStructure(dc, fe, toCanvas, scale)
+	for i := range elements {
+		if elements[i].Element.Type == "structure" {
+			drawStructure(dc, &elements[i], toCanvas, scale)
 		}
 	}
-	for _, fe := range elements {
-		if fe.Element.Type == "plant" {
-			drawPlant(dc, fe, toCanvas, scale)
+	for i := range elements {
+		if elements[i].Element.Type == "plant" {
+			drawPlant(dc, &elements[i], toCanvas, scale)
 		}
 	}
 }
 
-func drawTerrain(dc *gg.Context, fe filter.FilteredElement, toCanvas func(float64, float64) (float64, float64), scale float64) {
+func drawTerrain(dc *gg.Context, fe *filter.FilteredElement, toCanvas func(float64, float64) (float64, float64), scale float64) {
 	color := terrainColor(fe.TerrainType)
 	dc.SetHexColor(color)
 	// Terrain cells: 100x100cm rectangle, x/y is top-left aligned to 100cm boundaries
@@ -259,7 +254,7 @@ func drawTerrain(dc *gg.Context, fe filter.FilteredElement, toCanvas func(float6
 	dc.Fill()
 }
 
-func drawPath(dc *gg.Context, fe filter.FilteredElement, toCanvas func(float64, float64) (float64, float64), scale float64) {
+func drawPath(dc *gg.Context, fe *filter.FilteredElement, toCanvas func(float64, float64) (float64, float64), scale float64) {
 	color := pathColor(fe.PathType)
 	dc.SetHexColor(color)
 
@@ -306,7 +301,7 @@ func drawPath(dc *gg.Context, fe filter.FilteredElement, toCanvas func(float64, 
 	dc.Stroke()
 }
 
-func drawStructure(dc *gg.Context, fe filter.FilteredElement, toCanvas func(float64, float64) (float64, float64), scale float64) {
+func drawStructure(dc *gg.Context, fe *filter.FilteredElement, toCanvas func(float64, float64) (float64, float64), scale float64) {
 	color := structureColor(fe.StructureType)
 	dc.SetHexColor(color)
 
@@ -317,7 +312,7 @@ func drawStructure(dc *gg.Context, fe filter.FilteredElement, toCanvas func(floa
 
 	if elem.Shape == "curved" && elem.ArcSagitta != nil && *elem.ArcSagitta != 0 {
 		// Curved structure: arc band
-		drawCurvedStructure(dc, elem, toCanvas, scale, rotRad, centerX, centerY)
+		drawCurvedStructure(dc, &elem, toCanvas, scale, rotRad, centerX, centerY)
 	} else {
 		// Straight structure: rotated rectangle
 		hw := elem.Width / 2
@@ -341,7 +336,7 @@ func drawStructure(dc *gg.Context, fe filter.FilteredElement, toCanvas func(floa
 	}
 }
 
-func drawCurvedStructure(dc *gg.Context, elem model.Element, toCanvas func(float64, float64) (float64, float64), scale float64, rotRad, centerX, centerY float64) {
+func drawCurvedStructure(dc *gg.Context, elem *model.Element, toCanvas func(float64, float64) (float64, float64), _, rotRad, centerX, centerY float64) {
 	// Compute arc band: use element bounding box to derive chord
 	// The chord runs along the width, sagitta defines the curve
 	hw := elem.Width / 2
@@ -356,9 +351,9 @@ func drawCurvedStructure(dc *gg.Context, elem model.Element, toCanvas func(float
 	// Use negative sagitta offset for inner edge
 	innerSagitta := *elem.ArcSagitta
 	if math.Abs(innerSagitta) > hh {
-		innerSagitta = innerSagitta - hh
+		innerSagitta -= hh
 	} else {
-		innerSagitta = innerSagitta * (1 - hh/math.Max(math.Abs(innerSagitta), 1))
+		innerSagitta *= (1 - hh/math.Max(math.Abs(innerSagitta), 1))
 	}
 
 	// If inner sagitta is effectively zero or negative, just use a straight line
@@ -396,7 +391,7 @@ func drawCurvedStructure(dc *gg.Context, elem model.Element, toCanvas func(float
 	dc.Fill()
 }
 
-func drawPlant(dc *gg.Context, fe filter.FilteredElement, toCanvas func(float64, float64) (float64, float64), scale float64) {
+func drawPlant(dc *gg.Context, fe *filter.FilteredElement, toCanvas func(float64, float64) (float64, float64), scale float64) {
 	pt := fe.PlantType
 	if pt == nil {
 		return

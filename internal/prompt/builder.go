@@ -70,10 +70,10 @@ var botanicalNames = map[string]string{
 // Build assembles the structured prompt parts from filtered elements and effective options.
 // photoCount is the number of yard photos (0 = none). The returned PromptParts are
 // interleaved with image blobs by the Gemini client.
-func Build(elements []filter.FilteredElement, opts model.EffectiveOptions, photoCount int) model.PromptParts {
+func Build(elements []filter.FilteredElement, opts *model.EffectiveOptions, photoCount int) model.PromptParts {
 	subject := buildSubject(opts)
 	elemStr := buildElementList(elements)
-	style := buildStyle(opts.Viewpoint)
+	style := buildStyle(opts.Viewpoint, opts.Themed)
 	prohibitions := buildProhibitions(opts.Viewpoint)
 
 	// Scene prompt: SCHEMA order — Style → Composition → Subject → Mandatory elements → Prohibitions
@@ -123,17 +123,32 @@ func Build(elements []filter.FilteredElement, opts model.EffectiveOptions, photo
 	return parts
 }
 
-func buildSubject(opts model.EffectiveOptions) string {
-	return "A " + opts.GardenStyle + " garden, " + opts.Season + ", " + opts.TimeOfDay
+func buildSubject(opts *model.EffectiveOptions) string {
+	if opts.Themed {
+		style := opts.GardenStyle
+		if style == "garden" {
+			style = "residential" // avoid "A garden garden, ..."
+		}
+		return "A " + style + " garden, " + opts.Season + ", " + opts.TimeOfDay
+	}
+	// Base mode: neutral subject with season for subtle realism
+	return "A residential garden photographed in " + opts.Season + " conditions"
 }
 
-func buildStyle(viewpoint string) string {
+func buildStyle(viewpoint string, themed bool) string {
 	phrase, ok := viewpointPhrases[viewpoint]
 	if !ok {
 		phrase = viewpointPhrases["eye-level"]
 	}
+	if themed {
+		return fmt.Sprintf(
+			"High-end residential landscape photography, %s, natural lighting, rich textures, sharp detail.",
+			phrase,
+		)
+	}
+	// Base mode: neutral documentary language with quantified camera specs
 	return fmt.Sprintf(
-		"High-end residential landscape photography, %s, natural lighting, rich textures, sharp detail.",
+		"Residential landscape photograph, %s, overcast natural daylight, neutral color grade, sharp detail, no post-processing.",
 		phrase,
 	)
 }
@@ -141,7 +156,10 @@ func buildStyle(viewpoint string) string {
 func buildProhibitions(viewpoint string) string {
 	base := "NO floor plan. NO top-down diagram. " +
 		"NO colored circles or geometric overlays. NO cartoon or illustrated style. " +
-		"NO watermarks. NO text overlays. NO close-up of a single plant."
+		"NO watermarks. NO text overlays. NO close-up of a single plant. " +
+		"NO people. NO animals. NO pets. " +
+		"NO HDR processing. NO artificial color grading. NO lens flare. " +
+		"NO elements, structures, or plants not shown in the layout map."
 	// "NO bird's-eye view" conflicts with isometric which is a top-down variant,
 	// so only add it for eye-level and elevated viewpoints.
 	if viewpoint != "isometric" {
@@ -156,7 +174,8 @@ func buildElementList(elements []filter.FilteredElement) string {
 	seenStructs := make(map[string]bool)
 	seenTerrain := make(map[string]bool)
 
-	for _, fe := range elements {
+	for i := range elements {
+		fe := &elements[i]
 		switch fe.Element.Type {
 		case "plant":
 			if fe.PlantType != nil && !seenPlants[fe.PlantType.Name] {

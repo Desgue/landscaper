@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"time"
 
@@ -34,7 +35,7 @@ var AspectRatioMap = map[string]string{
 // Generate sends the prompt parts and images to Gemini and returns the generated image bytes and MIME type.
 // Parts are interleaved: [segmap_instruction, segmap_blob, photo_1_instruction, photo_1_blob, ..., scene_prompt]
 // This ordering ensures each instruction text is adjacent to the image it describes.
-func Generate(ctx context.Context, promptParts model.PromptParts, segMapBytes []byte, photos []model.PhotoEntry, opts model.EffectiveOptions, apiKey string, modelName string) ([]byte, string, *Error) {
+func Generate(ctx context.Context, promptParts model.PromptParts, segMapBytes []byte, photos []model.PhotoEntry, opts *model.EffectiveOptions, apiKey, modelName string) (imageBytes []byte, mimeType string, genErr *Error) {
 	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
 	defer cancel()
 
@@ -74,17 +75,25 @@ func Generate(ctx context.Context, promptParts model.PromptParts, segMapBytes []
 	}
 
 	cfg := &genai.GenerateContentConfig{
-		ResponseModalities: []string{"IMAGE"},
+		ResponseModalities: []string{"TEXT", "IMAGE"},
+		Temperature:        float32Ptr(0.3),
+		SystemInstruction: &genai.Content{
+			Parts: []*genai.Part{
+				{Text: "You are a photorealistic landscape design renderer. Your task is to generate a realistic photograph of a garden based on a color-coded layout map and optional yard photographs. Follow the layout map positions exactly. Do not add, remove, or reposition any elements. Every element in your output must correspond to a shape in the layout map."},
+			},
+		},
 		ImageConfig: &genai.ImageConfig{
 			AspectRatio: geminiAspect,
 			ImageSize:   opts.ImageSize,
 		},
+		// ThinkingConfig may be a no-op on some model variants; kept for models that support it.
+		// When active, it enables internal spatial reasoning before rendering.
 		ThinkingConfig: &genai.ThinkingConfig{
 			ThinkingLevel: genai.ThinkingLevelHigh,
 		},
 	}
-	if opts.Seed != -1 {
-		seed := int32(opts.Seed)
+	if opts.Seed != -1 && opts.Seed >= math.MinInt32 && opts.Seed <= math.MaxInt32 {
+		seed := int32(opts.Seed) //nolint:gosec // G115: bounds checked above
 		cfg.Seed = &seed
 	}
 
@@ -109,3 +118,5 @@ func Generate(ctx context.Context, promptParts model.PromptParts, segMapBytes []
 
 	return nil, "", &Error{StatusCode: http.StatusBadGateway, Message: "no image in Nano Banana response"}
 }
+
+func float32Ptr(v float32) *float32 { return &v }

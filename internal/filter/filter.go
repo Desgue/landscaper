@@ -20,7 +20,7 @@ type FilteredElement struct {
 // Filter applies Stage 1 element filtering and registry resolution.
 // It returns only elements that pass all filtering rules, each with its resolved registry entry.
 // Elements that fail registry lookup are excluded and logged at WARN level.
-func Filter(project model.ProjectPayload, opts model.EffectiveOptions, logger *slog.Logger) []FilteredElement {
+func Filter(project *model.ProjectPayload, opts *model.EffectiveOptions, logger *slog.Logger) []FilteredElement {
 	// Build layer visibility map
 	layerVisible := make(map[string]bool, len(project.Layers))
 	hasLayers := len(project.Layers) > 0
@@ -47,7 +47,8 @@ func Filter(project model.ProjectPayload, opts model.EffectiveOptions, logger *s
 	}
 
 	var result []FilteredElement
-	for _, elem := range project.Elements {
+	for i := range project.Elements {
+		elem := &project.Elements[i]
 		// Always exclude labels and dimensions
 		if elem.Type == "label" || elem.Type == "dimension" {
 			continue
@@ -71,7 +72,7 @@ func Filter(project model.ProjectPayload, opts model.EffectiveOptions, logger *s
 		}
 
 		// Registry resolution — exclude on miss with WARN log
-		fe := FilteredElement{Element: elem}
+		fe := FilteredElement{Element: *elem}
 		switch elem.Type {
 		case "terrain":
 			t, ok := terrainByID[elem.TerrainTypeID]

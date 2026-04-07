@@ -8,12 +8,22 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"greenprint/internal/gemini"
 	"greenprint/internal/model"
 )
+
+// mockScoringSuccess is the default scoring mock for tests.
+func mockScoringSuccess(_ context.Context, _ []byte, _ string, _ []byte, _, _ string) (gemini.ComplianceScore, *gemini.Error) {
+	return gemini.ComplianceScore{Spatial: 8, Completeness: 8, NoHallucinations: 8, Total: 8}, nil
+}
+
+func init() {
+	scoringFunc = mockScoringSuccess
+}
 
 // --- test fixtures -----------------------------------------------------------
 
@@ -199,31 +209,35 @@ func edgeCaseProject() map[string]any {
 
 // --- mock Gemini function ----------------------------------------------------
 
-func mockGeminiSuccess(_ context.Context, _ model.PromptParts, _ []byte, _ []model.PhotoEntry, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+func mockGeminiSuccess(_ context.Context, _ model.PromptParts, _ []byte, _ []model.PhotoEntry, _ *model.EffectiveOptions, _, _ string) (imageBytes []byte, mimeType string, genErr *gemini.Error) {
 	return fakePNGBytes, "image/png", nil
 }
 
-func mockGeminiTimeout(_ context.Context, _ model.PromptParts, _ []byte, _ []model.PhotoEntry, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+func mockGeminiTimeout(_ context.Context, _ model.PromptParts, _ []byte, _ []model.PhotoEntry, _ *model.EffectiveOptions, _, _ string) (imageBytes []byte, mimeType string, genErr *gemini.Error) {
 	return nil, "", &gemini.Error{StatusCode: http.StatusGatewayTimeout, Message: "image generation timed out"}
 }
 
-func mockGeminiAPIError(_ context.Context, _ model.PromptParts, _ []byte, _ []model.PhotoEntry, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+func mockGeminiAPIError(_ context.Context, _ model.PromptParts, _ []byte, _ []model.PhotoEntry, _ *model.EffectiveOptions, _, _ string) (imageBytes []byte, mimeType string, genErr *gemini.Error) {
 	return nil, "", &gemini.Error{StatusCode: http.StatusBadGateway, Message: "Nano Banana error: quota exceeded"}
 }
 
-func mockGeminiNoImage(_ context.Context, _ model.PromptParts, _ []byte, _ []model.PhotoEntry, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+func mockGeminiNoImage(_ context.Context, _ model.PromptParts, _ []byte, _ []model.PhotoEntry, _ *model.EffectiveOptions, _, _ string) (imageBytes []byte, mimeType string, genErr *gemini.Error) {
 	return nil, "", &gemini.Error{StatusCode: http.StatusBadGateway, Message: "no image in Nano Banana response"}
 }
 
 // recordingMock captures the arguments passed to the Gemini function for assertion.
+// Thread-safe: the handler calls generate concurrently for multiple candidates.
 type recordingMock struct {
+	mu          sync.Mutex
 	promptParts model.PromptParts
 	segMapBytes []byte
 	photos      []model.PhotoEntry
-	opts        model.EffectiveOptions
+	opts        *model.EffectiveOptions
 }
 
-func (rm *recordingMock) generate(_ context.Context, pp model.PromptParts, segMapBytes []byte, photos []model.PhotoEntry, opts model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+func (rm *recordingMock) generate(_ context.Context, pp model.PromptParts, segMapBytes []byte, photos []model.PhotoEntry, opts *model.EffectiveOptions, _, _ string) (imageBytes []byte, mimeType string, genErr *gemini.Error) {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
 	rm.promptParts = pp
 	rm.segMapBytes = segMapBytes
 	rm.photos = photos
@@ -241,7 +255,7 @@ func doGenerate(body []byte) *httptest.ResponseRecorder {
 	return rec
 }
 
-func marshalBody(project map[string]any, opts map[string]any) []byte {
+func marshalBody(project, opts map[string]any) []byte {
 	m := map[string]any{"project": project}
 	if opts != nil {
 		m["options"] = opts

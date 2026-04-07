@@ -11,6 +11,13 @@
 # Usage:
 #   make            — build the binary (incremental)
 #   make ci         — lint + test + build (parallel-safe with -j)
+#   make test       — run all test suites (Go + frontend)
+#   make test-go    — run Go tests only
+#   make test-frontend — run frontend tests only
+#   make lint       — run all linters (Go + frontend)
+#   make lint-go    — run Go linting only
+#   make lint-frontend — run frontend linting only
+#   make fmt        — format all Go source files
 #   make dev        — rebuild & run
 #   make clean      — remove all build artefacts and stamps
 # =============================================================================
@@ -64,7 +71,7 @@ FRONTEND_SRC := \
 # ---------------------------------------------------------------------------
 # Phony targets — never correspond to real files.
 # ---------------------------------------------------------------------------
-.PHONY: build ci dev run clean
+.PHONY: build ci dev run clean test test-go test-frontend lint lint-go lint-frontend fmt
 
 # ---------------------------------------------------------------------------
 # Default target
@@ -184,6 +191,40 @@ $(BINARY): $(GOFILES) go.mod go.sum .frontend-dist.stamp
 # ordering dependency on each other or on the binary, so they run freely.
 # =============================================================================
 ci: .lint-go.stamp .lint-frontend.stamp .test-go.stamp .test-frontend.stamp $(BINARY)
+
+# =============================================================================
+# Test targets (phony convenience wrappers)
+# =============================================================================
+
+# test-go: run Go tests unconditionally (ignores stamp).
+test-go:
+	$(GO) test -race -count=1 -timeout=60s ./...
+
+# test-frontend: run frontend tests unconditionally (ignores stamp).
+test-frontend:
+	$(NPM) run test
+
+# test: run all test suites.
+test: test-go test-frontend
+
+# =============================================================================
+# Lint targets (phony convenience wrappers)
+# =============================================================================
+
+# lint-go: run Go linting unconditionally (ignores stamp).
+lint-go:
+	$(LINT_GO) run ./...
+
+# lint-frontend: run frontend linting unconditionally (ignores stamp).
+lint-frontend:
+	$(NPM) run lint
+
+# lint: run all linters.
+lint: lint-go lint-frontend
+
+# fmt: format all Go source files.
+fmt:
+	gofmt -w $(shell find . -name '*.go' -not -path './vendor/*' -not -path './.git/*' -not -path './node_modules/*')
 
 # =============================================================================
 # Developer targets

@@ -38,8 +38,8 @@ func baseProject() model.ProjectPayload {
 	}
 }
 
-func defaultOpts() model.EffectiveOptions {
-	return model.EffectiveOptions{
+func defaultOpts() *model.EffectiveOptions {
+	return &model.EffectiveOptions{
 		IncludePlanned: true,
 		GardenStyle:    "garden",
 		Season:         "summer",
@@ -58,7 +58,7 @@ func TestFilterIncludesVisiblePlant(t *testing.T) {
 	p.Elements = []model.Element{
 		{ID: "e1", Type: "plant", LayerID: "layer-1", PlantTypeID: "rose", Status: "planted"},
 	}
-	result := Filter(p, defaultOpts(), testLogger(&buf))
+	result := Filter(&p, defaultOpts(), testLogger(&buf))
 	if len(result) != 1 {
 		t.Fatalf("expected 1 element, got %d", len(result))
 	}
@@ -73,7 +73,7 @@ func TestFilterExcludesHiddenLayer(t *testing.T) {
 	p.Elements = []model.Element{
 		{ID: "e1", Type: "plant", LayerID: "layer-hidden", PlantTypeID: "rose", Status: "planted"},
 	}
-	result := Filter(p, defaultOpts(), testLogger(&buf))
+	result := Filter(&p, defaultOpts(), testLogger(&buf))
 	if len(result) != 0 {
 		t.Fatalf("expected 0 elements, got %d", len(result))
 	}
@@ -85,7 +85,7 @@ func TestFilterIncludesLockedLayer(t *testing.T) {
 	p.Elements = []model.Element{
 		{ID: "e1", Type: "plant", LayerID: "layer-locked", PlantTypeID: "rose", Status: "planted"},
 	}
-	result := Filter(p, defaultOpts(), testLogger(&buf))
+	result := Filter(&p, defaultOpts(), testLogger(&buf))
 	if len(result) != 1 {
 		t.Fatalf("expected 1 element, got %d", len(result))
 	}
@@ -97,7 +97,7 @@ func TestFilterExcludesRemovedPlant(t *testing.T) {
 	p.Elements = []model.Element{
 		{ID: "e1", Type: "plant", LayerID: "layer-1", PlantTypeID: "rose", Status: "removed"},
 	}
-	result := Filter(p, defaultOpts(), testLogger(&buf))
+	result := Filter(&p, defaultOpts(), testLogger(&buf))
 	if len(result) != 0 {
 		t.Fatalf("expected 0 elements, got %d", len(result))
 	}
@@ -111,7 +111,7 @@ func TestFilterExcludesPlannedWhenNotIncluded(t *testing.T) {
 	}
 	opts := defaultOpts()
 	opts.IncludePlanned = false
-	result := Filter(p, opts, testLogger(&buf))
+	result := Filter(&p, opts, testLogger(&buf))
 	if len(result) != 0 {
 		t.Fatalf("expected 0 elements, got %d", len(result))
 	}
@@ -125,7 +125,7 @@ func TestFilterIncludesPlannedWhenIncluded(t *testing.T) {
 	}
 	opts := defaultOpts()
 	opts.IncludePlanned = true
-	result := Filter(p, opts, testLogger(&buf))
+	result := Filter(&p, opts, testLogger(&buf))
 	if len(result) != 1 {
 		t.Fatalf("expected 1 element, got %d", len(result))
 	}
@@ -137,7 +137,7 @@ func TestFilterExcludesLabels(t *testing.T) {
 	p.Elements = []model.Element{
 		{ID: "e1", Type: "label", LayerID: "layer-1"},
 	}
-	result := Filter(p, defaultOpts(), testLogger(&buf))
+	result := Filter(&p, defaultOpts(), testLogger(&buf))
 	if len(result) != 0 {
 		t.Fatalf("expected 0 elements, got %d", len(result))
 	}
@@ -149,7 +149,7 @@ func TestFilterExcludesDimensions(t *testing.T) {
 	p.Elements = []model.Element{
 		{ID: "e1", Type: "dimension", LayerID: "layer-1"},
 	}
-	result := Filter(p, defaultOpts(), testLogger(&buf))
+	result := Filter(&p, defaultOpts(), testLogger(&buf))
 	if len(result) != 0 {
 		t.Fatalf("expected 0 elements, got %d", len(result))
 	}
@@ -161,7 +161,7 @@ func TestFilterRegistryMissLogsWarning(t *testing.T) {
 	p.Elements = []model.Element{
 		{ID: "e1", Type: "plant", LayerID: "layer-1", PlantTypeID: "nonexistent", Status: "planted"},
 	}
-	result := Filter(p, defaultOpts(), testLogger(&buf))
+	result := Filter(&p, defaultOpts(), testLogger(&buf))
 	if len(result) != 0 {
 		t.Fatalf("expected 0 elements, got %d", len(result))
 	}
@@ -184,7 +184,7 @@ func TestFilterEmptyLayersAllVisible(t *testing.T) {
 	p.Elements = []model.Element{
 		{ID: "e1", Type: "plant", LayerID: "any-layer", PlantTypeID: "rose", Status: "planted"},
 	}
-	result := Filter(p, defaultOpts(), testLogger(&buf))
+	result := Filter(&p, defaultOpts(), testLogger(&buf))
 	if len(result) != 1 {
 		t.Fatalf("expected 1 element with empty layers, got %d", len(result))
 	}
@@ -199,7 +199,7 @@ func TestFilterAllElementTypes(t *testing.T) {
 		{ID: "e3", Type: "structure", LayerID: "layer-1", StructureTypeID: "pergola"},
 		{ID: "e4", Type: "path", LayerID: "layer-1", PathTypeID: "stone-path"},
 	}
-	result := Filter(p, defaultOpts(), testLogger(&buf))
+	result := Filter(&p, defaultOpts(), testLogger(&buf))
 	if len(result) != 4 {
 		t.Fatalf("expected 4 elements, got %d", len(result))
 	}
@@ -223,7 +223,7 @@ func TestFilterStructureRegistryMiss(t *testing.T) {
 	p.Elements = []model.Element{
 		{ID: "e1", Type: "structure", LayerID: "layer-1", StructureTypeID: "nonexistent"},
 	}
-	result := Filter(p, defaultOpts(), testLogger(&buf))
+	result := Filter(&p, defaultOpts(), testLogger(&buf))
 	if len(result) != 0 {
 		t.Fatalf("expected 0 elements, got %d", len(result))
 	}
@@ -238,7 +238,7 @@ func TestFilterUnknownTypeExcluded(t *testing.T) {
 	p.Elements = []model.Element{
 		{ID: "e1", Type: "unknown", LayerID: "layer-1"},
 	}
-	result := Filter(p, defaultOpts(), testLogger(&buf))
+	result := Filter(&p, defaultOpts(), testLogger(&buf))
 	if len(result) != 0 {
 		t.Fatalf("expected 0 elements for unknown type, got %d", len(result))
 	}

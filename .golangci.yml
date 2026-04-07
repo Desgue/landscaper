@@ -1,0 +1,40 @@
+version: "2"
+run:
+  timeout: 5m
+  go: "1.26"
+  modules-download-mode: readonly
+linters:
+  default: standard  # govet, errcheck, staticcheck, unused
+  enable:
+    - revive       # code style, superset of golint
+    - gosec        # security
+    - gocritic     # opinionated style + performance
+    - prealloc     # slice pre-allocation
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    gosec:
+      excludes:
+        - G104     # unhandled errors (covered by errcheck)
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true
+  exclusions:
+    paths:
+      - node_modules
+    rules:
+      - path: "_test\\.go"
+        linters:
+          - gosec
+          - errcheck
+      - path: "cmd/debug-prompt/"
+        linters:
+          - errcheck
+          - gosec

@@ -19,7 +19,7 @@ import (
 
 func main() {
 	// Load .env file if present (silently ignored in production)
-	_ = godotenv.Load()
+	_ = godotenv.Load() //nolint:errcheck // intentionally ignoring: .env is optional
 
 	// Read env vars
 	apiKey := os.Getenv("GEMINI_API_KEY")
@@ -45,9 +45,9 @@ func main() {
 
 	// API routes
 	mux.HandleFunc("POST /api/generate", handler.WithRequestID(handler.Generate))
-	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+		_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true}) //nolint:errcheck // best-effort health response
 	})
 
 	// Embedded SPA with index.html fallback
@@ -66,7 +66,9 @@ func main() {
 		// Check if file exists in embedded FS
 		f, err := distFS.Open(strings.TrimPrefix(path, "/"))
 		if err == nil {
-			f.Close()
+			if closeErr := f.Close(); closeErr != nil {
+				slog.Warn("failed to close embedded file", "path", path, "error", closeErr.Error()) //nolint:gosec // G706: path is from embedded FS, not user input
+			}
 			fileServer.ServeHTTP(w, r)
 			return
 		}
@@ -84,7 +86,7 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	slog.Info("server starting", "port", port, "model", model)
+	slog.Info("server starting", "port", port, "model", model) //nolint:gosec // G706: port and model are from env vars, not user input
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal("server failed: ", err)
 	}

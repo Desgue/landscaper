@@ -75,6 +75,7 @@ grep -rn "eslint\|golangci" package.json .golangci.yml 2>/dev/null
 | `go.mod` | Go module name (`greenprint`) and version (`1.26`) | First 5 lines |
 | `static.go` | `go:embed frontend/dist` directive | Full read — 9 lines |
 | `vite.config.ts` | Frontend build config, dev proxy to `:8080` | Full read — 16 lines |
+| `.golangci.yml` | Go linter configuration (golangci-lint v2) | Full read — short file |
 | `eslint.config.js` | Frontend lint rules (flat config, TS/TSX) | Full read — short file |
 | `tsconfig.json` | TypeScript project references → `tsconfig.app.json`, `tsconfig.node.json` | Full read — short file |
 
@@ -82,7 +83,7 @@ grep -rn "eslint\|golangci" package.json .golangci.yml 2>/dev/null
 
 ## Phases
 
-### Phase 1 — Makefile Build Orchestration [~]
+### Phase 1 — Makefile Build Orchestration [x]
 
 > Refactor the Makefile from phony-only targets to stamp-file-based incremental builds. This is the foundation — all later phases add targets to this Makefile. Must be done first because Phase 2–4 targets depend on the caching infrastructure.
 
@@ -113,17 +114,17 @@ _None yet._
 
 ---
 
-#### Feature: Test Targets [~]
+#### Feature: Test Targets [x]
 
-**Status:** `in-progress`
+**Status:** `done`
 **Spec:** N/A
 **Rationale:** Tests currently require manual `go test ./...` and `npm run test` invocations. Makefile targets make them discoverable and allow the CI pipeline to depend on them.
 
 ##### Tasks
 
-- [ ] Add `test-go` phony target: `go test -race -count=1 -timeout=60s ./...`
-- [ ] Add `test-frontend` phony target: `npm run test`
-- [ ] Add `test` umbrella phony target that runs both
+- [x] Add `test-go` phony target: `go test -race -count=1 -timeout=60s ./...` — done 2026-04-07
+- [x] Add `test-frontend` phony target: `npm run test` — done 2026-04-07
+- [x] Add `test` umbrella phony target that runs both — done 2026-04-07
 - [x] Add `.test-go.stamp` file target depending on `$(GOFILES)`, `go.mod`, `go.sum` — runs `go test -race -count=1 -timeout=60s ./... && touch $@` — done 2026-04-07
 - [x] Add `.test-frontend.stamp` file target depending on `$(FRONTEND_SRC)`, `.npm.stamp`, and `vitest.config.ts` — runs `npm run test && touch $@` — done 2026-04-07
 
@@ -133,20 +134,20 @@ _None yet._
 
 ---
 
-### Phase 2 — Go Linting with golangci-lint [ ]
+### Phase 2 — Go Linting with golangci-lint [x]
 
 > Install and configure golangci-lint with a curated set of linters for the existing Go codebase. This must be done before hooks (Phase 3) so that the pre-commit hook can call `golangci-lint run`.
 
-#### Feature: golangci-lint Configuration [ ]
+#### Feature: golangci-lint Configuration [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** N/A — industry standard tooling
 **Rationale:** The project currently has zero Go linting beyond `go vet` (which is not explicitly run). golangci-lint aggregates 50+ linters behind one binary with caching and diff-mode support.
 
 ##### Tasks
 
-- [ ] Install golangci-lint v2: `curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin`
-- [ ] Create `.golangci.yml` in project root:
+- [x] Install golangci-lint v2: `curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin` — done 2026-04-07
+- [x] Create `.golangci.yml` in project root (with additional exclusions for node_modules, test errcheck, and debug-prompt; disabled revive/package-comments): — done 2026-04-07
   ```yaml
   version: "2"
   run:
@@ -180,9 +181,9 @@ _None yet._
         linters:
           - gosec
   ```
-- [ ] Run `golangci-lint run ./...` and fix all reported issues (expect 5–20 on first run)
-- [ ] Verify `golangci-lint run --new-from-rev HEAD ./...` completes in under 3 seconds with no staged changes
-- [ ] Add `.golangci.yml` to the Context Map of this plan
+- [x] Run `golangci-lint run ./...` and fix all reported issues (115 initial, all resolved) — done 2026-04-07
+- [x] Verify `golangci-lint run --new-from-rev HEAD ./...` completes in under 3 seconds with no staged changes — done 2026-04-07
+- [x] Add `.golangci.yml` to the Context Map of this plan — done 2026-04-07
 
 ##### Decisions
 
@@ -190,20 +191,20 @@ _None yet._
 
 ---
 
-#### Feature: Lint Makefile Targets [ ]
+#### Feature: Lint Makefile Targets [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** N/A
 **Rationale:** Linting needs Makefile targets so the CI pipeline and hooks invoke it consistently.
 
 ##### Tasks
 
-- [ ] Add `lint-go` phony target: `golangci-lint run ./...`
-- [ ] Add `lint-frontend` phony target: `npm run lint`
-- [ ] Add `lint` umbrella phony target that runs both
-- [ ] Add `.lint-go.stamp` file target depending on `$(GOFILES)` and `.golangci.yml` — runs `golangci-lint run ./... && touch $@`
-- [ ] Add `.lint-frontend.stamp` file target depending on `$(FRONTEND_SRC)`, `.npm.stamp`, and `eslint.config.js` — runs `npm run lint && touch $@`
-- [ ] Add `fmt` phony target: `gofmt -w $(shell find . -name '*.go' -not -path './vendor/*' -not -path './.git/*')`
+- [x] Add `lint-go` phony target: `golangci-lint run ./...` — done 2026-04-07
+- [x] Add `lint-frontend` phony target: `npm run lint` — done 2026-04-07
+- [x] Add `lint` umbrella phony target that runs both — done 2026-04-07
+- [x] Add `.lint-go.stamp` file target depending on `$(GOFILES)` and `.golangci.yml` — runs `golangci-lint run ./... && touch $@` — already existed from Phase 1
+- [x] Add `.lint-frontend.stamp` file target depending on `$(FRONTEND_SRC)`, `.npm.stamp`, and `eslint.config.js` — runs `npm run lint && touch $@` — already existed from Phase 1
+- [x] Add `fmt` phony target: `gofmt -w $(shell find . -name '*.go' -not -path './vendor/*' -not -path './.git/*' -not -path './node_modules/*')` — done 2026-04-07
 
 ##### Decisions
 
@@ -391,4 +392,6 @@ _None yet._
 2026-04-07 — plan-creation — PLAN-E initialized. Four phases: Makefile stamp-file caching, golangci-lint setup, lefthook git hooks, full CI pipeline. Research completed on lefthook (parallel, glob filtering, stage_fixed), golangci-lint v2 (standard preset, --new-from-rev), Makefile stamp patterns (mtime-based incremental builds). Key structural note: frontend source lives at repo root src/, not frontend/src/.
 2026-04-07 — architect-review + devops-review — Fixed 7 issues: (1) FRONTEND_SRC find precedence bug and missing index.html, (2) stamp files moved from inside directories to root-level dot-prefix, (3) lefthook globs changed from *.go to **/*.go, (4) gofmt -l wrapped with test -z exit check, (5) added config file deps to lint/test stamps (eslint.config.js, vitest.config.ts), (6) corrected make ci verification text re: ordering, (7) added frontend/dist/ to .gitignore entries.
 2026-04-07 — Phase 1 partially complete. Makefile rewritten with stamp-file pattern, version injection, CGO_ENABLED=0. vite.config.ts updated to output directly to frontend/dist (outDir change). .gitignore updated with .*.stamp and frontend/dist. Stamp targets for lint and test exist but phony convenience targets (test-go, lint-go, etc.) deferred. .golangci.yml not yet created — .lint-go.stamp will fail until Phase 2.
+2026-04-07 — Phase 1 complete. Added phony test targets (test-go, test-frontend, test) to Makefile. Updated Makefile comment header to list new targets. All Phase 1 tasks done; proceeding to Phase 2.
+2026-04-07 — Phase 2 complete. Installed golangci-lint v2.11.4. Created .golangci.yml with standard preset + revive/gosec/gocritic/prealloc. Fixed 115 lint issues across codebase: errcheck (handled/suppressed), gocritic (hugeParam → pointers, rangeValCopy → index, assignOp, paramTypeCombine, unnamedResult, octalLiteral), gosec (nolint with rationale), unused (removed dead code), revive (disabled package-comments). Added node_modules and test/debug exclusion rules. Added phony lint/fmt targets to Makefile. All tests pass, 0 lint issues.
 ```

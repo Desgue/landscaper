@@ -54,7 +54,7 @@ func validationError(w http.ResponseWriter, r *http.Request, status int, message
 	Logger(r.Context()).Warn("validation failed", "error", message)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": message}) //nolint:errcheck // best-effort error response
 }
 
 // validateAndParse reads the request body, validates all fields, and returns
@@ -166,7 +166,7 @@ func validateAndParseWithTime(w http.ResponseWriter, r *http.Request, now time.T
 	}
 
 	// 11. Resolve EffectiveOptions with defaults
-	eff := resolveOptions(req.Options, req.Project.Location, now)
+	eff := resolveOptions(&req.Options, req.Project.Location, now)
 
 	return req, eff, photos, true
 }
@@ -240,7 +240,7 @@ func decodePhoto(b64 string) (model.PhotoEntry, error) {
 }
 
 // resolveOptions applies defaults for all omitted fields.
-func resolveOptions(opts model.GenerateOptions, loc *model.Location, now time.Time) model.EffectiveOptions {
+func resolveOptions(opts *model.GenerateOptions, loc *model.Location, now time.Time) model.EffectiveOptions {
 	eff := model.EffectiveOptions{
 		IncludePlanned: true,
 		GardenStyle:    "garden",
@@ -278,6 +278,9 @@ func resolveOptions(opts model.GenerateOptions, loc *model.Location, now time.Ti
 	if opts.Seed != nil {
 		eff.Seed = *opts.Seed
 	}
+
+	// Detect themed mode: user explicitly provided creative styling
+	eff.Themed = opts.GardenStyle != "" || opts.TimeOfDay != ""
 
 	return eff
 }

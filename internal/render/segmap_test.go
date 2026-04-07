@@ -10,8 +10,7 @@ import (
 	"greenprint/internal/model"
 )
 
-func strPtr(s string) *string   { return &s }
-func f64Ptr(f float64) *float64 { return &f }
+func strPtr(s string) *string { return &s }
 
 func TestBoundaryAABB(t *testing.T) {
 	verts := []model.Point{

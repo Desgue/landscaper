@@ -9,8 +9,8 @@ import (
 	"greenprint/internal/model"
 )
 
-func defaultOpts() model.EffectiveOptions {
-	return model.EffectiveOptions{
+func themedOpts() *model.EffectiveOptions {
+	return &model.EffectiveOptions{
 		IncludePlanned: true,
 		GardenStyle:    "cottage",
 		Season:         "late summer",
@@ -18,8 +18,24 @@ func defaultOpts() model.EffectiveOptions {
 		Viewpoint:      "eye-level",
 		AspectRatio:    "square",
 		Seed:           -1,
+		Themed:         true,
 	}
 }
+
+func baseOpts() *model.EffectiveOptions {
+	return &model.EffectiveOptions{
+		IncludePlanned: true,
+		GardenStyle:    "garden",
+		Season:         "summer",
+		TimeOfDay:      "golden hour",
+		Viewpoint:      "eye-level",
+		AspectRatio:    "square",
+		Seed:           -1,
+		Themed:         false,
+	}
+}
+
+func defaultOpts() *model.EffectiveOptions { return themedOpts() }
 
 // --- PromptParts structure tests ---
 
@@ -102,6 +118,23 @@ func TestBuild_ScenePromptContainsProhibitions(t *testing.T) {
 	}
 	if !strings.Contains(parts.ScenePrompt, "NO colored circles") {
 		t.Error("ScenePrompt should contain colored circles prohibition")
+	}
+}
+
+func TestBuild_ScenePromptContainsEnhancedProhibitions(t *testing.T) {
+	parts := Build(nil, defaultOpts(), 0)
+	for _, phrase := range []string{
+		"NO people",
+		"NO animals",
+		"NO pets",
+		"NO HDR processing",
+		"NO artificial color grading",
+		"NO lens flare",
+		"NO elements, structures, or plants not shown in the layout map",
+	} {
+		if !strings.Contains(parts.ScenePrompt, phrase) {
+			t.Errorf("ScenePrompt missing prohibition %q", phrase)
+		}
 	}
 }
 
@@ -468,6 +501,51 @@ func TestDeriveSeasonNilLat(t *testing.T) {
 	got := DeriveSeason(loc, time.Now())
 	if got != "summer" {
 		t.Errorf("nil lat: got %q, want %q", got, "summer")
+	}
+}
+
+// --- Base/Themed mode tests ---
+
+func TestBuild_BaseMode_NeutralSubject(t *testing.T) {
+	parts := Build(nil, baseOpts(), 0)
+	if strings.Contains(parts.ScenePrompt, "cottage") {
+		t.Error("base mode should not contain garden style")
+	}
+	if strings.Contains(parts.ScenePrompt, "golden hour") {
+		t.Error("base mode should not contain time of day")
+	}
+	if !strings.Contains(parts.ScenePrompt, "residential garden") {
+		t.Error("base mode should mention residential garden")
+	}
+	if !strings.Contains(parts.ScenePrompt, "summer conditions") {
+		t.Error("base mode should mention season conditions")
+	}
+}
+
+func TestBuild_BaseMode_NeutralStyle(t *testing.T) {
+	parts := Build(nil, baseOpts(), 0)
+	if !strings.Contains(parts.ScenePrompt, "neutral color grade") {
+		t.Error("base mode should use neutral color grade")
+	}
+	if !strings.Contains(parts.ScenePrompt, "no post-processing") {
+		t.Error("base mode should mention no post-processing")
+	}
+	if strings.Contains(parts.ScenePrompt, "High-end") {
+		t.Error("base mode should not use 'High-end' language")
+	}
+}
+
+func TestBuild_ThemedMode_CreativeSubject(t *testing.T) {
+	parts := Build(nil, themedOpts(), 0)
+	if !strings.Contains(parts.ScenePrompt, "cottage garden, late summer, golden hour") {
+		t.Fatalf("themed mode should contain full creative subject: %q", parts.ScenePrompt)
+	}
+}
+
+func TestBuild_ThemedMode_CreativeStyle(t *testing.T) {
+	parts := Build(nil, themedOpts(), 0)
+	if !strings.Contains(parts.ScenePrompt, "High-end residential landscape photography") {
+		t.Error("themed mode should use High-end language")
 	}
 }
 
