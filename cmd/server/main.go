@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"greenprint"
+	"greenprint/internal/gemini"
 	"greenprint/internal/handler"
 )
 
@@ -23,7 +24,7 @@ func main() {
 
 	model := os.Getenv("GEMINI_MODEL")
 	if model == "" {
-		model = "gemini-3.1-flash-image-preview"
+		model = gemini.DefaultModel
 	}
 
 	port := os.Getenv("PORT")
@@ -41,7 +42,7 @@ func main() {
 	mux.HandleFunc("POST /api/generate", handler.WithRequestID(handler.Generate))
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+		_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 	})
 
 	// Embedded SPA with index.html fallback
