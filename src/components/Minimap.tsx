@@ -1,7 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react'
 import { useViewportStore } from '../store/useViewportStore'
 import { useProjectStore } from '../store/useProjectStore'
-import { getAABB } from '../canvas/YardBoundaryLayer'
+import { boundaryGetAABB as getAABB } from '../canvas/elementAABB'
 import { fitToView } from '../canvas/viewport'
 
 const MINIMAP_W = 160

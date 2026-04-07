@@ -7,13 +7,7 @@ import LayerPanel from './LayerPanel'
 import StatusBar from './StatusBar'
 import Minimap from './Minimap'
 
-// Renderer selection via env var — only the active renderer is bundled (code-split)
-const USE_PIXI = import.meta.env.VITE_USE_PIXI === 'true'
-const Canvas = lazy(() =>
-  USE_PIXI
-    ? import('../canvas-pixi/CanvasHost')
-    : import('../canvas/CanvasRoot'),
-)
+const Canvas = lazy(() => import('../canvas-pixi/CanvasHost'))
 import ZOrderContextMenu from './ZOrderContextMenu'
 import JournalView from './JournalView'
 import CostSummaryPanel from './CostSummaryPanel'
