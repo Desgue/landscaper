@@ -33,7 +33,7 @@ PLAN-A: Foundation               ──► PLAN-B: Pipeline
 |------|------|------|--------|
 | A | `docs/plans/backend/PLAN-A.md` | Go module init, request types, HTTP server & routing, request validation, structured logging | `done` |
 | B | `docs/plans/backend/PLAN-B.md` | Element filtering (Stage 1), segmentation render (Stage 2), prompt construction (Stage 3), Gemini client (Stage 4) | `done` |
-| C | `docs/plans/backend/PLAN-C.md` | Pipeline orchestration, contract test fixtures, build pipeline, dev proxy verification | `todo` |
+| C | `docs/plans/backend/PLAN-C.md` | Pipeline orchestration, contract test fixtures, build pipeline, dev proxy verification | `done` |
 
 ---
 
