@@ -1,6 +1,6 @@
 export default function Navbar() {
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg border border-green-200 bg-green-50 flex items-center justify-center">
@@ -11,7 +11,7 @@ export default function Navbar() {
           </span>
         </div>
         <a
-          href="#"
+          href="/app"
           className="bg-[#1971c2] hover:bg-[#1562a8] text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
         >
           Try it free

@@ -6,7 +6,7 @@ export default function Footer() {
           <LeafIcon />
           <span className="font-medium text-gray-600">Greenprint</span>
         </div>
-        <p>Runs offline &mdash; no account, no data sent to any server.</p>
+        <p>Your plans live in your browser. We generate images on our server and don't store them.</p>
       </div>
     </footer>
   )
