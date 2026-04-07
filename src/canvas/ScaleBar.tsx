@@ -51,6 +51,7 @@ export default function ScaleBar() {
 
   return (
     <div
+      title="Scale — shows real-world distance at current zoom level"
       style={{
         position: 'absolute',
         bottom: 16,
@@ -61,10 +62,26 @@ export default function ScaleBar() {
         background: 'rgba(255, 255, 255, 0.8)',
         borderRadius: 6,
         padding: '4px 8px',
-        pointerEvents: 'none',
+        pointerEvents: 'auto',
         userSelect: 'none',
+        cursor: 'default',
       }}
     >
+      {/* Scale label */}
+      <div
+        style={{
+          fontSize: 9,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+          color: '#6b7280',
+          lineHeight: 1,
+          marginBottom: 2,
+          letterSpacing: '0.03em',
+          textTransform: 'uppercase',
+          fontWeight: 600,
+        }}
+      >
+        Scale
+      </div>
       {/* Horizontal bar */}
       <div
         style={{
