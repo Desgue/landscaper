@@ -74,13 +74,16 @@ The main scene description follows the SCHEMA framework ordering for optimal Gem
 4. **Constraint** — only include elements from the map
 5. **Prohibitions** — explicit NO statements
 
+### Base vs Themed Mode
+
+The prompt operates in one of two modes determined by whether the user explicitly provided `garden_style` or `time_of_day` in the request options:
+
+- **Base mode** (`Themed == false`): Neutral documentary photography language focused on accurately rendering the layout. Used when no creative styling is requested.
+- **Themed mode** (`Themed == true`): Creative styling with garden style, season, and time of day. Used when the user explicitly provides `garden_style` or `time_of_day`.
+
+The `Themed` flag is set in `resolveOptions` in `validate.go`: `eff.Themed = opts.GardenStyle != "" || opts.TimeOfDay != ""`.
+
 ### Style + Composition
-
-Template:
-
-```
-"High-end residential landscape photography, {viewpoint_phrase}, natural lighting, rich textures, sharp detail."
-```
 
 Viewpoint phrases include camera/lens hints per viewpoint:
 
@@ -90,13 +93,35 @@ Viewpoint phrases include camera/lens hints per viewpoint:
 | `elevated` | `"elevated three-quarter view looking down at an angle, 35mm lens, slightly above fence height"` |
 | `isometric` | `"isometric perspective, tilt-shift lens effect, uniform scale across the scene"` |
 
+**Base mode template:**
+
+```
+"Residential landscape photograph, {viewpoint_phrase}, overcast natural daylight, neutral color grade, sharp detail, no post-processing."
+```
+
+**Themed mode template:**
+
+```
+"High-end residential landscape photography, {viewpoint_phrase}, natural lighting, rich textures, sharp detail."
+```
+
 ### Subject Construction
 
-Template:
+**Base mode template:**
+
+```
+"A residential garden photographed in {season} conditions"
+```
+
+Season is derived from latitude/date (or defaults to "summer") for subtle realism — e.g., leafless trees in winter, green foliage in summer. Garden style and time of day are not included.
+
+**Themed mode template:**
 
 ```
 "A {garden_style} garden, {season}, {time_of_day}"
 ```
+
+When `garden_style` is the default `"garden"`, it is replaced with `"residential"` to avoid the awkward phrasing "A garden garden".
 
 Values come directly from `options.garden_style`, `options.season`, and `options.time_of_day` after defaults are applied. See [api-contract.md "## Options and Defaults"] for allowed values and defaults.
 
@@ -227,15 +252,15 @@ Prohibition block at the end of the scene prompt. The "NO bird's-eye view" claus
 
 For `eye-level` / `elevated`:
 ```
-"NO bird's-eye view. NO floor plan. NO top-down diagram. NO colored circles or geometric overlays. NO cartoon or illustrated style. NO watermarks. NO text overlays. NO close-up of a single plant."
+"NO bird's-eye view. NO floor plan. NO top-down diagram. NO colored circles or geometric overlays. NO cartoon or illustrated style. NO watermarks. NO text overlays. NO close-up of a single plant. NO people. NO animals. NO pets. NO HDR processing. NO artificial color grading. NO lens flare. NO elements, structures, or plants not shown in the layout map."
 ```
 
 For `isometric`:
 ```
-"NO floor plan. NO top-down diagram. NO colored circles or geometric overlays. NO cartoon or illustrated style. NO watermarks. NO text overlays. NO close-up of a single plant."
+"NO floor plan. NO top-down diagram. NO colored circles or geometric overlays. NO cartoon or illustrated style. NO watermarks. NO text overlays. NO close-up of a single plant. NO people. NO animals. NO pets. NO HDR processing. NO artificial color grading. NO lens flare. NO elements, structures, or plants not shown in the layout map."
 ```
 
-These use declarative "NO" statements rather than "don't" phrasing, following the SCHEMA framework finding that prohibitions outperform positive constraints (94% vs 91% compliance).
+These use declarative "NO" statements rather than "don't" phrasing, following the SCHEMA framework finding that prohibitions outperform positive constraints (94% vs 91% compliance). The enhanced prohibitions (people, animals, HDR, hallucinated elements) were added to improve layout fidelity and prevent the model from adding unwanted scene elements.
 
 ## Full Prompt Assembly
 
@@ -263,7 +288,7 @@ When `photoCount == N` where N > 1 (3 + 2N parts total):
 [scene_prompt_text]
 ```
 
-### Example scene prompt with elements:
+### Example scene prompt — themed mode with elements:
 
 ```
 High-end residential landscape photography, eye-level perspective, 24mm wide-angle
@@ -275,19 +300,40 @@ Rosa floribunda (Rose Bush), Wooden Pergola, Raised Bed, Grass, Gravel. Only inc
 elements shown in the layout map. NO extra structures, furniture, or decorations not
 in the plan. NO bird's-eye view. NO floor plan. NO top-down diagram. NO colored
 circles or geometric overlays. NO cartoon or illustrated style. NO watermarks. NO
-text overlays. NO close-up of a single plant.
+text overlays. NO close-up of a single plant. NO people. NO animals. NO pets.
+NO HDR processing. NO artificial color grading. NO lens flare. NO elements,
+structures, or plants not shown in the layout map.
 ```
 
-### Example scene prompt without elements:
+### Example scene prompt — base mode with elements:
 
 ```
-High-end residential landscape photography, eye-level perspective, 24mm wide-angle
-lens, ground-level viewpoint, horizon at mid-frame, natural lighting, rich textures,
-sharp detail. A garden, summer, golden hour. Only include elements shown in the
-layout map. NO extra structures, furniture, or decorations not in the plan. NO floor
-plan. NO top-down diagram. NO bird's-eye view. NO colored circles or geometric
-overlays. NO cartoon or illustrated style. NO watermarks. NO text overlays. NO
-close-up of a single plant.
+Residential landscape photograph, eye-level perspective, 24mm wide-angle lens,
+ground-level viewpoint, horizon at mid-frame, overcast natural daylight, neutral
+color grade, sharp detail, no post-processing. A residential garden photographed
+in summer conditions. Place these elements at the positions shown by their
+corresponding colored shapes in the layout map: Solanum lycopersicum var. cerasiforme
+(Cherry Tomato), Lavandula angustifolia (Lavender), Rosa floribunda (Rose Bush),
+Wooden Pergola, Raised Bed, Grass, Gravel. Only include elements shown in the layout
+map. NO extra structures, furniture, or decorations not in the plan. NO bird's-eye
+view. NO floor plan. NO top-down diagram. NO colored circles or geometric overlays.
+NO cartoon or illustrated style. NO watermarks. NO text overlays. NO close-up of a
+single plant. NO people. NO animals. NO pets. NO HDR processing. NO artificial color
+grading. NO lens flare. NO elements, structures, or plants not shown in the layout map.
+```
+
+### Example scene prompt — base mode without elements:
+
+```
+Residential landscape photograph, eye-level perspective, 24mm wide-angle lens,
+ground-level viewpoint, horizon at mid-frame, overcast natural daylight, neutral
+color grade, sharp detail, no post-processing. A residential garden photographed in
+summer conditions. Only include elements shown in the layout map. NO extra structures,
+furniture, or decorations not in the plan. NO bird's-eye view. NO floor plan. NO
+top-down diagram. NO colored circles or geometric overlays. NO cartoon or illustrated
+style. NO watermarks. NO text overlays. NO close-up of a single plant. NO people. NO
+animals. NO pets. NO HDR processing. NO artificial color grading. NO lens flare. NO
+elements, structures, or plants not shown in the layout map.
 ```
 
 The assembled `PromptParts` are passed to the Gemini client. See [gemini-client.md "## Request Construction"] for how the parts are interleaved with images.
