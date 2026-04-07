@@ -190,7 +190,7 @@ function StepPlaceholder3() {
 const placeholders = [StepPlaceholder1, StepPlaceholder2, StepPlaceholder3]
 
 function StepRow({ step, index }: { step: typeof steps[0]; index: number }) {
-  const { ref, isInView } = useInView({ threshold: 0.15 })
+  const { ref, isInView } = useInView({ threshold: 0.15, rootMargin: '0px 0px -60px 0px' })
   const Placeholder = placeholders[index]
   const imageOnLeft = step.imagePosition === 'left'
 
@@ -221,7 +221,7 @@ function StepRow({ step, index }: { step: typeof steps[0]; index: number }) {
 }
 
 export default function HowItWorks() {
-  const { ref: headerRef, isInView: headerInView } = useInView()
+  const { ref: headerRef, isInView: headerInView } = useInView({ rootMargin: '0px 0px -40px 0px' })
 
   return (
     <section id="how-it-works" aria-labelledby="how-it-works-heading" className="relative bg-bg py-24 px-6">

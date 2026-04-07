@@ -73,8 +73,10 @@ export function getElementAABB(element: CanvasElement): AABB {
       return labelGetAABB(element)
     case 'dimension':
       return dimensionGetAABB(element)
-    default:
-      return { x: element.x, y: element.y, w: element.width, h: element.height }
+    default: {
+      const el = element as unknown as { x: number; y: number; width: number; height: number }
+      return { x: el.x, y: el.y, w: el.width, h: el.height }
+    }
   }
 }
 

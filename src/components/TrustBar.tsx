@@ -60,21 +60,21 @@ const signals = [
   },
 ]
 
+const trustStaggerDelays = ['', 'animate-delay-100', 'animate-delay-200']
+
 export default function TrustBar() {
-  const { ref, isInView } = useInView({ threshold: 0.2 })
+  const { ref, isInView } = useInView({ threshold: 0.2, rootMargin: '0px 0px -40px 0px' })
 
   return (
     <section id="trust" aria-labelledby="trust-heading" ref={ref} className="bg-bg-alt py-8 px-6">
       <h2 id="trust-heading" className="sr-only">Why choose Greenprint</h2>
-      <div
-        className={`max-w-4xl mx-auto flex flex-wrap justify-center gap-8 sm:gap-12 ${
-          isInView ? 'animate-fade-in' : 'opacity-0'
-        }`}
-      >
-        {signals.map((signal) => (
+      <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-8 sm:gap-12">
+        {signals.map((signal, i) => (
           <div
             key={signal.text}
-            className="flex items-center gap-2.5 text-sm text-text-secondary"
+            className={`flex items-center gap-2.5 text-sm text-text-secondary animate-on-scroll ${trustStaggerDelays[i]} ${
+              isInView ? 'animate-fade-up' : ''
+            }`}
           >
             {signal.icon}
             {signal.text}

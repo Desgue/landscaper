@@ -1,7 +1,7 @@
 import { useInView } from '../hooks/useInView'
 
 export default function CTABanner() {
-  const { ref, isInView } = useInView()
+  const { ref, isInView } = useInView({ rootMargin: '0px 0px -40px 0px' })
 
   return (
     <section id="get-started" aria-labelledby="cta-heading" className="relative overflow-hidden bg-primary py-16 px-6">
@@ -32,7 +32,7 @@ export default function CTABanner() {
         </p>
         <a
           href="/app"
-          className="inline-block bg-accent hover:bg-accent-hover text-text font-semibold px-8 py-3.5 rounded-lg text-base transition-colors shadow-md hover:shadow-lg"
+          className="inline-flex items-center justify-center w-full sm:w-auto bg-accent hover:bg-accent-hover text-text font-semibold px-8 py-3.5 rounded-lg text-base transition-colors shadow-md hover:shadow-lg min-h-[44px]"
         >
           Start designing for free <span aria-hidden="true">&rarr;</span>
         </a>

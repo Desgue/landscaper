@@ -7,7 +7,6 @@ import {
   Plus,
   ChevronUp,
   ChevronDown,
-  Trash2,
   MoreVertical,
 } from 'lucide-react'
 import { useProjectStore } from '../store/useProjectStore'
