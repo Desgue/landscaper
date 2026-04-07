@@ -248,7 +248,6 @@ function generatePebbles(ctx: CanvasRenderingContext2D, size: number): void {
 
 function generateDecking(ctx: CanvasRenderingContext2D, size: number): void {
   const baseHex = TERRAIN_COLORS['decking-surface']!
-  const [br, bg, bb] = hexToRgb(baseHex)
   const noise = createNoise2D()
 
   // Fill base color
