@@ -5,13 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"google.golang.org/genai"
 
 	"greenprint/internal/model"
 )
+
+// DefaultModel is the fallback Gemini model name when GEMINI_MODEL is not set.
+const DefaultModel = "gemini-3.1-flash-image-preview"
 
 // Error sentinel for classifying errors in the handler.
 type Error struct {
@@ -30,12 +32,12 @@ var AspectRatioMap = map[string]string{
 
 // Generate sends the prompt and images to Gemini and returns the generated PNG bytes.
 // It creates a new client per request and enforces a 60-second timeout.
-func Generate(ctx context.Context, prompt string, segMapBytes []byte, yardPhotoBytes []byte, yardPhotoMIMEType string, opts model.EffectiveOptions) ([]byte, *Error) {
+func Generate(ctx context.Context, prompt string, segMapBytes []byte, yardPhotoBytes []byte, yardPhotoMIMEType string, opts model.EffectiveOptions, apiKey string, modelName string) ([]byte, *Error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey: os.Getenv("GEMINI_API_KEY"),
+		APIKey: apiKey,
 	})
 	if err != nil {
 		return nil, &Error{StatusCode: http.StatusBadGateway, Message: fmt.Sprintf("Nano Banana error: %s", err.Error())}
@@ -70,11 +72,6 @@ func Generate(ctx context.Context, prompt string, segMapBytes []byte, yardPhotoB
 	if opts.Seed != -1 {
 		seed := int32(opts.Seed)
 		cfg.Seed = &seed
-	}
-
-	modelName := os.Getenv("GEMINI_MODEL")
-	if modelName == "" {
-		modelName = "gemini-3.1-flash-image-preview"
 	}
 
 	resp, err := client.Models.GenerateContent(ctx, modelName, contents, cfg)
