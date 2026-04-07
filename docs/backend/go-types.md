@@ -154,7 +154,7 @@ type Registries struct {
 type TerrainType struct {
     ID       string `json:"id"`
     Name     string `json:"name"`
-    Category string `json:"category"` // "natural" | "hardscape" | "water" | "other"
+    Category string `json:"category"` // "natural" | "hardscape" | "water" | "mulch" | "other"
 }
 
 // PlantType is a plant registry entry.
@@ -206,7 +206,7 @@ These fields from the frontend schema are never read by the backend. They are de
 | `project.journalEntries` | Journal data not used in generation pipeline |
 | `element.zIndex`, `element.locked` | Render order and edit lock are frontend concerns |
 | `element.createdAt`, `element.updatedAt`, `element.groupId` | Metadata not used in pipeline |
-| Plant `plantedDate`, `notes`, `quantity` | `quantity` renders as 1 shape regardless; `plantedDate`/`notes` unused |
+| Plant `plantedDate`, `notes` | Not used in generation pipeline |
 | Structure `notes` | Not used in pipeline |
 | Label fields (`text`, `fontSize`, etc.) | Labels are always excluded from segmentation and prompt |
 | Dimension fields (`startPoint`, `endPoint`, etc.) | Dimensions are always excluded from segmentation and prompt |

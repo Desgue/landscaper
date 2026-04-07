@@ -186,4 +186,4 @@ The operator provides their own `GEMINI_API_KEY` and is responsible for network 
 
 ### Timezone Handling
 
-Season derivation requires a calendar date. The frontend sends the user's local date in the request. If absent, the backend falls back to the server's current date in **UTC**. This avoids timezone misconfiguration on the server affecting season selection.
+Season derivation requires a calendar date. The backend uses the server's current date in **UTC**. This avoids timezone misconfiguration on the server affecting season selection. See [prompt-construction.md "## Season Derivation"] for the full algorithm.

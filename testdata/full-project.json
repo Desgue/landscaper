@@ -1,0 +1,239 @@
+{
+  "id": "test-full",
+  "location": { "lat": 40.7, "lng": -74.0 },
+  "yardBoundary": {
+    "vertices": [
+      { "x": 0, "y": 0 },
+      { "x": 1200, "y": 0 },
+      { "x": 1200, "y": 1000 },
+      { "x": 0, "y": 1000 }
+    ]
+  },
+  "layers": [
+    { "id": "l1", "visible": true, "locked": false },
+    { "id": "l2", "visible": false, "locked": false }
+  ],
+  "elements": [
+    {
+      "id": "t1",
+      "type": "terrain",
+      "layerId": "l1",
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 100,
+      "terrainTypeId": "grass"
+    },
+    {
+      "id": "t2",
+      "type": "terrain",
+      "layerId": "l1",
+      "x": 100,
+      "y": 0,
+      "width": 100,
+      "height": 100,
+      "terrainTypeId": "grass"
+    },
+    {
+      "id": "t3",
+      "type": "terrain",
+      "layerId": "l1",
+      "x": 200,
+      "y": 0,
+      "width": 100,
+      "height": 100,
+      "terrainTypeId": "gravel"
+    },
+    {
+      "id": "p1",
+      "type": "plant",
+      "layerId": "l1",
+      "x": 300,
+      "y": 200,
+      "width": 80,
+      "height": 80,
+      "plantTypeId": "rose",
+      "status": "planted",
+      "quantity": 3
+    },
+    {
+      "id": "p2",
+      "type": "plant",
+      "layerId": "l1",
+      "x": 500,
+      "y": 200,
+      "width": 150,
+      "height": 150,
+      "plantTypeId": "oak",
+      "status": "planted",
+      "quantity": 1
+    },
+    {
+      "id": "p3",
+      "type": "plant",
+      "layerId": "l1",
+      "x": 700,
+      "y": 400,
+      "width": 50,
+      "height": 50,
+      "plantTypeId": "lavender",
+      "status": "planted",
+      "quantity": 5
+    },
+    {
+      "id": "p4",
+      "type": "plant",
+      "layerId": "l1",
+      "x": 900,
+      "y": 300,
+      "width": 100,
+      "height": 100,
+      "plantTypeId": "fern",
+      "status": "planted",
+      "quantity": 2
+    },
+    {
+      "id": "p5",
+      "type": "plant",
+      "layerId": "l1",
+      "x": 200,
+      "y": 600,
+      "width": 60,
+      "height": 60,
+      "plantTypeId": "ivy",
+      "status": "planted",
+      "quantity": 1
+    },
+    {
+      "id": "p-planned",
+      "type": "plant",
+      "layerId": "l1",
+      "x": 800,
+      "y": 600,
+      "width": 80,
+      "height": 80,
+      "plantTypeId": "rose",
+      "status": "planned",
+      "quantity": 1
+    },
+    {
+      "id": "p-removed",
+      "type": "plant",
+      "layerId": "l1",
+      "x": 100,
+      "y": 600,
+      "width": 60,
+      "height": 60,
+      "plantTypeId": "rose",
+      "status": "removed",
+      "quantity": 1
+    },
+    {
+      "id": "s1",
+      "type": "structure",
+      "layerId": "l1",
+      "x": 100,
+      "y": 700,
+      "width": 400,
+      "height": 30,
+      "structureTypeId": "fence",
+      "shape": "straight",
+      "rotation": 0
+    },
+    {
+      "id": "s2",
+      "type": "structure",
+      "layerId": "l1",
+      "x": 800,
+      "y": 100,
+      "width": 200,
+      "height": 200,
+      "structureTypeId": "pergola",
+      "shape": "straight",
+      "rotation": 0
+    },
+    {
+      "id": "pa1",
+      "type": "path",
+      "layerId": "l1",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "pathTypeId": "gravel-path",
+      "strokeWidthCm": 60,
+      "points": [
+        { "x": 600, "y": 0 },
+        { "x": 600, "y": 500 },
+        { "x": 600, "y": 1000 }
+      ]
+    },
+    {
+      "id": "pa2",
+      "type": "path",
+      "layerId": "l1",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "pathTypeId": "brick-path",
+      "strokeWidthCm": 45,
+      "points": [
+        { "x": 0, "y": 500 },
+        { "x": 300, "y": 500 },
+        { "x": 600, "y": 500 }
+      ]
+    },
+    {
+      "id": "lb1",
+      "type": "label",
+      "layerId": "l1",
+      "x": 50,
+      "y": 50,
+      "width": 100,
+      "height": 20
+    },
+    {
+      "id": "d1",
+      "type": "dimension",
+      "layerId": "l1",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "id": "p-hidden",
+      "type": "plant",
+      "layerId": "l2",
+      "x": 400,
+      "y": 800,
+      "width": 60,
+      "height": 60,
+      "plantTypeId": "rose",
+      "status": "planted",
+      "quantity": 1
+    }
+  ],
+  "registries": {
+    "terrain": [
+      { "id": "grass", "name": "Lawn Grass", "category": "natural" },
+      { "id": "gravel", "name": "Gravel", "category": "hardscape" }
+    ],
+    "plants": [
+      { "id": "rose", "name": "Rose Bush", "growthForm": "shrub", "spacingCm": 60 },
+      { "id": "oak", "name": "Oak Tree", "growthForm": "tree", "spacingCm": 300, "canopyWidthCm": 400, "trunkWidthCm": 30 },
+      { "id": "lavender", "name": "Lavender", "growthForm": "herb", "spacingCm": 40 },
+      { "id": "fern", "name": "Fern", "growthForm": "groundcover", "spacingCm": 50 },
+      { "id": "ivy", "name": "Ivy", "growthForm": "climber", "spacingCm": 30 }
+    ],
+    "structures": [
+      { "id": "fence", "name": "Wooden Fence", "category": "boundary", "material": "wood" },
+      { "id": "pergola", "name": "Pergola", "category": "overhead", "material": "wood" }
+    ],
+    "paths": [
+      { "id": "gravel-path", "name": "Gravel Path", "material": "gravel", "defaultWidthCm": 45 },
+      { "id": "brick-path", "name": "Brick Path", "material": "brick", "defaultWidthCm": 40 }
+    ]
+  }
+}

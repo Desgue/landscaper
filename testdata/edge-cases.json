@@ -1,0 +1,175 @@
+{
+  "id": "test-edge-cases",
+  "location": { "lat": -33.8, "lng": 151.2 },
+  "yardBoundary": {
+    "vertices": [
+      { "x": 0, "y": 0 },
+      { "x": 800, "y": 0 },
+      { "x": 800, "y": 600 },
+      { "x": 0, "y": 600 }
+    ],
+    "edgeTypes": [
+      { "type": "line" },
+      { "type": "arc", "arcSagitta": 40 },
+      { "type": "line" },
+      { "type": "arc", "arcSagitta": -20 }
+    ]
+  },
+  "layers": [
+    { "id": "l1", "visible": true, "locked": false },
+    { "id": "l2", "visible": true, "locked": true }
+  ],
+  "elements": [
+    {
+      "id": "t1",
+      "type": "terrain",
+      "layerId": "l1",
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 100,
+      "terrainTypeId": "decking"
+    },
+    {
+      "id": "t2",
+      "type": "terrain",
+      "layerId": "l1",
+      "x": 100,
+      "y": 0,
+      "width": 100,
+      "height": 100,
+      "terrainTypeId": "water"
+    },
+    {
+      "id": "p-planned",
+      "type": "plant",
+      "layerId": "l1",
+      "x": 200,
+      "y": 200,
+      "width": 60,
+      "height": 60,
+      "plantTypeId": "rose",
+      "status": "planned",
+      "quantity": 1
+    },
+    {
+      "id": "p-removed",
+      "type": "plant",
+      "layerId": "l1",
+      "x": 400,
+      "y": 200,
+      "width": 60,
+      "height": 60,
+      "plantTypeId": "rose",
+      "status": "removed",
+      "quantity": 1
+    },
+    {
+      "id": "p-locked-layer",
+      "type": "plant",
+      "layerId": "l2",
+      "x": 300,
+      "y": 400,
+      "width": 80,
+      "height": 80,
+      "plantTypeId": "rose",
+      "status": "planted",
+      "quantity": 1
+    },
+    {
+      "id": "s-curved",
+      "type": "structure",
+      "layerId": "l1",
+      "x": 500,
+      "y": 100,
+      "width": 200,
+      "height": 40,
+      "structureTypeId": "retaining-wall",
+      "shape": "curved",
+      "arcSagitta": 30,
+      "rotation": 0
+    },
+    {
+      "id": "s-rotated",
+      "type": "structure",
+      "layerId": "l1",
+      "x": 100,
+      "y": 400,
+      "width": 150,
+      "height": 80,
+      "structureTypeId": "raised-bed",
+      "shape": "straight",
+      "rotation": 30
+    },
+    {
+      "id": "pa-closed",
+      "type": "path",
+      "layerId": "l1",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "pathTypeId": "stone-path",
+      "strokeWidthCm": 30,
+      "closed": true,
+      "points": [
+        { "x": 500, "y": 300 },
+        { "x": 700, "y": 300 },
+        { "x": 700, "y": 500 },
+        { "x": 500, "y": 500 }
+      ]
+    },
+    {
+      "id": "pa-arc-segment",
+      "type": "path",
+      "layerId": "l1",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "pathTypeId": "stone-path",
+      "strokeWidthCm": 0,
+      "points": [
+        { "x": 100, "y": 100 },
+        { "x": 300, "y": 100 }
+      ],
+      "segments": [
+        { "type": "arc", "arcSagitta": 25 }
+      ]
+    },
+    {
+      "id": "lb1",
+      "type": "label",
+      "layerId": "l1",
+      "x": 50,
+      "y": 50,
+      "width": 100,
+      "height": 20
+    },
+    {
+      "id": "d1",
+      "type": "dimension",
+      "layerId": "l1",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    }
+  ],
+  "registries": {
+    "terrain": [
+      { "id": "decking", "name": "Wood Decking", "category": "hardscape" },
+      { "id": "water", "name": "Water Feature", "category": "water" }
+    ],
+    "plants": [
+      { "id": "rose", "name": "Rose Bush", "growthForm": "shrub", "spacingCm": 60 }
+    ],
+    "structures": [
+      { "id": "retaining-wall", "name": "Retaining Wall", "category": "boundary", "material": "stone" },
+      { "id": "raised-bed", "name": "Raised Bed", "category": "container", "material": "masonry" }
+    ],
+    "paths": [
+      { "id": "stone-path", "name": "Stone Path", "material": "stone", "defaultWidthCm": 35 }
+    ]
+  }
+}

@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+#
+# Manual API test script for the Greenprint backend.
+# Usage: ./scripts/test-api.sh
+#
+# Requires: curl, a running server (GEMINI_API_KEY=... go run ./cmd/server)
+# Output images are written to scripts/output/
+# Project fixtures loaded from testdata/*.json
+
+set -euo pipefail
+
+BASE_URL="${BASE_URL:-http://localhost:8080}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+OUT_DIR="$SCRIPT_DIR/output"
+TESTDATA="$ROOT_DIR/testdata"
+
+mkdir -p "$OUT_DIR"
+
+PASS=0
+FAIL=0
+
+# --- helpers ----------------------------------------------------------------
+
+check_status() {
+  local name="$1" expected="$2" actual="$3"
+  if [ "$actual" -eq "$expected" ]; then
+    echo "  PASS  $name (HTTP $actual)"
+    PASS=$((PASS + 1))
+  else
+    echo "  FAIL  $name (expected $expected, got $actual)"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+# Build a request body from a project file + optional options JSON
+make_request() {
+  local project_file="$1"
+  local options="${2:-}"
+  local project
+  project=$(cat "$project_file")
+  if [ -n "$options" ]; then
+    printf '{"project": %s, "options": %s}' "$project" "$options"
+  else
+    printf '{"project": %s}' "$project"
+  fi
+}
+
+# --- tests ------------------------------------------------------------------
+
+echo "=== Greenprint API Tests ==="
+echo "Server: $BASE_URL"
+echo "Fixtures: $TESTDATA"
+echo ""
+
+# ---- Validation tests (no Gemini call) ----
+
+echo "[1] Health check"
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/health")
+check_status "GET /api/health" 200 "$STATUS"
+
+echo "[2] Empty body -> 400"
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" -d '{}')
+check_status "empty body" 400 "$STATUS"
+
+echo "[3] Invalid JSON -> 400"
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" -d '{not json}')
+check_status "invalid JSON" 400 "$STATUS"
+
+echo "[4] Null project -> 400"
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" -d '{"project": null}')
+check_status "null project" 400 "$STATUS"
+
+echo "[5] Too few vertices -> 400"
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d '{"project":{"id":"t","yardBoundary":{"vertices":[{"x":0,"y":0},{"x":1,"y":0}]},"layers":[],"elements":[],"registries":{"terrain":[],"plants":[],"structures":[],"paths":[]}}}')
+check_status "too few vertices" 400 "$STATUS"
+
+echo "[6] Invalid garden_style -> 400"
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/minimal-project.json" '{"garden_style": "prairie"}')")
+check_status "invalid garden_style" 400 "$STATUS"
+
+echo "[7] Invalid season -> 400"
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/minimal-project.json" '{"season": "monsoon"}')")
+check_status "invalid season" 400 "$STATUS"
+
+echo "[8] Invalid seed -> 400"
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/minimal-project.json" '{"seed": "abc"}')")
+check_status "invalid seed" 400 "$STATUS"
+
+# ---- Generation tests (require GEMINI_API_KEY) ----
+
+echo ""
+echo "--- Generation tests (require running server with GEMINI_API_KEY) ---"
+echo ""
+
+echo "[9] Minimal project, all defaults -> 200"
+STATUS=$(curl -s -o "$OUT_DIR/01-minimal-defaults.png" -w "%{http_code}" \
+  -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/minimal-project.json")")
+check_status "minimal defaults" 200 "$STATUS"
+
+echo "[10] Minimal, cottage landscape morning -> 200"
+STATUS=$(curl -s -o "$OUT_DIR/02-cottage-landscape.png" -w "%{http_code}" \
+  -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/minimal-project.json" '{"garden_style":"cottage","aspect_ratio":"landscape","time_of_day":"morning"}')")
+check_status "cottage landscape" 200 "$STATUS"
+
+echo "[11] Minimal, portrait elevated -> 200"
+STATUS=$(curl -s -o "$OUT_DIR/03-portrait-elevated.png" -w "%{http_code}" \
+  -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/minimal-project.json" '{"aspect_ratio":"portrait","viewpoint":"elevated"}')")
+check_status "portrait elevated" 200 "$STATUS"
+
+echo "[12] Minimal, seed=42 -> 200"
+STATUS=$(curl -s -o "$OUT_DIR/04-seed-42.png" -w "%{http_code}" \
+  -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/minimal-project.json" '{"seed":42}')")
+check_status "seed 42" 200 "$STATUS"
+
+echo "[13] Full project, cottage summer landscape -> 200"
+STATUS=$(curl -s -o "$OUT_DIR/05-full-project.png" -w "%{http_code}" \
+  -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/full-project.json" '{"garden_style":"cottage","season":"summer","time_of_day":"golden hour","viewpoint":"eye-level","aspect_ratio":"landscape"}')")
+check_status "full project" 200 "$STATUS"
+
+echo "[14] Full project, japanese winter isometric -> 200"
+STATUS=$(curl -s -o "$OUT_DIR/06-japanese-winter.png" -w "%{http_code}" \
+  -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/full-project.json" '{"garden_style":"japanese","season":"winter","time_of_day":"overcast","viewpoint":"isometric"}')")
+check_status "japanese winter" 200 "$STATUS"
+
+echo "[15] Full project, tropical midday -> 200"
+STATUS=$(curl -s -o "$OUT_DIR/07-tropical-midday.png" -w "%{http_code}" \
+  -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/full-project.json" '{"garden_style":"tropical","season":"summer","time_of_day":"midday"}')")
+check_status "tropical midday" 200 "$STATUS"
+
+echo "[16] Edge cases, arc boundary + curved structure -> 200"
+STATUS=$(curl -s -o "$OUT_DIR/08-edge-cases.png" -w "%{http_code}" \
+  -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/edge-cases.json" '{"garden_style":"mediterranean","season":"late spring"}')")
+check_status "edge cases" 200 "$STATUS"
+
+echo "[17] Empty yard, no elements -> 200"
+STATUS=$(curl -s -o "$OUT_DIR/09-empty-yard.png" -w "%{http_code}" \
+  -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/empty-yard.json")")
+check_status "empty yard" 200 "$STATUS"
+
+echo "[18] Full project, exclude planned plants -> 200"
+STATUS=$(curl -s -o "$OUT_DIR/10-no-planned.png" -w "%{http_code}" \
+  -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/full-project.json" '{"include_planned":false}')")
+check_status "exclude planned" 200 "$STATUS"
+
+# --- summary ----------------------------------------------------------------
+
+echo ""
+echo "=== Results ==="
+echo "  Passed: $PASS"
+echo "  Failed: $FAIL"
+echo ""
+
+if [ "$PASS" -gt 8 ]; then
+  echo "Output images saved to: $OUT_DIR/"
+  ls -lh "$OUT_DIR"/*.png 2>/dev/null || true
+fi
+
+echo ""
+if [ "$FAIL" -gt 0 ]; then
+  echo "SOME TESTS FAILED"
+  exit 1
+else
+  echo "ALL TESTS PASSED"
+fi
