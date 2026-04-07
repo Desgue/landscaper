@@ -209,6 +209,25 @@ func TestInvalidAspectRatio(t *testing.T) {
 	assertError(t, rec, http.StatusBadRequest, "invalid aspect_ratio")
 }
 
+func TestInvalidImageSize(t *testing.T) {
+	body := bodyWithOptions(map[string]any{"image_size": "8K"})
+	rec, ok := doValidate(body, summerDate)
+	if ok {
+		t.Fatal("expected failure")
+	}
+	assertError(t, rec, http.StatusBadRequest, "invalid image_size")
+}
+
+func TestValidImageSize(t *testing.T) {
+	for _, size := range []string{"1K", "2K", "4K"} {
+		body := bodyWithOptions(map[string]any{"image_size": size})
+		rec, ok := doValidate(body, summerDate)
+		if !ok {
+			t.Fatalf("image_size %q should be valid; got error: %s", size, rec.Body.String())
+		}
+	}
+}
+
 func TestInvalidYardPhoto_BadBase64(t *testing.T) {
 	body, _ := json.Marshal(map[string]any{
 		"project":    minimalProject(),
@@ -296,6 +315,9 @@ func TestEffectiveOptionsDefaults(t *testing.T) {
 	}
 	if eff.Seed != -1 {
 		t.Errorf("Seed = %d; want -1", eff.Seed)
+	}
+	if eff.ImageSize != "1K" {
+		t.Errorf("ImageSize = %q; want %q", eff.ImageSize, "1K")
 	}
 }
 
