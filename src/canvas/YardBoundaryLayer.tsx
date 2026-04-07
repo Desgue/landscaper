@@ -772,9 +772,12 @@ export function YardBoundaryHTMLOverlays({ width: _w, height: _h }: YardBoundary
             fontFamily: 'system-ui, sans-serif',
             cursor: placedVertices.length < 3 ? 'not-allowed' : 'pointer',
             zIndex: 10,
+            pointerEvents: 'auto',
             boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
           }}
-          onClick={() => {
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
             const { placedVertices: verts } = useBoundaryState.getState()
             if (verts.length >= 3) {
               const n = verts.length
