@@ -2,8 +2,6 @@ package gemini
 
 import (
 	"testing"
-
-	"greenprint/internal/model"
 )
 
 func TestAspectRatioMapping(t *testing.T) {
@@ -23,22 +21,10 @@ func TestAspectRatioMapping(t *testing.T) {
 	}
 }
 
-func TestSeedOmittedWhenNegativeOne(t *testing.T) {
-	opts := model.EffectiveOptions{Seed: -1}
-	// Verify the condition that controls seed omission
-	if opts.Seed != -1 {
-		t.Fatal("seed should be -1")
-	}
-}
-
-func TestSeedSetWhenNotNegativeOne(t *testing.T) {
-	opts := model.EffectiveOptions{Seed: 42}
-	if opts.Seed == -1 {
-		t.Fatal("seed should not be -1")
-	}
-	seed := int32(opts.Seed)
-	if seed != 42 {
-		t.Fatalf("expected seed 42, got %d", seed)
+func TestAspectRatioMapping_UnknownFallsBackToEmpty(t *testing.T) {
+	got := AspectRatioMap["widescreen"]
+	if got != "" {
+		t.Errorf("AspectRatioMap[%q] = %q; want empty string for unknown key", "widescreen", got)
 	}
 }
 
@@ -52,11 +38,11 @@ func TestErrorType(t *testing.T) {
 	}
 }
 
-func TestAspectRatioMapCompleteness(t *testing.T) {
-	// All valid aspect ratios should be in the map
-	for _, ratio := range []string{"square", "landscape", "portrait"} {
-		if _, ok := AspectRatioMap[ratio]; !ok {
-			t.Errorf("missing aspect ratio mapping for %q", ratio)
-		}
+func TestDefaultModelConstant(t *testing.T) {
+	if DefaultModel == "" {
+		t.Fatal("DefaultModel should not be empty")
+	}
+	if DefaultModel != "gemini-3.1-flash-image-preview" {
+		t.Errorf("DefaultModel = %q; want %q", DefaultModel, "gemini-3.1-flash-image-preview")
 	}
 }

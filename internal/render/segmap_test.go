@@ -1,6 +1,8 @@
 package render
 
 import (
+	"bytes"
+	"image/png"
 	"math"
 	"testing"
 
@@ -171,7 +173,17 @@ func TestPlantColor(t *testing.T) {
 	}
 }
 
-func TestRenderProducesPNG(t *testing.T) {
+func decodePNG(t *testing.T, data []byte) (width, height int) {
+	t.Helper()
+	img, err := png.Decode(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("failed to decode PNG: %v", err)
+	}
+	bounds := img.Bounds()
+	return bounds.Dx(), bounds.Dy()
+}
+
+func TestRenderSquare_ProducesCorrectDimensions(t *testing.T) {
 	boundary := &model.YardBoundary{
 		Vertices: []model.Point{
 			{X: 0, Y: 0},
@@ -183,7 +195,7 @@ func TestRenderProducesPNG(t *testing.T) {
 	canopy := 200.0
 	elements := []filter.FilteredElement{
 		{
-			Element:   model.Element{ID: "t1", Type: "terrain", X: 100, Y: 100, TerrainTypeID: "grass"},
+			Element:     model.Element{ID: "t1", Type: "terrain", X: 100, Y: 100, TerrainTypeID: "grass"},
 			TerrainType: &model.TerrainType{ID: "grass", Category: "natural"},
 		},
 		{
@@ -196,20 +208,47 @@ func TestRenderProducesPNG(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Render failed: %v", err)
 	}
-
-	// Check PNG magic bytes
-	if len(data) < 8 {
-		t.Fatal("output too small to be a PNG")
-	}
-	pngMagic := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
-	for i, b := range pngMagic {
-		if data[i] != b {
-			t.Fatalf("output is not a valid PNG (byte %d: got %02x, want %02x)", i, data[i], b)
-		}
+	w, h := decodePNG(t, data)
+	if w != 1024 || h != 1024 {
+		t.Errorf("square dimensions = %dx%d; want 1024x1024", w, h)
 	}
 }
 
-func TestRenderEmptyElements(t *testing.T) {
+func TestRenderWithElements_DiffersFromEmpty(t *testing.T) {
+	boundary := &model.YardBoundary{
+		Vertices: []model.Point{
+			{X: 0, Y: 0},
+			{X: 1000, Y: 0},
+			{X: 1000, Y: 1000},
+			{X: 0, Y: 1000},
+		},
+	}
+
+	// Render with no elements
+	emptyData, err := Render(nil, boundary, "square")
+	if err != nil {
+		t.Fatalf("Render empty failed: %v", err)
+	}
+
+	// Render with elements
+	elements := []filter.FilteredElement{
+		{
+			Element:     model.Element{ID: "t1", Type: "terrain", X: 100, Y: 100, TerrainTypeID: "grass"},
+			TerrainType: &model.TerrainType{ID: "grass", Category: "natural"},
+		},
+	}
+	withData, err := Render(elements, boundary, "square")
+	if err != nil {
+		t.Fatalf("Render with elements failed: %v", err)
+	}
+
+	// The outputs must differ — elements affect the rendered image
+	if bytes.Equal(emptyData, withData) {
+		t.Error("render with elements should produce different output than render without elements")
+	}
+}
+
+func TestRenderEmptyElements_ProducesValidPNG(t *testing.T) {
 	boundary := &model.YardBoundary{
 		Vertices: []model.Point{
 			{X: 0, Y: 0},
@@ -222,12 +261,13 @@ func TestRenderEmptyElements(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Render with empty elements failed: %v", err)
 	}
-	if len(data) < 8 {
-		t.Fatal("output too small")
+	w, h := decodePNG(t, data)
+	if w != 1024 || h != 1024 {
+		t.Errorf("empty square dimensions = %dx%d; want 1024x1024", w, h)
 	}
 }
 
-func TestRenderLandscapeAspect(t *testing.T) {
+func TestRenderLandscape_ProducesCorrectDimensions(t *testing.T) {
 	boundary := &model.YardBoundary{
 		Vertices: []model.Point{
 			{X: 0, Y: 0},
@@ -240,7 +280,130 @@ func TestRenderLandscapeAspect(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Render landscape failed: %v", err)
 	}
-	if len(data) < 8 {
-		t.Fatal("output too small")
+	w, h := decodePNG(t, data)
+	if w != 1024 || h != 576 {
+		t.Errorf("landscape dimensions = %dx%d; want 1024x576", w, h)
+	}
+}
+
+func TestRenderPortrait_ProducesCorrectDimensions(t *testing.T) {
+	boundary := &model.YardBoundary{
+		Vertices: []model.Point{
+			{X: 0, Y: 0},
+			{X: 500, Y: 0},
+			{X: 500, Y: 1000},
+			{X: 0, Y: 1000},
+		},
+	}
+	data, err := Render(nil, boundary, "portrait")
+	if err != nil {
+		t.Fatalf("Render portrait failed: %v", err)
+	}
+	w, h := decodePNG(t, data)
+	if w != 576 || h != 1024 {
+		t.Errorf("portrait dimensions = %dx%d; want 576x1024", w, h)
+	}
+}
+
+func TestRenderTreeDualShape(t *testing.T) {
+	boundary := &model.YardBoundary{
+		Vertices: []model.Point{
+			{X: 0, Y: 0},
+			{X: 1000, Y: 0},
+			{X: 1000, Y: 1000},
+			{X: 0, Y: 1000},
+		},
+	}
+	canopy := 300.0
+	trunk := 30.0
+	elements := []filter.FilteredElement{
+		{
+			Element:   model.Element{ID: "tree1", Type: "plant", X: 400, Y: 400, Width: 300, Height: 300},
+			PlantType: &model.PlantType{ID: "oak", GrowthForm: "tree", SpacingCm: 300, CanopyWidthCm: &canopy, TrunkWidthCm: &trunk},
+		},
+	}
+
+	// Render with tree
+	treeData, err := Render(elements, boundary, "square")
+	if err != nil {
+		t.Fatalf("Render tree failed: %v", err)
+	}
+
+	// Render without tree
+	emptyData, err := Render(nil, boundary, "square")
+	if err != nil {
+		t.Fatalf("Render empty failed: %v", err)
+	}
+
+	// Tree must visibly affect the output
+	if bytes.Equal(treeData, emptyData) {
+		t.Error("tree element should produce visible difference in rendered output")
+	}
+}
+
+func TestRenderPathWithStroke(t *testing.T) {
+	boundary := &model.YardBoundary{
+		Vertices: []model.Point{
+			{X: 0, Y: 0},
+			{X: 1000, Y: 0},
+			{X: 1000, Y: 1000},
+			{X: 0, Y: 1000},
+		},
+	}
+	elements := []filter.FilteredElement{
+		{
+			Element: model.Element{
+				ID: "path1", Type: "path",
+				Points:        []model.Point{{X: 100, Y: 500}, {X: 500, Y: 500}, {X: 900, Y: 500}},
+				StrokeWidthCm: 60,
+			},
+			PathType: &model.PathType{ID: "gravel", Material: strPtr("stone"), DefaultWidthCm: 45},
+		},
+	}
+
+	pathData, err := Render(elements, boundary, "square")
+	if err != nil {
+		t.Fatalf("Render path failed: %v", err)
+	}
+	emptyData, err := Render(nil, boundary, "square")
+	if err != nil {
+		t.Fatalf("Render empty failed: %v", err)
+	}
+	if bytes.Equal(pathData, emptyData) {
+		t.Error("path element should produce visible difference in rendered output")
+	}
+}
+
+func TestRenderStructureWithRotation(t *testing.T) {
+	boundary := &model.YardBoundary{
+		Vertices: []model.Point{
+			{X: 0, Y: 0},
+			{X: 1000, Y: 0},
+			{X: 1000, Y: 1000},
+			{X: 0, Y: 1000},
+		},
+	}
+	elements := []filter.FilteredElement{
+		{
+			Element: model.Element{
+				ID: "s1", Type: "structure",
+				X: 300, Y: 300, Width: 200, Height: 100,
+				Rotation: 45, Shape: "straight",
+				StructureTypeID: "fence",
+			},
+			StructureType: &model.StructureType{ID: "fence", Category: "boundary", Material: strPtr("wood")},
+		},
+	}
+
+	structData, err := Render(elements, boundary, "square")
+	if err != nil {
+		t.Fatalf("Render structure failed: %v", err)
+	}
+	emptyData, err := Render(nil, boundary, "square")
+	if err != nil {
+		t.Fatalf("Render empty failed: %v", err)
+	}
+	if bytes.Equal(structData, emptyData) {
+		t.Error("structure element should produce visible difference in rendered output")
 	}
 }

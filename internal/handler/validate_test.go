@@ -52,7 +52,7 @@ func doValidate(body []byte, now time.Time) (*httptest.ResponseRecorder, bool) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	_, _, ok := validateAndParseWithTime(rec, req, now)
+	_, _, _, ok := validateAndParseWithTime(rec, req, now)
 	return rec, ok
 }
 
@@ -263,7 +263,7 @@ func TestBodyTooLarge(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/generate", strings.NewReader(huge))
 	req.Header.Set("Content-Type", "application/json")
-	_, _, ok := validateAndParseWithTime(rec, req, summerDate)
+	_, _, _, ok := validateAndParseWithTime(rec, req, summerDate)
 	if ok {
 		t.Fatal("expected failure")
 	}
@@ -274,7 +274,7 @@ func TestEffectiveOptionsDefaults(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(validBody()))
 	req.Header.Set("Content-Type", "application/json")
-	_, eff, ok := validateAndParseWithTime(rec, req, summerDate)
+	_, eff, _, ok := validateAndParseWithTime(rec, req, summerDate)
 	if !ok {
 		t.Fatalf("expected ok; got error: %s", rec.Body.String())
 	}
@@ -308,7 +308,7 @@ func TestSeasonDerivation_NorthernSummer(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(body))
-	_, eff, ok := validateAndParseWithTime(rec, req, time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))
+	_, eff, _, ok := validateAndParseWithTime(rec, req, time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))
 	if !ok {
 		t.Fatalf("expected ok; got error: %s", rec.Body.String())
 	}
@@ -326,7 +326,7 @@ func TestSeasonDerivation_SouthernOffset(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(body))
-	_, eff, ok := validateAndParseWithTime(rec, req, time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))
+	_, eff, _, ok := validateAndParseWithTime(rec, req, time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC))
 	if !ok {
 		t.Fatalf("expected ok; got error: %s", rec.Body.String())
 	}
@@ -339,7 +339,7 @@ func TestSeasonDerivation_NullLocation(t *testing.T) {
 	// No location → default "summer"
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(validBody()))
-	_, eff, ok := validateAndParseWithTime(rec, req, time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC))
+	_, eff, _, ok := validateAndParseWithTime(rec, req, time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC))
 	if !ok {
 		t.Fatalf("expected ok; got error: %s", rec.Body.String())
 	}
@@ -353,7 +353,7 @@ func TestIncludePlanned_FalsePreserved(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(body))
-	_, eff, ok := validateAndParseWithTime(rec, req, summerDate)
+	_, eff, _, ok := validateAndParseWithTime(rec, req, summerDate)
 	if !ok {
 		t.Fatalf("expected ok; got error: %s", rec.Body.String())
 	}
@@ -365,7 +365,7 @@ func TestIncludePlanned_FalsePreserved(t *testing.T) {
 func TestIncludePlanned_OmittedDefaultsTrue(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(validBody()))
-	_, eff, ok := validateAndParseWithTime(rec, req, summerDate)
+	_, eff, _, ok := validateAndParseWithTime(rec, req, summerDate)
 	if !ok {
 		t.Fatalf("expected ok; got error: %s", rec.Body.String())
 	}
@@ -382,7 +382,7 @@ func TestSeasonDerivation_NullLat(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(body))
-	_, eff, ok := validateAndParseWithTime(rec, req, time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC))
+	_, eff, _, ok := validateAndParseWithTime(rec, req, time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC))
 	if !ok {
 		t.Fatalf("expected ok; got error: %s", rec.Body.String())
 	}
@@ -413,7 +413,7 @@ func TestValidSeed_ExplicitValue(t *testing.T) {
 	body := bodyWithOptions(map[string]any{"seed": 42})
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(body))
-	_, eff, ok := validateAndParseWithTime(rec, req, summerDate)
+	_, eff, _, ok := validateAndParseWithTime(rec, req, summerDate)
 	if !ok {
 		t.Fatalf("expected ok; got error: %s", rec.Body.String())
 	}
