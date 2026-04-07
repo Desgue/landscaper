@@ -2,7 +2,11 @@
 node_modules
 dist
 dist-ssr
+frontend/dist
 .cache
+
+# ── Make stamp files ─────────────────────────────────────────────────────────
+.*.stamp
 
 # ── Go / Backend ──────────────────────────────────────────────────────────────
 # Compiled binaries and build output

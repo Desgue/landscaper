@@ -172,7 +172,7 @@ The Go binary embeds the React app. The build must run in this order:
 1. `npm run build` — Vite compiles `src/` to `frontend/dist/`
 2. `go build ./cmd/server` — embeds `frontend/dist/` via `//go:embed`
 
-`frontend/dist/` is git-ignored. CI is responsible for running step 1 before step 2. Running `go build` without the Vite output produces a binary that serves an empty embedded filesystem — the API routes still work, but the SPA is absent.
+`frontend/dist/` is git-ignored. `make build` handles this ordering automatically via stamp-file dependencies. Running `go build` without the Vite output produces a binary that serves an empty embedded filesystem — the API routes still work, but the SPA is absent.
 
 In local development, run `npm run build` once (or `npm run dev` separately against the Go server on a different port) before `go run ./cmd/server`.
 

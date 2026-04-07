@@ -114,10 +114,10 @@ Greenprint is a stateless Go HTTP server that:
   ```toml
   [build]
   builder = "RAILPACK"
-  buildCommand = "npm ci && npm run build && go build -o server ./cmd/server"
+  buildCommand = "make build"
 
   [deploy]
-  startCommand = "./server"
+  startCommand = "./server/server"
   healthcheckPath = "/api/health"
   healthcheckTimeout = 30
   restartPolicyType = "ON_FAILURE"
@@ -253,7 +253,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=frontend /app/frontend/dist ./frontend/dist
-RUN go build -o server ./cmd/server
+RUN CGO_ENABLED=0 go build -o server ./cmd/server
 
 FROM alpine:3.21
 RUN apk add --no-cache ca-certificates

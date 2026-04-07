@@ -41,7 +41,7 @@
 | **Title** | Local CI Pipeline — Linting, Hooks & Cached Builds |
 | **Scope** | Makefile-based build orchestration with stamp-file caching, golangci-lint for Go, lefthook for git hooks, and a full `make ci` pipeline. Excludes remote CI (GitHub Actions), Docker, and deployment. |
 | **Depends on** | None (standalone tooling plan) |
-| **Status** | `todo` |
+| **Status** | `in-progress` |
 | **Started** | 2026-04-07 |
 | **Last updated** | 2026-04-07 |
 | **Phases** | Phase 1 (Makefile) · Phase 2 (Go Linting) · Phase 3 (Git Hooks) · Phase 4 (Full Pipeline) |
@@ -82,30 +82,30 @@ grep -rn "eslint\|golangci" package.json .golangci.yml 2>/dev/null
 
 ## Phases
 
-### Phase 1 — Makefile Build Orchestration [ ]
+### Phase 1 — Makefile Build Orchestration [~]
 
 > Refactor the Makefile from phony-only targets to stamp-file-based incremental builds. This is the foundation — all later phases add targets to this Makefile. Must be done first because Phase 2–4 targets depend on the caching infrastructure.
 
-#### Feature: Stamp-File Incremental Builds [ ]
+#### Feature: Stamp-File Incremental Builds [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** N/A — industry pattern
 **Rationale:** The current Makefile always rebuilds everything. Stamp files let Make compare mtimes against source file lists and skip work that hasn't changed, cutting iteration time from ~10s to <1s on no-change runs.
 
 ##### Tasks
 
-- [ ] Define source file variables at top of Makefile:
+- [x] Define source file variables at top of Makefile — done 2026-04-07
   - `GOFILES := $(shell find cmd internal -name '*.go' 2>/dev/null) $(wildcard *.go)`
   - `FRONTEND_SRC := $(shell find src -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.css' \)) index.html`
-  Note: `find` uses explicit grouping `\( ... \)` to avoid precedence bugs with `-o`. `index.html` is added explicitly — it's Vite's entry point at the repo root.
-- [ ] Add `.npm.stamp` root-level file target depending on `package.json` and `package-lock.json` — runs `npm ci && touch $@`. Root-level stamp avoids fragility of `node_modules/.stamp` being deleted by `npm ci` or `rm -rf node_modules`.
-- [ ] Convert `build-frontend` to file target `.frontend-dist.stamp` (root-level) depending on `$(FRONTEND_SRC)`, `.npm.stamp`, `vite.config.ts`, `tsconfig.json`, and `tsconfig.app.json` — runs `npm run build && rm -rf frontend/dist && mv dist frontend/dist && touch $@`. Stamp lives outside `frontend/dist/` so the `rm -rf` doesn't destroy it.
-- [ ] Convert `build-backend` to file target `server/server` depending on `$(GOFILES)`, `go.mod`, `go.sum`, and `.frontend-dist.stamp` — runs `go build -o server/server ./cmd/server/`. This enforces frontend-before-backend ordering required by `go:embed`.
-- [ ] Keep `build`, `run`, `dev`, `clean` as `.PHONY` convenience targets that delegate to file targets
-- [ ] Update `clean` to remove `server/`, `frontend/dist/`, and all `.*.stamp` files
-- [ ] Add `.*.stamp` and `frontend/dist/` to `.gitignore`
-- [ ] Verify: `make build` twice in a row — second run prints `make: Nothing to be done for 'build'.` or `make: 'server/server' is up to date.`
-- [ ] Verify: `make build` from a totally clean clone (no `node_modules/`, no `frontend/dist/`) succeeds end-to-end
+  Note: `find` uses explicit grouping `\( ... \)` to avoid precedence bugs with `-o`. `index.html` is added explicitly — it's Vite's entry point at the repo root. Implementation also includes `public/` dir and `tsconfig.node.json`.
+- [x] Add `.npm.stamp` root-level file target depending on `package.json` and `package-lock.json` — runs `npm ci && touch $@`. Root-level stamp avoids fragility of `node_modules/.stamp` being deleted by `npm ci` or `rm -rf node_modules`. — done 2026-04-07
+- [x] Convert `build-frontend` to file target `.frontend-dist.stamp` (root-level) depending on `$(FRONTEND_SRC)` and `.npm.stamp` — runs `npm run build && touch $@`. Vite `build.outDir` set to `frontend/dist` in `vite.config.ts`, so no `rm -rf && mv` needed. — done 2026-04-07
+- [x] Convert `build-backend` to file target `server/server` depending on `$(GOFILES)`, `go.mod`, `go.sum`, and `.frontend-dist.stamp` — runs `CGO_ENABLED=0 go build -ldflags "-X main.version=$(VERSION)" -o server/server ./cmd/server/`. This enforces frontend-before-backend ordering required by `go:embed`. — done 2026-04-07
+- [x] Keep `build`, `run`, `dev`, `clean` as `.PHONY` convenience targets that delegate to file targets — done 2026-04-07
+- [x] Update `clean` to remove `server/server`, `frontend/dist/`, and all `.*.stamp` files — done 2026-04-07
+- [x] Add `.*.stamp` and `frontend/dist/` to `.gitignore` — done 2026-04-07
+- [x] Verify: `make build` twice in a row — second run prints `make: Nothing to be done for 'build'.` or `make: 'server/server' is up to date.` — done 2026-04-07
+- [x] Verify: `make build` from a totally clean clone (no `node_modules/`, no `frontend/dist/`) succeeds end-to-end — done 2026-04-07
 
 ##### Decisions
 
@@ -113,9 +113,9 @@ _None yet._
 
 ---
 
-#### Feature: Test Targets [ ]
+#### Feature: Test Targets [~]
 
-**Status:** `todo`
+**Status:** `in-progress`
 **Spec:** N/A
 **Rationale:** Tests currently require manual `go test ./...` and `npm run test` invocations. Makefile targets make them discoverable and allow the CI pipeline to depend on them.
 
@@ -124,8 +124,8 @@ _None yet._
 - [ ] Add `test-go` phony target: `go test -race -count=1 -timeout=60s ./...`
 - [ ] Add `test-frontend` phony target: `npm run test`
 - [ ] Add `test` umbrella phony target that runs both
-- [ ] Add `.test-go.stamp` file target depending on `$(GOFILES)` — runs `go test -race -count=1 -timeout=60s ./... && touch $@`
-- [ ] Add `.test-frontend.stamp` file target depending on `$(FRONTEND_SRC)`, `.npm.stamp`, and `vitest.config.ts` — runs `npm run test && touch $@`
+- [x] Add `.test-go.stamp` file target depending on `$(GOFILES)`, `go.mod`, `go.sum` — runs `go test -race -count=1 -timeout=60s ./... && touch $@` — done 2026-04-07
+- [x] Add `.test-frontend.stamp` file target depending on `$(FRONTEND_SRC)`, `.npm.stamp`, and `vitest.config.ts` — runs `npm run test && touch $@` — done 2026-04-07
 
 ##### Decisions
 
@@ -376,6 +376,10 @@ _None yet._
 | 2026-04-07 | All stamp files at project root with dot-prefix | Review finding: stamps inside directories (e.g., `node_modules/.stamp`, `frontend/dist/.stamp`) are fragile — deleted by `npm ci` or `rm -rf`. Root-level `.npm.stamp`, `.frontend-dist.stamp` etc. are safer and consistently matched by `.*.stamp` gitignore. |
 | 2026-04-07 | Lefthook globs use `**/*.go` not `*.go` | Review finding: `*.go` only matches root-level files. `**/*.go` matches all subdirectories (`cmd/`, `internal/`). Same for `**/*.{ts,tsx}`. |
 | 2026-04-07 | `gofmt -l` wrapped with `test -z` exit check | Review finding: `gofmt -l` always exits 0 regardless of formatting issues. Without the wrapper, the pre-commit hook would never block a commit. |
+| 2026-04-07 | Vite `build.outDir` set to `frontend/dist` | Eliminates fragile `rm -rf frontend/dist && mv dist frontend/dist` pattern. Vite writes directly to the directory `go:embed` expects. `emptyOutDir: true` handles cleanup. |
+| 2026-04-07 | Version injection via `-ldflags "-X main.version=$(VERSION)"` | Binary carries a meaningful git tag (`git describe --tags --always --dirty`). Enables version verification on deployed instances via `/api/health`. |
+| 2026-04-07 | `CGO_ENABLED=0` on `go build` | Prevents accidental dynamic linking if a transitive dependency ever adds CGo. Makes cross-compilation straightforward (macOS dev → Linux deploy). |
+| 2026-04-07 | `go.sum` added as dependency to all Go targets | A `go get -u` patch release changes `go.sum` without touching `go.mod`. Without this, stamp files would miss module graph changes. |
 
 ---
 
@@ -386,4 +390,5 @@ _None yet._
 ```
 2026-04-07 — plan-creation — PLAN-E initialized. Four phases: Makefile stamp-file caching, golangci-lint setup, lefthook git hooks, full CI pipeline. Research completed on lefthook (parallel, glob filtering, stage_fixed), golangci-lint v2 (standard preset, --new-from-rev), Makefile stamp patterns (mtime-based incremental builds). Key structural note: frontend source lives at repo root src/, not frontend/src/.
 2026-04-07 — architect-review + devops-review — Fixed 7 issues: (1) FRONTEND_SRC find precedence bug and missing index.html, (2) stamp files moved from inside directories to root-level dot-prefix, (3) lefthook globs changed from *.go to **/*.go, (4) gofmt -l wrapped with test -z exit check, (5) added config file deps to lint/test stamps (eslint.config.js, vitest.config.ts), (6) corrected make ci verification text re: ordering, (7) added frontend/dist/ to .gitignore entries.
+2026-04-07 — Phase 1 partially complete. Makefile rewritten with stamp-file pattern, version injection, CGO_ENABLED=0. vite.config.ts updated to output directly to frontend/dist (outDir change). .gitignore updated with .*.stamp and frontend/dist. Stamp targets for lint and test exist but phony convenience targets (test-go, lint-go, etc.) deferred. .golangci.yml not yet created — .lint-go.stamp will fail until Phase 2.
 ```

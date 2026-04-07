@@ -42,7 +42,7 @@
 | **Plan ID** | `PLAN-BACKEND` |
 | **Title** | Image Generation Service |
 | **Scope** | Go HTTP server, request validation, 2D segmentation render, prompt construction, Gemini API integration, embedded SPA serving. Excludes frontend UI and all frontend sub-plans. |
-| **Status** | `todo` |
+| **Status** | `superseded` |
 | **Started** | — |
 | **Last updated** | 2026-04-06 |
 | **Phases** | Phase 1 (Foundation) · Phase 2 (Pipeline) · Phase 3 (Integration & Build) |

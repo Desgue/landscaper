@@ -1,6 +1,6 @@
 # Garden Planner — Backend Implementation Plan (Coordination)
 
-> **AI-First Coordination Document.** This file maps the full backend build across 3 sequential sub-plans.
+> **AI-First Coordination Document.** This file maps the full backend build across 5 sub-plans.
 > Agents working on a sub-plan open only that plan's file — not this one.
 > This file is the entry point for orchestrators and for understanding cross-plan contracts.
 
@@ -15,6 +15,13 @@ PLAN-A: Foundation               ──► PLAN-B: Pipeline
                                               ▼
                                   PLAN-C: Integration & Build
                                   (orchestration · fixtures · build · dev proxy)
+                                              │
+                                              ▼
+                                  PLAN-D: Multi-Photo Yard Input
+                                  (1–4 yard photos, validation, pipeline, tests)
+
+PLAN-E: Local CI Pipeline (standalone — no code dependencies)
+(Makefile caching · golangci-lint · lefthook · make ci)
 ```
 
 ### Execution Rules
@@ -34,6 +41,8 @@ PLAN-A: Foundation               ──► PLAN-B: Pipeline
 | A | `docs/plans/backend/PLAN-A.md` | Go module init, request types, HTTP server & routing, request validation, structured logging | `done` |
 | B | `docs/plans/backend/PLAN-B.md` | Element filtering (Stage 1), segmentation render (Stage 2), prompt construction (Stage 3), Gemini client (Stage 4) | `done` |
 | C | `docs/plans/backend/PLAN-C.md` | Pipeline orchestration, contract test fixtures, build pipeline, dev proxy verification | `done` |
+| D | `docs/plans/backend/PLAN-D.md` | Multi-photo yard input (1–4 photos), validation, pipeline, tests | `done` |
+| E | `docs/plans/backend/PLAN-E.md` | Local CI pipeline: Makefile caching, golangci-lint, lefthook, `make ci` | `in-progress` |
 
 ---
 
