@@ -66,7 +66,7 @@ export function computePlantSortKey(el: CanvasElement): number {
  * Set up a display object for world-space rendering.
  * Enables frustum culling (v8 built-in).
  */
-export function setupWorldObject(obj: { cullable: boolean; eventMode: string }): void {
+export function setupWorldObject(obj: { cullable?: boolean; eventMode?: string }): void {
   obj.cullable = true
   obj.eventMode = 'none'
 }

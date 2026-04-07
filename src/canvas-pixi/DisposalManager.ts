@@ -6,7 +6,7 @@
  */
 
 interface Destroyable {
-  destroy: (...args: unknown[]) => void
+  destroy: (...args: any[]) => void
 }
 
 interface DestroyableContainer extends Destroyable {

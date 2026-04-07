@@ -17,7 +17,6 @@ import { toWorld, fitToView } from '../canvas/viewport'
 import { getAABB } from '../canvas/YardBoundaryLayer'
 import { RenderScheduler } from './RenderScheduler'
 import { DisposalManager } from './DisposalManager'
-import { connectStore } from './connectStore'
 import { createGridRenderer } from './GridRenderer'
 import { createTerrainRenderer } from './TerrainRenderer'
 import { createBoundaryRenderer } from './BoundaryRenderer'
@@ -58,7 +57,6 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
   const disposalRef = useRef(new DisposalManager())
 
   // ---- Store accessors (stable refs to avoid re-render deps) ----
-  const setCursorWorld = useCursorStore((s) => s.setCursorWorld)
   const activeTool = useToolStore((s) => s.activeTool)
   const isPanActive = activeTool === 'hand'
 
