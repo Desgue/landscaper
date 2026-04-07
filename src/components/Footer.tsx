@@ -1,12 +1,26 @@
 export default function Footer() {
   return (
-    <footer className="border-t border-gray-100 bg-white px-6 py-8">
-      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
-        <div className="flex items-center gap-2">
-          <LeafIcon />
-          <span className="font-medium text-gray-600">Greenprint</span>
+    <footer className="border-t border-border bg-bg px-6 py-10">
+      <div className="max-w-6xl mx-auto">
+        {/* Top row: logo + nav links */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 mb-6">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <LeafIcon />
+            <span className="font-semibold text-text">Greenprint</span>
+          </div>
+          {/* Links */}
+          <div className="flex gap-6 text-sm">
+            <a href="/app" className="text-text-secondary hover:text-text transition-colors">Open Canvas</a>
+            <a href="#how-it-works" className="text-text-secondary hover:text-text transition-colors">How It Works</a>
+            <a href="#pricing" className="text-text-secondary hover:text-text transition-colors">Pricing</a>
+          </div>
         </div>
-        <p>Your plans live in your browser. We generate images on our server and don't store them.</p>
+        {/* Bottom row: privacy + copyright */}
+        <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-text-muted">
+          <p>Your plans are stored locally in your browser — we never see them.</p>
+          <p>&copy; {new Date().getFullYear()} Greenprint</p>
+        </div>
       </div>
     </footer>
   )
@@ -19,7 +33,7 @@ function LeafIcon() {
       height="18"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#1971c2"
+      stroke="var(--color-primary)"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"

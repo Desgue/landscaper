@@ -1,10 +1,78 @@
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @import "tailwindcss";
 
 @theme {
+  /* Legacy brand tokens (backward compatibility) */
   --color-brand: #1971c2;
   --color-brand-dark: #1562a8;
   --color-brand-light: #e8f0fb;
-  --font-sans: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Primary palette */
+  --color-primary: #2D6A4F;
+  --color-primary-light: #40916C;
+  --color-primary-dark: #1B4332;
+
+  /* Secondary palette */
+  --color-secondary: #3D5A80;
+  --color-secondary-light: #5E7EA3;
+
+  /* Accent (CTA) */
+  --color-accent: #E8A838;
+  --color-accent-hover: #D4952B;
+  --color-accent-light: #FDF3E0;
+
+  /* Backgrounds */
+  --color-bg: #FAFAF7;
+  --color-bg-alt: #EDF2E8;
+  --color-bg-card: #FFFFFF;
+  --color-bg-elevated: #F3F1EE;
+
+  /* Text */
+  --color-text: #1A1D1A;
+  --color-text-secondary: #5C6356;
+  --color-text-muted: #767970;
+
+  /* Border */
+  --color-border: #D4DDD0;
+
+  /* Semantic */
+  --color-success: #40916C;
+  --color-warning: #D4952B;
+  --color-error: #C1503D;
+  --color-info: #5B8FB9;
+
+  /* Typography scale */
+  --font-size-display: 3rem;
+  --line-height-display: 3.5rem;
+  --font-size-h2: 2.25rem;
+  --line-height-h2: 2.5rem;
+  --font-size-h3: 1.5rem;
+  --line-height-h3: 1.75rem;
+  --font-size-body: 1rem;
+  --line-height-body: 1.625rem;
+  --font-size-caption: 0.875rem;
+  --line-height-caption: 1.25rem;
+
+  /* Shadows - warm green tint */
+  --shadow-sm: 0 1px 3px rgba(42, 54, 42, 0.08), 0 1px 2px rgba(42, 54, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(42, 54, 42, 0.10), 0 2px 4px rgba(42, 54, 42, 0.06);
+  --shadow-lg: 0 12px 36px rgba(42, 54, 42, 0.14), 0 4px 12px rgba(42, 54, 42, 0.08);
+
+  --font-sans: 'Inter', system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.bg-dot-grid {
+  background-image: radial-gradient(circle, var(--color-border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.04;
 }
 
 * {
@@ -17,13 +85,98 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Landing page animations */
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(25, 113, 194, 0.25); }
-  50% { box-shadow: 0 0 0 10px rgba(25, 113, 194, 0); }
+/* All animation keyframes — only active when motion is allowed */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(45, 106, 79, 0.25); }
+    50% { box-shadow: 0 0 0 10px rgba(45, 106, 79, 0); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+/* Animation utility classes */
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out both;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.5s ease-out both;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s ease-out both;
+}
+
+/* Pre-animation state - elements start invisible */
+.animate-on-scroll {
+  opacity: 0;
+}
+
+/* Stagger delays for child elements */
+.animate-delay-100 { animation-delay: 100ms; }
+.animate-delay-200 { animation-delay: 200ms; }
+.animate-delay-300 { animation-delay: 300ms; }
+.animate-delay-400 { animation-delay: 400ms; }
+
+/* Focus-visible styles for keyboard navigation */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid #2D6A4F;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
