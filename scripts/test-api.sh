@@ -197,14 +197,14 @@ STATUS=$(curl -s -o "$OUT_DIR/11-real-yard-no-photo.png" -w "%{http_code}" \
   -d "$(make_request "$TESTDATA/real-yard.json" '{"garden_style":"contemporary","season":"summer","time_of_day":"golden hour","aspect_ratio":"landscape"}')")
 check_status "real yard no photo" 200 "$STATUS"
 
-# Test with yard photos (if testdata/yard-photo-*.{jpg,jpeg} exist)
+# Test with single yard photo (backward compat — string format)
 PHOTO_NUM=0
 for YARD_PHOTO in "$TESTDATA"/yard-photo-*.{jpg,jpeg}; do
   [ -f "$YARD_PHOTO" ] || continue
   PHOTO_NUM=$((PHOTO_NUM + 1))
   PHOTO_NAME=$(basename "$YARD_PHOTO")
   PHOTO_STEM="${PHOTO_NAME%.*}"
-  echo "[20.$PHOTO_NUM] Real yard + $PHOTO_NAME -> 200"
+  echo "[20.$PHOTO_NUM] Real yard + $PHOTO_NAME (single string) -> 200"
   PHOTO_B64=$(base64 < "$YARD_PHOTO" | tr -d '\n')
   BODY=$(jq --arg photo "$PHOTO_B64" \
     '{ project: (.project + { registries: .registries }), yard_photo: $photo, options: { garden_style: "contemporary", season: "summer", time_of_day: "golden hour", aspect_ratio: "landscape" } }' \
@@ -218,6 +218,56 @@ done
 if [ "$PHOTO_NUM" -eq 0 ]; then
   echo "[20] SKIP  real yard + photo (no testdata/yard-photo-*.{jpg,jpeg} found)"
 fi
+
+# Test with multi-photo yard_photo array (all photos in testdata)
+MULTI_PHOTOS=()
+for YARD_PHOTO in "$TESTDATA"/yard-photo-*.{jpg,jpeg}; do
+  [ -f "$YARD_PHOTO" ] || continue
+  MULTI_PHOTOS+=("$YARD_PHOTO")
+done
+if [ "${#MULTI_PHOTOS[@]}" -ge 2 ]; then
+  echo "[21] Real yard + ${#MULTI_PHOTOS[@]} photos (array format) -> 200"
+  # Build a JSON array of base64 strings
+  PHOTO_ARRAY="["
+  for i in "${!MULTI_PHOTOS[@]}"; do
+    [ "$i" -gt 0 ] && PHOTO_ARRAY+=","
+    B64=$(base64 < "${MULTI_PHOTOS[$i]}" | tr -d '\n')
+    PHOTO_ARRAY+="\"$B64\""
+  done
+  PHOTO_ARRAY+="]"
+  BODY=$(jq --argjson photos "$PHOTO_ARRAY" \
+    '{ project: (.project + { registries: .registries }), yard_photo: $photos, options: { garden_style: "contemporary", season: "summer", time_of_day: "golden hour", aspect_ratio: "landscape" } }' \
+    "$TESTDATA/real-yard.json")
+  STATUS=$(curl -s -o "$OUT_DIR/13-multi-photo-array.png" -w "%{http_code}" \
+    -X POST "$BASE_URL/api/generate" \
+    -H "Content-Type: application/json" \
+    -d "$BODY")
+  check_status "multi-photo array (${#MULTI_PHOTOS[@]} photos)" 200 "$STATUS"
+else
+  echo "[21] SKIP  multi-photo array (need >= 2 testdata/yard-photo-*.{jpg,jpeg})"
+fi
+
+# Test multi-photo validation: too many photos -> 400
+echo "[22] Too many photos (5) -> 400"
+FAKE_PHOTO=$(base64 < "$TESTDATA/yard-photo-1.jpeg" 2>/dev/null | tr -d '\n' || echo "")
+if [ -n "$FAKE_PHOTO" ]; then
+  BODY=$(jq --arg p "$FAKE_PHOTO" \
+    '{ project: (.project + { registries: .registries }), yard_photo: [$p, $p, $p, $p, $p] }' \
+    "$TESTDATA/minimal-project.json")
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/generate" \
+    -H "Content-Type: application/json" -d "$BODY")
+  check_status "too many photos" 400 "$STATUS"
+else
+  echo "[22] SKIP  too many photos (no yard-photo-1.jpeg for test data)"
+fi
+
+# Test multi-photo validation: empty array -> 200 (treated as no photos)
+echo "[23] Empty photo array -> 200"
+STATUS=$(curl -s -o "$OUT_DIR/14-empty-photo-array.png" -w "%{http_code}" \
+  -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/minimal-project.json" '{}' | jq '. + {yard_photo: []}')")
+check_status "empty photo array" 200 "$STATUS"
 
 # --- summary ----------------------------------------------------------------
 
