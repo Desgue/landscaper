@@ -83,7 +83,7 @@ func main() {
 	os.WriteFile(segFile, segMapBytes, 0644)
 	fmt.Printf("\nSegmap saved: %s (%d bytes)\n", segFile, len(segMapBytes))
 
-	parts := prompt.Build(filtered, eff, true)
+	parts := prompt.Build(filtered, eff, 1)
 
 	promptFile := outDir + "/debug-prompt.txt"
 	f, _ := os.Create(promptFile)
