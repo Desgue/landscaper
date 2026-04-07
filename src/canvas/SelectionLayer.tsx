@@ -15,7 +15,6 @@ import { useHistoryStore } from '../store/useHistoryStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { useInspectorStore } from '../store/useInspectorStore'
 import {
-  hitTestElement,
   getElementAABB,
   getElementsAtPoint,
   getSelectionAABB,

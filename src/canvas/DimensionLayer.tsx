@@ -221,7 +221,7 @@ interface DimensionLayerProps {
   height: number
 }
 
-export default function DimensionLayer({ width, height }: DimensionLayerProps) {
+export default function DimensionLayer({ width: _width, height: _height }: DimensionLayerProps) {
   const activeTool = useToolStore((s) => s.activeTool)
   const project = useProjectStore((s) => s.currentProject)
   const phase = useMeasurementStore((s) => s.phase)
@@ -351,7 +351,7 @@ export default function DimensionLayer({ width, height }: DimensionLayerProps) {
 
 // ─── HTML Overlay for Dismiss/Keep buttons ────────────────────────────────
 
-export function MeasurementHTMLOverlays({ width, height }: { width: number; height: number }) {
+export function MeasurementHTMLOverlays({ width: _width, height: _height }: { width: number; height: number }) {
   const activeTool = useToolStore((s) => s.activeTool)
   const phase = useMeasurementStore((s) => s.phase)
   const startPt = useMeasurementStore((s) => s.startPoint)

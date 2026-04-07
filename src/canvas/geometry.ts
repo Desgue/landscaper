@@ -5,8 +5,6 @@
 
 import type {
   CanvasElement,
-  TerrainElement,
-  StructureElement,
   PathElement,
   Vec2,
   YardBoundary,
