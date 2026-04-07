@@ -24,15 +24,17 @@ type Error struct {
 func (e *Error) Error() string { return e.Message }
 
 // AspectRatioMap converts API aspect ratio values to Gemini aspect ratio strings.
+// gemini-3.1-flash-image-preview supports: 1:1, 4:1, 1:4, 3:4, 4:3.
 var AspectRatioMap = map[string]string{
 	"square":    "1:1",
-	"landscape": "16:9",
-	"portrait":  "9:16",
+	"landscape": "4:3",
+	"portrait":  "3:4",
 }
 
-// Generate sends the prompt and images to Gemini and returns the generated PNG bytes.
-// It creates a new client per request and enforces a 60-second timeout.
-func Generate(ctx context.Context, prompt string, segMapBytes []byte, yardPhotoBytes []byte, yardPhotoMIMEType string, opts model.EffectiveOptions, apiKey string, modelName string) ([]byte, *Error) {
+// Generate sends the prompt parts and images to Gemini and returns the generated image bytes and MIME type.
+// Parts are interleaved: [segmap_instruction, segmap_blob, photo_instruction?, photo_blob?, scene_prompt]
+// This ordering ensures each instruction text is adjacent to the image it describes.
+func Generate(ctx context.Context, promptParts model.PromptParts, segMapBytes []byte, yardPhotoBytes []byte, yardPhotoMIMEType string, opts model.EffectiveOptions, apiKey string, modelName string) ([]byte, string, *Error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -40,19 +42,22 @@ func Generate(ctx context.Context, prompt string, segMapBytes []byte, yardPhotoB
 		APIKey: apiKey,
 	})
 	if err != nil {
-		return nil, &Error{StatusCode: http.StatusBadGateway, Message: fmt.Sprintf("Nano Banana error: %s", err.Error())}
+		return nil, "", &Error{StatusCode: http.StatusBadGateway, Message: fmt.Sprintf("Nano Banana error: %s", err.Error())}
 	}
 
-	// Assemble parts: text prompt, segmap PNG, optional yard photo
+	// Assemble parts: interleave text instructions with their corresponding images
+	// Order: segmap instruction → segmap blob → [yard photo instruction → yard photo blob] → scene prompt
 	parts := []*genai.Part{
-		{Text: prompt},
+		{Text: promptParts.SegmapInstruction},
 		{InlineData: &genai.Blob{MIMEType: "image/png", Data: segMapBytes}},
 	}
-	if len(yardPhotoBytes) > 0 {
-		parts = append(parts, &genai.Part{
-			InlineData: &genai.Blob{MIMEType: yardPhotoMIMEType, Data: yardPhotoBytes},
-		})
+	if len(yardPhotoBytes) > 0 && promptParts.YardPhotoInstruction != "" {
+		parts = append(parts,
+			&genai.Part{Text: promptParts.YardPhotoInstruction},
+			&genai.Part{InlineData: &genai.Blob{MIMEType: yardPhotoMIMEType, Data: yardPhotoBytes}},
+		)
 	}
+	parts = append(parts, &genai.Part{Text: promptParts.ScenePrompt})
 
 	contents := []*genai.Content{{Parts: parts}}
 
@@ -66,7 +71,10 @@ func Generate(ctx context.Context, prompt string, segMapBytes []byte, yardPhotoB
 		ResponseModalities: []string{"IMAGE"},
 		ImageConfig: &genai.ImageConfig{
 			AspectRatio: geminiAspect,
-			ImageSize:   "1K",
+			ImageSize:   opts.ImageSize,
+		},
+		ThinkingConfig: &genai.ThinkingConfig{
+			ThinkingLevel: genai.ThinkingLevelHigh,
 		},
 	}
 	if opts.Seed != -1 {
@@ -77,21 +85,21 @@ func Generate(ctx context.Context, prompt string, segMapBytes []byte, yardPhotoB
 	resp, err := client.Models.GenerateContent(ctx, modelName, contents, cfg)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, &Error{StatusCode: http.StatusGatewayTimeout, Message: "image generation timed out"}
+			return nil, "", &Error{StatusCode: http.StatusGatewayTimeout, Message: "image generation timed out"}
 		}
-		return nil, &Error{StatusCode: http.StatusBadGateway, Message: fmt.Sprintf("Nano Banana error: %s", err.Error())}
+		return nil, "", &Error{StatusCode: http.StatusBadGateway, Message: fmt.Sprintf("Nano Banana error: %s", err.Error())}
 	}
 
-	// Extract PNG from response
+	// Extract image from response
 	if resp == nil || len(resp.Candidates) == 0 || resp.Candidates[0].Content == nil {
-		return nil, &Error{StatusCode: http.StatusBadGateway, Message: "no image in Nano Banana response"}
+		return nil, "", &Error{StatusCode: http.StatusBadGateway, Message: "no image in Nano Banana response"}
 	}
 
 	for _, part := range resp.Candidates[0].Content.Parts {
-		if part.InlineData != nil && part.InlineData.MIMEType == "image/png" {
-			return part.InlineData.Data, nil
+		if part.InlineData != nil && (part.InlineData.MIMEType == "image/png" || part.InlineData.MIMEType == "image/jpeg") {
+			return part.InlineData.Data, part.InlineData.MIMEType, nil
 		}
 	}
 
-	return nil, &Error{StatusCode: http.StatusBadGateway, Message: "no image in Nano Banana response"}
+	return nil, "", &Error{StatusCode: http.StatusBadGateway, Message: "no image in Nano Banana response"}
 }
