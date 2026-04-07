@@ -33,16 +33,19 @@ check_status() {
   fi
 }
 
-# Build a request body from a project file + optional options JSON
+# Build an API request body from a frontend export-format JSON file.
+# Export format: { "version", "exportedAt", "project": {...}, "registries": {...} }
+# API format:   { "project": { ...project fields..., "registries": {...} } }
+# The frontend merges registries into project before sending — this function does the same.
 make_request() {
-  local project_file="$1"
+  local export_file="$1"
   local options="${2:-}"
-  local project
-  project=$(cat "$project_file")
   if [ -n "$options" ]; then
-    printf '{"project": %s, "options": %s}' "$project" "$options"
+    jq --argjson opts "$options" \
+      '{ project: (.project + { registries: .registries }), options: $opts }' \
+      "$export_file"
   else
-    printf '{"project": %s}' "$project"
+    jq '{ project: (.project + { registries: .registries }) }' "$export_file"
   fi
 }
 
@@ -173,6 +176,35 @@ STATUS=$(curl -s -o "$OUT_DIR/10-no-planned.png" -w "%{http_code}" \
   -H "Content-Type: application/json" \
   -d "$(make_request "$TESTDATA/full-project.json" '{"include_planned":false}')")
 check_status "exclude planned" 200 "$STATUS"
+
+echo "[19] Real yard, no photo -> 200"
+STATUS=$(curl -s -o "$OUT_DIR/11-real-yard-no-photo.png" -w "%{http_code}" \
+  -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/real-yard.json" '{"garden_style":"contemporary","season":"summer","time_of_day":"golden hour","aspect_ratio":"landscape"}')")
+check_status "real yard no photo" 200 "$STATUS"
+
+# Test with yard photos (if testdata/yard-photo-*.{jpg,jpeg} exist)
+PHOTO_NUM=0
+for YARD_PHOTO in "$TESTDATA"/yard-photo-*.{jpg,jpeg}; do
+  [ -f "$YARD_PHOTO" ] || continue
+  PHOTO_NUM=$((PHOTO_NUM + 1))
+  PHOTO_NAME=$(basename "$YARD_PHOTO")
+  PHOTO_STEM="${PHOTO_NAME%.*}"
+  echo "[20.$PHOTO_NUM] Real yard + $PHOTO_NAME -> 200"
+  PHOTO_B64=$(base64 < "$YARD_PHOTO" | tr -d '\n')
+  BODY=$(jq --arg photo "$PHOTO_B64" \
+    '{ project: (.project + { registries: .registries }), yard_photo: $photo, options: { garden_style: "contemporary", season: "summer", time_of_day: "golden hour", aspect_ratio: "landscape" } }' \
+    "$TESTDATA/real-yard.json")
+  STATUS=$(curl -s -o "$OUT_DIR/12-real-yard-$PHOTO_STEM.png" -w "%{http_code}" \
+    -X POST "$BASE_URL/api/generate" \
+    -H "Content-Type: application/json" \
+    -d "$BODY")
+  check_status "real yard + $PHOTO_NAME" 200 "$STATUS"
+done
+if [ "$PHOTO_NUM" -eq 0 ]; then
+  echo "[20] SKIP  real yard + photo (no testdata/yard-photo-*.{jpg,jpeg} found)"
+fi
 
 # --- summary ----------------------------------------------------------------
 
