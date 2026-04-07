@@ -16,7 +16,7 @@ import (
 
 // GeminiFunc is the signature for the Gemini image generation call.
 // Swappable for testing via geminiGenerateFunc.
-type GeminiFunc func(ctx context.Context, promptParts model.PromptParts, segMapBytes []byte, yardPhotoBytes []byte, yardPhotoMIMEType string, opts model.EffectiveOptions, apiKey string, modelName string) ([]byte, string, *gemini.Error)
+type GeminiFunc func(ctx context.Context, promptParts model.PromptParts, segMapBytes []byte, photos []model.PhotoEntry, opts model.EffectiveOptions, apiKey string, modelName string) ([]byte, string, *gemini.Error)
 
 // geminiGenerateFunc is the Gemini call used by the handler. Tests replace this with a mock.
 var geminiGenerateFunc GeminiFunc = gemini.Generate
@@ -27,7 +27,7 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 	logger := Logger(r.Context())
 
 	// Stage 0: Validate request and apply defaults
-	req, eff, photo, ok := validateAndParse(w, r)
+	req, eff, photos, ok := validateAndParse(w, r)
 	if !ok {
 		return
 	}
@@ -57,22 +57,15 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 	)
 
 	// Stage 3: Construct prompt
-	hasPhoto := photo != nil
-	promptParts := prompt.Build(filtered, eff, hasPhoto)
+	promptParts := prompt.Build(filtered, eff, len(photos))
 	logger.Info("prompt constructed",
 		"scene_prompt_length", len(promptParts.ScenePrompt),
 		"has_yard_photo_instruction", promptParts.YardPhotoInstruction != "",
+		"yard_photo_count", len(photos),
 		"element_count", len(filtered),
 	)
 
 	// Stage 4: Call Gemini
-	var photoBytes []byte
-	var photoMIME string
-	if photo != nil {
-		photoBytes = photo.Bytes
-		photoMIME = photo.MIMEType
-	}
-
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	modelName := os.Getenv("GEMINI_MODEL")
 	if modelName == "" {
@@ -82,9 +75,10 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 		"model", modelName,
 		"aspect_ratio", eff.AspectRatio,
 		"seed", eff.Seed,
+		"yard_photos", len(photos),
 	)
 	geminiStart := time.Now()
-	imageBytes, imageMIME, gemErr := geminiGenerateFunc(r.Context(), promptParts, segMapBytes, photoBytes, photoMIME, eff, apiKey, modelName)
+	imageBytes, imageMIME, gemErr := geminiGenerateFunc(r.Context(), promptParts, segMapBytes, photos, eff, apiKey, modelName)
 	if gemErr != nil {
 		logger.Error("gemini error", "status", gemErr.StatusCode, "error", gemErr.Message)
 		writeJSONError(w, gemErr.StatusCode, gemErr.Message)

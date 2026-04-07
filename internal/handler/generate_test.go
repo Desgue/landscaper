@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -198,36 +199,34 @@ func edgeCaseProject() map[string]any {
 
 // --- mock Gemini function ----------------------------------------------------
 
-func mockGeminiSuccess(_ context.Context, _ model.PromptParts, _ []byte, _ []byte, _ string, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+func mockGeminiSuccess(_ context.Context, _ model.PromptParts, _ []byte, _ []model.PhotoEntry, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
 	return fakePNGBytes, "image/png", nil
 }
 
-func mockGeminiTimeout(_ context.Context, _ model.PromptParts, _ []byte, _ []byte, _ string, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+func mockGeminiTimeout(_ context.Context, _ model.PromptParts, _ []byte, _ []model.PhotoEntry, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
 	return nil, "", &gemini.Error{StatusCode: http.StatusGatewayTimeout, Message: "image generation timed out"}
 }
 
-func mockGeminiAPIError(_ context.Context, _ model.PromptParts, _ []byte, _ []byte, _ string, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+func mockGeminiAPIError(_ context.Context, _ model.PromptParts, _ []byte, _ []model.PhotoEntry, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
 	return nil, "", &gemini.Error{StatusCode: http.StatusBadGateway, Message: "Nano Banana error: quota exceeded"}
 }
 
-func mockGeminiNoImage(_ context.Context, _ model.PromptParts, _ []byte, _ []byte, _ string, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+func mockGeminiNoImage(_ context.Context, _ model.PromptParts, _ []byte, _ []model.PhotoEntry, _ model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
 	return nil, "", &gemini.Error{StatusCode: http.StatusBadGateway, Message: "no image in Nano Banana response"}
 }
 
 // recordingMock captures the arguments passed to the Gemini function for assertion.
 type recordingMock struct {
-	promptParts    model.PromptParts
-	segMapBytes    []byte
-	yardPhotoBytes []byte
-	yardPhotoMIME  string
-	opts           model.EffectiveOptions
+	promptParts model.PromptParts
+	segMapBytes []byte
+	photos      []model.PhotoEntry
+	opts        model.EffectiveOptions
 }
 
-func (rm *recordingMock) generate(_ context.Context, pp model.PromptParts, segMapBytes []byte, yardPhotoBytes []byte, yardPhotoMIMEType string, opts model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
+func (rm *recordingMock) generate(_ context.Context, pp model.PromptParts, segMapBytes []byte, photos []model.PhotoEntry, opts model.EffectiveOptions, _ string, _ string) ([]byte, string, *gemini.Error) {
 	rm.promptParts = pp
 	rm.segMapBytes = segMapBytes
-	rm.yardPhotoBytes = yardPhotoBytes
-	rm.yardPhotoMIME = yardPhotoMIMEType
+	rm.photos = photos
 	rm.opts = opts
 	return fakePNGBytes, "image/png", nil
 }
@@ -679,11 +678,14 @@ func TestIntegration_GeminiReceives_YardPhotoBytes(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d; want 200; body: %s", rec.Code, rec.Body.String())
 	}
-	if !bytes.Equal(rm.yardPhotoBytes, jpegBytes) {
+	if len(rm.photos) != 1 {
+		t.Fatalf("expected 1 photo; got %d", len(rm.photos))
+	}
+	if !bytes.Equal(rm.photos[0].Bytes, jpegBytes) {
 		t.Error("yard photo bytes not passed to Gemini")
 	}
-	if rm.yardPhotoMIME != "image/jpeg" {
-		t.Errorf("yard photo MIME = %q; want %q", rm.yardPhotoMIME, "image/jpeg")
+	if rm.photos[0].MIMEType != "image/jpeg" {
+		t.Errorf("yard photo MIME = %q; want %q", rm.photos[0].MIMEType, "image/jpeg")
 	}
 }
 
@@ -698,11 +700,8 @@ func TestIntegration_GeminiReceives_NoYardPhoto(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d; want 200; body: %s", rec.Code, rec.Body.String())
 	}
-	if len(rm.yardPhotoBytes) != 0 {
-		t.Errorf("expected empty yard photo bytes; got %d bytes", len(rm.yardPhotoBytes))
-	}
-	if rm.yardPhotoMIME != "" {
-		t.Errorf("expected empty yard photo MIME; got %q", rm.yardPhotoMIME)
+	if len(rm.photos) != 0 {
+		t.Errorf("expected no photos; got %d", len(rm.photos))
 	}
 }
 
@@ -811,5 +810,130 @@ func TestIntegration_GeminiReceives_SegMapBytes(t *testing.T) {
 	pngHeader := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
 	if !bytes.HasPrefix(rm.segMapBytes, pngHeader) {
 		t.Error("segmap does not start with PNG magic bytes")
+	}
+}
+
+// --- multi-photo integration tests -------------------------------------------
+
+func TestIntegration_MultiPhoto_2Photos_Success(t *testing.T) {
+	rm := &recordingMock{}
+	old := geminiGenerateFunc
+	geminiGenerateFunc = rm.generate
+	defer func() { geminiGenerateFunc = old }()
+
+	jpegBytes := []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46}
+	pngBytes := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00}
+	body, _ := json.Marshal(map[string]any{
+		"project": minimalValidProject(),
+		"yard_photo": []string{
+			base64.StdEncoding.EncodeToString(jpegBytes),
+			base64.StdEncoding.EncodeToString(pngBytes),
+		},
+	})
+	rec := doGenerate(body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d; want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	if len(rm.photos) != 2 {
+		t.Fatalf("expected 2 photos passed to Gemini; got %d", len(rm.photos))
+	}
+	if !bytes.Equal(rm.photos[0].Bytes, jpegBytes) {
+		t.Error("photo[0] bytes mismatch")
+	}
+	if rm.photos[0].MIMEType != "image/jpeg" {
+		t.Errorf("photo[0] MIME = %q; want image/jpeg", rm.photos[0].MIMEType)
+	}
+	if !bytes.Equal(rm.photos[1].Bytes, pngBytes) {
+		t.Error("photo[1] bytes mismatch")
+	}
+	if rm.photos[1].MIMEType != "image/png" {
+		t.Errorf("photo[1] MIME = %q; want image/png", rm.photos[1].MIMEType)
+	}
+}
+
+func TestIntegration_MultiPhoto_PromptHasPerPhotoInstructions(t *testing.T) {
+	rm := &recordingMock{}
+	old := geminiGenerateFunc
+	geminiGenerateFunc = rm.generate
+	defer func() { geminiGenerateFunc = old }()
+
+	jpegBytes := []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46}
+	body, _ := json.Marshal(map[string]any{
+		"project": minimalValidProject(),
+		"yard_photo": []string{
+			base64.StdEncoding.EncodeToString(jpegBytes),
+			base64.StdEncoding.EncodeToString(jpegBytes),
+			base64.StdEncoding.EncodeToString(jpegBytes),
+		},
+	})
+	rec := doGenerate(body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d; want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	if len(rm.promptParts.YardPhotoInstructions) != 3 {
+		t.Fatalf("expected 3 yard photo instructions; got %d", len(rm.promptParts.YardPhotoInstructions))
+	}
+	if !strings.Contains(rm.promptParts.YardPhotoInstructions[0], "photo 1 of 3") {
+		t.Errorf("instruction[0] should say 'photo 1 of 3'; got %q", rm.promptParts.YardPhotoInstructions[0])
+	}
+	if !strings.Contains(rm.promptParts.YardPhotoInstructions[2], "photo 3 of 3") {
+		t.Errorf("instruction[2] should say 'photo 3 of 3'; got %q", rm.promptParts.YardPhotoInstructions[2])
+	}
+}
+
+func TestIntegration_MultiPhoto_TooMany_400(t *testing.T) {
+	jpegBytes := []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46}
+	b64 := base64.StdEncoding.EncodeToString(jpegBytes)
+	body, _ := json.Marshal(map[string]any{
+		"project":    minimalValidProject(),
+		"yard_photo": []string{b64, b64, b64, b64, b64},
+	})
+	rec := doGenerate(body)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d; want 400", rec.Code)
+	}
+	var resp map[string]string
+	json.Unmarshal(rec.Body.Bytes(), &resp)
+	if resp["error"] != "too many yard photos (max 4)" {
+		t.Errorf("error = %q; want %q", resp["error"], "too many yard photos (max 4)")
+	}
+}
+
+func TestIntegration_MultiPhoto_EmptyArray_NoPhotos(t *testing.T) {
+	rm := &recordingMock{}
+	old := geminiGenerateFunc
+	geminiGenerateFunc = rm.generate
+	defer func() { geminiGenerateFunc = old }()
+
+	body, _ := json.Marshal(map[string]any{
+		"project":    minimalValidProject(),
+		"yard_photo": []string{},
+	})
+	rec := doGenerate(body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d; want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	if len(rm.photos) != 0 {
+		t.Errorf("expected no photos; got %d", len(rm.photos))
+	}
+}
+
+func TestIntegration_MultiPhoto_SingleStringStillWorks(t *testing.T) {
+	rm := &recordingMock{}
+	old := geminiGenerateFunc
+	geminiGenerateFunc = rm.generate
+	defer func() { geminiGenerateFunc = old }()
+
+	jpegBytes := []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46}
+	body, _ := json.Marshal(map[string]any{
+		"project":    minimalValidProject(),
+		"yard_photo": base64.StdEncoding.EncodeToString(jpegBytes),
+	})
+	rec := doGenerate(body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d; want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	if len(rm.photos) != 1 {
+		t.Fatalf("expected 1 photo; got %d", len(rm.photos))
 	}
 }
