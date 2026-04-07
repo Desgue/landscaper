@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"greenprint/internal/model"
 )
 
 // --- helpers ----------------------------------------------------------------
@@ -54,6 +56,15 @@ func doValidate(body []byte, now time.Time) (*httptest.ResponseRecorder, bool) {
 	req.Header.Set("Content-Type", "application/json")
 	_, _, _, ok := validateAndParseWithTime(rec, req, now)
 	return rec, ok
+}
+
+// doValidatePhotos creates an httptest request/recorder and returns the photos slice.
+func doValidatePhotos(body []byte, now time.Time) (*httptest.ResponseRecorder, []model.PhotoEntry, bool) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	_, _, photos, ok := validateAndParseWithTime(rec, req, now)
+	return rec, photos, ok
 }
 
 
@@ -451,6 +462,143 @@ func TestInvalidIncludePlanned_NonBoolean(t *testing.T) {
 		t.Fatal("expected failure")
 	}
 	assertError(t, rec, http.StatusBadRequest, "invalid include_planned")
+}
+
+// --- multi-photo yard_photo tests -------------------------------------------
+
+func TestYardPhoto_SingleString_BackwardCompat(t *testing.T) {
+	body, _ := json.Marshal(map[string]any{
+		"project":    minimalProject(),
+		"yard_photo": fakeJPEG(),
+	})
+	rec, photos, ok := doValidatePhotos(body, summerDate)
+	if !ok {
+		t.Fatalf("expected ok; got error: %s", rec.Body.String())
+	}
+	if len(photos) != 1 {
+		t.Fatalf("expected 1 photo; got %d", len(photos))
+	}
+	if photos[0].MIMEType != "image/jpeg" {
+		t.Errorf("MIME = %q; want %q", photos[0].MIMEType, "image/jpeg")
+	}
+}
+
+func TestYardPhoto_ArrayWith1Photo(t *testing.T) {
+	body, _ := json.Marshal(map[string]any{
+		"project":    minimalProject(),
+		"yard_photo": []string{fakeJPEG()},
+	})
+	rec, photos, ok := doValidatePhotos(body, summerDate)
+	if !ok {
+		t.Fatalf("expected ok; got error: %s", rec.Body.String())
+	}
+	if len(photos) != 1 {
+		t.Fatalf("expected 1 photo; got %d", len(photos))
+	}
+}
+
+func TestYardPhoto_ArrayWith2Photos(t *testing.T) {
+	body, _ := json.Marshal(map[string]any{
+		"project":    minimalProject(),
+		"yard_photo": []string{fakeJPEG(), fakePNG()},
+	})
+	rec, photos, ok := doValidatePhotos(body, summerDate)
+	if !ok {
+		t.Fatalf("expected ok; got error: %s", rec.Body.String())
+	}
+	if len(photos) != 2 {
+		t.Fatalf("expected 2 photos; got %d", len(photos))
+	}
+	if photos[0].MIMEType != "image/jpeg" {
+		t.Errorf("photo[0] MIME = %q; want %q", photos[0].MIMEType, "image/jpeg")
+	}
+	if photos[1].MIMEType != "image/png" {
+		t.Errorf("photo[1] MIME = %q; want %q", photos[1].MIMEType, "image/png")
+	}
+}
+
+func TestYardPhoto_ArrayWith4Photos_Max(t *testing.T) {
+	body, _ := json.Marshal(map[string]any{
+		"project":    minimalProject(),
+		"yard_photo": []string{fakeJPEG(), fakePNG(), fakeJPEG(), fakePNG()},
+	})
+	rec, photos, ok := doValidatePhotos(body, summerDate)
+	if !ok {
+		t.Fatalf("expected ok; got error: %s", rec.Body.String())
+	}
+	if len(photos) != 4 {
+		t.Fatalf("expected 4 photos; got %d", len(photos))
+	}
+}
+
+func TestYardPhoto_ArrayWith5Photos_TooMany(t *testing.T) {
+	body, _ := json.Marshal(map[string]any{
+		"project":    minimalProject(),
+		"yard_photo": []string{fakeJPEG(), fakeJPEG(), fakeJPEG(), fakeJPEG(), fakeJPEG()},
+	})
+	rec, _, ok := doValidatePhotos(body, summerDate)
+	if ok {
+		t.Fatal("expected failure for 5 photos")
+	}
+	assertError(t, rec, http.StatusBadRequest, "too many yard photos (max 4)")
+}
+
+func TestYardPhoto_ArrayWith1ValidAnd1Invalid(t *testing.T) {
+	body, _ := json.Marshal(map[string]any{
+		"project":    minimalProject(),
+		"yard_photo": []string{fakeJPEG(), "not-valid-base64!!!"},
+	})
+	rec, _, ok := doValidatePhotos(body, summerDate)
+	if ok {
+		t.Fatal("expected failure for invalid photo in array")
+	}
+	assertError(t, rec, http.StatusBadRequest, "invalid yard_photo")
+}
+
+func TestYardPhoto_EmptyArray_TreatedAsNoPhotos(t *testing.T) {
+	body, _ := json.Marshal(map[string]any{
+		"project":    minimalProject(),
+		"yard_photo": []string{},
+	})
+	rec, photos, ok := doValidatePhotos(body, summerDate)
+	if !ok {
+		t.Fatalf("expected ok; got error: %s", rec.Body.String())
+	}
+	if len(photos) != 0 {
+		t.Errorf("expected 0 photos for empty array; got %d", len(photos))
+	}
+}
+
+func TestYardPhoto_SinglePhotoTooLarge(t *testing.T) {
+	// Create a valid JPEG header followed by enough data to exceed maxPhotoBytes
+	raw := make([]byte, maxPhotoBytes+1)
+	copy(raw, jpegMagic)
+	b64 := base64.StdEncoding.EncodeToString(raw)
+	body, _ := json.Marshal(map[string]any{
+		"project":    minimalProject(),
+		"yard_photo": b64,
+	})
+	rec, _, ok := doValidatePhotos(body, summerDate)
+	if ok {
+		t.Fatal("expected failure for oversized photo")
+	}
+	assertError(t, rec, http.StatusBadRequest, "yard photo too large")
+}
+
+func TestYardPhoto_Null_TreatedAsNoPhotos(t *testing.T) {
+	body := []byte(`{"project":` + string(mustMarshal(minimalProject())) + `,"yard_photo":null}`)
+	rec, photos, ok := doValidatePhotos(body, summerDate)
+	if !ok {
+		t.Fatalf("expected ok; got error: %s", rec.Body.String())
+	}
+	if len(photos) != 0 {
+		t.Errorf("expected 0 photos for null; got %d", len(photos))
+	}
+}
+
+func mustMarshal(v any) []byte {
+	b, _ := json.Marshal(v)
+	return b
 }
 
 // --- season derivation edge cases -------------------------------------------

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math"
 	"net/http"
@@ -45,12 +46,8 @@ var validImageSizes = map[string]bool{
 var jpegMagic = []byte{0xFF, 0xD8, 0xFF}
 var pngMagic = []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
 
-// YardPhotoData holds the decoded yard photo bytes and detected MIME type.
-// Populated during validation when yard_photo is present; nil otherwise.
-type YardPhotoData struct {
-	Bytes    []byte
-	MIMEType string // "image/jpeg" or "image/png"
-}
+const maxYardPhotos = 4
+const maxPhotoBytes = 3 * 1024 * 1024 // 3 MB decoded per photo
 
 // validationError writes a JSON error response and logs the failure.
 func validationError(w http.ResponseWriter, r *http.Request, status int, message string) {
@@ -63,13 +60,13 @@ func validationError(w http.ResponseWriter, r *http.Request, status int, message
 // validateAndParse reads the request body, validates all fields, and returns
 // the parsed request, resolved EffectiveOptions, and decoded yard photo data.
 // If validation fails, it writes the error response and returns false.
-func validateAndParse(w http.ResponseWriter, r *http.Request) (model.GenerateRequest, model.EffectiveOptions, *YardPhotoData, bool) {
+func validateAndParse(w http.ResponseWriter, r *http.Request) (model.GenerateRequest, model.EffectiveOptions, []model.PhotoEntry, bool) {
 	return validateAndParseWithTime(w, r, time.Now().UTC())
 }
 
 // validateAndParseWithTime is the testable core: same as validateAndParse but
 // accepts an explicit "now" for deterministic season derivation in tests.
-func validateAndParseWithTime(w http.ResponseWriter, r *http.Request, now time.Time) (model.GenerateRequest, model.EffectiveOptions, *YardPhotoData, bool) {
+func validateAndParseWithTime(w http.ResponseWriter, r *http.Request, now time.Time) (model.GenerateRequest, model.EffectiveOptions, []model.PhotoEntry, bool) {
 	// 1. Body size limit
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 
@@ -157,35 +154,89 @@ func validateAndParseWithTime(w http.ResponseWriter, r *http.Request, now time.T
 		return model.GenerateRequest{}, model.EffectiveOptions{}, nil, false
 	}
 
-	// 10. yard_photo: if present, decode base64 and check magic bytes
-	var photo *YardPhotoData
-	if req.YardPhoto != "" {
-		decoded, err := base64.StdEncoding.DecodeString(req.YardPhoto)
+	// 10. yard_photo: if present, decode base64 and check magic bytes.
+	// Accepts both string (single photo, backward compat) and []string (multi-photo).
+	var photos []model.PhotoEntry
+	if len(req.YardPhoto) > 0 && string(req.YardPhoto) != "null" {
+		photos, err = parseYardPhotos(req.YardPhoto)
 		if err != nil {
-			validationError(w, r, http.StatusBadRequest, "invalid yard_photo")
+			validationError(w, r, http.StatusBadRequest, err.Error())
 			return model.GenerateRequest{}, model.EffectiveOptions{}, nil, false
 		}
-		if len(decoded) < 8 {
-			validationError(w, r, http.StatusBadRequest, "invalid yard_photo")
-			return model.GenerateRequest{}, model.EffectiveOptions{}, nil, false
-		}
-		isJPEG := bytes.HasPrefix(decoded, jpegMagic)
-		isPNG := bytes.HasPrefix(decoded, pngMagic)
-		if !isJPEG && !isPNG {
-			validationError(w, r, http.StatusBadRequest, "invalid yard_photo")
-			return model.GenerateRequest{}, model.EffectiveOptions{}, nil, false
-		}
-		mime := "image/png"
-		if isJPEG {
-			mime = "image/jpeg"
-		}
-		photo = &YardPhotoData{Bytes: decoded, MIMEType: mime}
 	}
 
 	// 11. Resolve EffectiveOptions with defaults
 	eff := resolveOptions(req.Options, req.Project.Location, now)
 
-	return req, eff, photo, true
+	return req, eff, photos, true
+}
+
+// parseYardPhotos handles both string and []string yard_photo formats.
+// Returns an error with an appropriate user-facing message on failure.
+func parseYardPhotos(raw json.RawMessage) ([]model.PhotoEntry, error) {
+	// Try as single string first (backward compat)
+	var single string
+	if err := json.Unmarshal(raw, &single); err == nil {
+		if single == "" {
+			return nil, nil
+		}
+		entry, err := decodePhoto(single)
+		if err != nil {
+			return nil, err
+		}
+		return []model.PhotoEntry{entry}, nil
+	}
+
+	// Try as array
+	var arr []string
+	if err := json.Unmarshal(raw, &arr); err != nil {
+		return nil, fmt.Errorf("invalid yard_photo")
+	}
+
+	if len(arr) == 0 {
+		return nil, nil
+	}
+	if len(arr) > maxYardPhotos {
+		return nil, fmt.Errorf("too many yard photos (max %d)", maxYardPhotos)
+	}
+
+	photos := make([]model.PhotoEntry, 0, len(arr))
+	for _, s := range arr {
+		entry, err := decodePhoto(s)
+		if err != nil {
+			return nil, err
+		}
+		photos = append(photos, entry)
+	}
+	return photos, nil
+}
+
+// decodePhoto decodes a single base64-encoded photo and validates magic bytes.
+func decodePhoto(b64 string) (model.PhotoEntry, error) {
+	// Pre-check: reject obviously oversized input before allocating decode buffer.
+	if base64.StdEncoding.DecodedLen(len(b64)) > maxPhotoBytes {
+		return model.PhotoEntry{}, fmt.Errorf("yard photo too large")
+	}
+	decoded, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		return model.PhotoEntry{}, fmt.Errorf("invalid yard_photo")
+	}
+	if len(decoded) < 8 {
+		return model.PhotoEntry{}, fmt.Errorf("invalid yard_photo")
+	}
+	if len(decoded) > maxPhotoBytes {
+		return model.PhotoEntry{}, fmt.Errorf("yard photo too large")
+	}
+	isJPEG := bytes.HasPrefix(decoded, jpegMagic)
+	isPNG := bytes.HasPrefix(decoded, pngMagic)
+	if !isJPEG && !isPNG {
+		return model.PhotoEntry{}, fmt.Errorf("invalid yard_photo")
+	}
+	mime := "image/png"
+	if isJPEG {
+		mime = "image/jpeg"
+	}
+	return model.PhotoEntry{Bytes: decoded, MIMEType: mime}, nil
 }
 
 // resolveOptions applies defaults for all omitted fields.
