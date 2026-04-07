@@ -12,6 +12,7 @@ export interface ViewportState {
 export interface UIState {
   gridVisible: boolean;
   snapEnabled: boolean;
+  lastGenerateOptions?: import('./generate').GenerateOptions;
 }
 
 export interface GridConfig {

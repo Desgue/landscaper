@@ -235,6 +235,24 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
       {/* Spacer */}
       <div className="flex-1" />
 
+      {/* Generate button */}
+      <button
+        onClick={() => router.navigate({ to: '/app/generate' })}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors"
+        style={{
+          background: '#E8A838',
+          color: '#1A1D1A',
+        }}
+        title="Open AI generation view"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+        </svg>
+        Generate
+      </button>
+
+      <div className="w-px bg-gray-200 self-stretch my-2 mx-1" />
+
       {/* Project menu */}
       <div className="relative" ref={menuRef}>
         <button
