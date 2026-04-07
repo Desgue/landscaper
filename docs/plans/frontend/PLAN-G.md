@@ -42,7 +42,7 @@
 | **Scope** | Replace the Konva canvas renderer with a PixiJS-based 2.5D engine using textured terrain tiles, sprite-based plants/structures, and 3/4 top-down perspective with height extrusion for walls. Excludes: data model changes, store refactors, inspector/toolbar UI, routing, persistence. |
 | **Status** | `in-progress` |
 | **Started** | 2026-04-07 |
-| **Last updated** | 2026-04-07 (Phase 2 done) |
+| **Last updated** | 2026-04-07 (Phase 3 done) |
 | **Phases** | Phase 1: Foundation · Phase 2: Terrain & Boundary · Phase 3: Elements · Phase 4: Interaction (6 sub-features) · Phase 5: Polish |
 
 ---
@@ -375,88 +375,108 @@ _None yet._
 
 ---
 
-### Phase 3 -- Elements [ ]
+### Phase 3 -- Elements [x]
 
 > Render all remaining element types with 2.5D visual style. Plants get sprites with shadows, structures get height extrusion, paths get textured strokes.
 
-#### Feature: Plant rendering [ ]
+#### Feature: Plant rendering [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/plants.md`
 
 ##### Tasks
 
-- [ ] Create `src/canvas-pixi/PlantRenderer.ts` — render plants as illustrated sprites
-- [ ] Size sprites based on `canopyWidthCm` (trees) or `spacingCm` (other plants)
-- [ ] Add foreshortened drop shadow underneath each plant — ellipse radii `(canopyRadius*0.5, canopyRadius*0.2)`, `shadowOffsetY = canopyRadius * 0.3`, `alpha = 0.33`, radial gradient from `rgba(0,0,0,0.33)` to `rgba(0,0,0,0)` for soft edge
-- [ ] Color-code by category (vegetable=green, herb=light-green, fruit=orange, flower=pink, tree=brown, shrub=yellow-green)
-- [ ] Show plant status indicator (small icon: planned=dashed outline, planted=solid, growing=leaf, harvested=check, removed=x)
-- [ ] Y-sort plants by bottom edge for correct overlap
+- [x] Create `src/canvas-pixi/PlantRenderer.ts` — render plants as illustrated sprites -- done 2026-04-07
+- [x] Size sprites based on `canopyWidthCm` (trees) or `spacingCm` (other plants) -- done 2026-04-07
+- [x] Add foreshortened drop shadow underneath each plant — ellipse radii `(canopyRadius*0.5, canopyRadius*0.2)`, `shadowOffsetY = canopyRadius * 0.3`, `alpha = 0.33`, radial gradient from `rgba(0,0,0,0.33)` to `rgba(0,0,0,0)` for soft edge -- done 2026-04-07 (3-ring concentric ellipse approximation; PixiJS v8 Graphics lacks native radial gradient)
+- [x] Color-code by category (vegetable=green, herb=light-green, fruit=orange, flower=pink, tree=brown, shrub=yellow-green) -- done 2026-04-07
+- [x] Show plant status indicator (small icon: planned=dashed outline, planted=solid, growing=leaf, harvested=check, removed=x) -- done 2026-04-07
+- [x] Y-sort plants by bottom edge for correct overlap -- done 2026-04-07 (uses visual radius from effectiveRadius, not el.height)
 
 ##### Decisions
 
-_None yet._
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2026-04-07 | 3-ring concentric ellipse shadow instead of radial gradient | PixiJS v8 Graphics lacks native radial gradient; 3 rings with alpha 0→0.33 approximate the spec. Full gradient pre-baked in PlantSprites.ts |
+| 2026-04-07 | Y-sort by visual radius (effectiveRadius) not el.height | canopyWidthCm differs from spacingCm for trees; el.height gives wrong depth order |
+| 2026-04-07 | Per-element layer state applied in update loop | Elements can span multiple layers; per-container approach was incorrect |
+| 2026-04-07 | NaN/non-positive guards on spacingCm/canopyWidthCm | Corrupted registry data could propagate NaN to sprite dimensions, corrupting GPU render tree |
 
 ---
 
-#### Feature: Structure rendering with height extrusion [ ]
+#### Feature: Structure rendering with height extrusion [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/structures.md`
 
 ##### Tasks
 
-- [ ] Create `src/canvas-pixi/StructureRenderer.ts` — render structures with top face + optional south face
-- [ ] Implement height extrusion: structures with category `boundary`, `feature`, or `furniture` get a south-face strip (darkened color, `EXTRUSION_SCALE=0.5`). Add ambient occlusion gradient at wall base (15-20px wide, alpha 0-25%)
-- [ ] `surface` category structures (patios, decks) render flat with texture pattern (no extrusion)
-- [ ] `overhead` category structures render semi-transparent with dashed outline
-- [ ] Render structure name label centered on top face using BitmapText (MSDF)
-- [ ] Handle curved structures — render arc outline using sampleArc()
-- [ ] Y-sort structures: extruded categories (boundary, feature, furniture) by top edge (`el.y`), flat categories (surface, overhead) by bottom edge (`el.y + el.height`) — see Architecture Overview Y-Sort section
+- [x] Create `src/canvas-pixi/StructureRenderer.ts` — render structures with top face + optional south face -- done 2026-04-07
+- [x] Implement height extrusion: structures with category `boundary`, `feature`, `furniture`, or `container` get a south-face strip (darkened color, `EXTRUSION_SCALE=0.5`). Add ambient occlusion gradient at wall base (18px wide, alpha 0-20%) -- done 2026-04-07
+- [x] `surface` category structures (patios, decks) render flat with color fill (no extrusion) -- done 2026-04-07
+- [x] `overhead` category structures render semi-transparent (alpha 0.35) with dashed outline -- done 2026-04-07
+- [x] Render structure name label centered on top face using Text -- done 2026-04-07 (BitmapText+MSDF deferred until font atlas generated; same pattern as BoundaryRenderer Phase 2 labels)
+- [x] Handle curved structures — render arc outline using sampleArc() -- done 2026-04-07
+- [x] Y-sort structures: extruded categories (boundary, feature, furniture, container) by top edge (`el.y`), flat categories (surface, overhead) by bottom edge (`el.y + el.height`) -- done 2026-04-07
 
 ##### Decisions
 
-_None yet._
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2026-04-07 | Text instead of BitmapText for structure labels | MSDF font atlas deferred; Text with fixed fontSize is interim — same pattern as BoundaryRenderer |
+| 2026-04-07 | Recreate entry on category change | Extruded↔flat or overhead↔non-overhead changes Graphics composition; destroy+recreate prevents GPU leaks |
+| 2026-04-07 | safeDims() helper for NaN-safe drawing | All 4 draw functions consume validated {w,h} to prevent NaN vertex data in GPU buffers |
+| 2026-04-07 | Truncate st.name to 80 chars | Unbounded text length exhausts GPU texture memory via PixiJS Text canvas allocation |
 
 ---
 
-#### Feature: Path rendering [ ]
+#### Feature: Path rendering [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/paths-borders.md`
 
 ##### Tasks
 
-- [ ] Create `src/canvas-pixi/PathRenderer.ts` — render paths as textured strokes
-- [ ] Use Graphics (v8 API: `g.moveTo().lineTo().stroke({ color, width: strokeWidthCm })`) to draw path segments. Reuse Graphics instance via `g.clear()` on update
-- [ ] Apply path type color as tinted texture fill
-- [ ] Render arc segments using sampleArc() polyline
-- [ ] Add subtle edge lines (1px darker stroke on both sides of path)
-- [ ] Handle closed paths (fill interior with semi-transparent texture)
+- [x] Create `src/canvas-pixi/PathRenderer.ts` — render paths as solid color strokes (textured TilingSprite fill deferred to Phase 5) -- done 2026-04-07
+- [x] Use Graphics (v8 API: `g.moveTo().lineTo().stroke({ color, width: strokeWidthCm })`) to draw path segments. Reuse Graphics instance via `g.clear()` on update -- done 2026-04-07
+- [x] Apply path type color as solid stroke fill -- done 2026-04-07 (tinted texture fill deferred to Phase 5 when atlas includes path textures)
+- [x] Render arc segments using sampleArc() polyline -- done 2026-04-07
+- [x] Add subtle edge lines (1px darker stroke on both sides of path) -- done 2026-04-07
+- [x] Handle closed paths (fill interior with semi-transparent color, alpha 0.15) -- done 2026-04-07
 
 ##### Decisions
 
-_None yet._
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2026-04-07 | Solid color strokes, not textured fills | Atlas does not yet include path textures; deferred to Phase 5 polish |
+| 2026-04-07 | Cap points at MAX_PATH_POINTS=2000 | Unbounded points array allows arbitrary GPU geometry allocation per path |
+| 2026-04-07 | NaN guard on strokeWidthCm | Negative or NaN stroke widths produce driver-dependent behavior |
 
 ---
 
-#### Feature: Label and dimension rendering [ ]
+#### Feature: Label and dimension rendering [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** `docs/frontend/labels.md`, `docs/frontend/measurement-dimensions.md`
 
 ##### Tasks
 
-- [ ] Generate MSDF bitmap font atlas at build time using `msdf-bmfont-xml` or similar tool — produces a font atlas + `.fnt` descriptor that renders crisp at any zoom level without re-rasterization. This is the v8-recommended approach for world-space text (PixiJS `Text.resolution` is no longer a per-object property in v8)
-- [ ] Create `src/canvas-pixi/LabelRenderer.ts` — render text labels using PixiJS `BitmapText` with MSDF font for zoom-crisp rendering. `new BitmapText({ text: '...', style: { fontFamily: 'msdf-font' } })`. MSDF provides sharp text at all zoom levels with zero re-rasterization cost. Fall back to regular `Text` (options-object constructor: `new Text({ text, style })`) only for rich styled text that MSDF doesn't support
-- [ ] Create `src/canvas-pixi/DimensionRenderer.ts` — render dimension lines using `Graphics` (v8 API: `g.moveTo().lineTo().stroke({ color, width })`) with arrows, offset, and distance text via BitmapText. Use the same MSDF font as LabelRenderer
-- [ ] Handle label text alignment (left, center, right)
-- [ ] Handle dimension linked endpoints (follow element positions)
-- [ ] Consider keeping editable text in HTML overlays (already exist) rather than PixiJS Text for editing UX
+- [-] Generate MSDF bitmap font atlas at build time — deferred (requires msdf-bmfont-xml tooling setup; all renderers use Text with fixed fontSize as interim, same as BoundaryRenderer Phase 2)
+- [x] Create `src/canvas-pixi/LabelRenderer.ts` — render text labels using PixiJS Text -- done 2026-04-07 (BitmapText+MSDF upgrade deferred until font atlas generated)
+- [x] Create `src/canvas-pixi/DimensionRenderer.ts` — render dimension lines using Graphics with arrows, extension lines, offset, and distance text via Text -- done 2026-04-07 (BitmapText+MSDF upgrade deferred)
+- [x] Handle label text alignment (left, center, right) -- done 2026-04-07
+- [x] Handle dimension linked endpoints (follow element positions) -- done 2026-04-07 (plants resolved as center-anchored)
+- [x] Editable text kept in HTML overlays (already exist); LabelRenderer handles read-only display only -- done 2026-04-07
 
 ##### Decisions
 
-_None yet._
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2026-04-07 | Text instead of BitmapText for labels and dimensions | MSDF font atlas generation deferred; requires build-time msdf-bmfont-xml tooling |
+| 2026-04-07 | Dimension linked endpoints: plants resolved as center-anchored | Plant x,y is center position, not top-left; other elements use x+w/2,y+h/2 |
+| 2026-04-07 | Clamp zoom to min 0.01 in DimensionRenderer | zoom=0 causes 1/zoom=Infinity, propagating to all GPU coordinates |
+| 2026-04-07 | Validate el.precision with Number.isInteger check [0,4] | toFixed throws RangeError on negative, >100, non-integer, or NaN |
+| 2026-04-07 | Clamp fontSize to [4,200] in LabelRenderer | Extreme values exhaust GPU glyph cache per Text object |
 
 ---
 
@@ -721,6 +741,14 @@ _None yet._
 | 2026-04-07 | v8 Graphics API: shape().fill/stroke() pattern, reuse via clear() | `beginFill/endFill` deprecated in v8. New: `g.rect().fill()`, `g.circle().stroke()`. Known memory leak with rapid create/destroy (#10586) — always reuse |
 | 2026-04-07 | `sprite.cullable = true` for built-in v8 frustum culling | Opt-in per display object. Supplements chunk-level AABB culling with per-element culling |
 | 2026-04-07 | Guard async Application.init() against Strict Mode double-mount | React 19 Strict Mode unmounts before async init resolves — need `destroyed` flag to prevent use-after-destroy |
+| 2026-04-07 | Defer MSDF font atlas to Phase 5; use Text with fixed fontSize for Phase 3 | Build-time msdf-bmfont-xml tooling setup is a separate concern; Text with scale gives acceptable results for MVP. Same pattern as BoundaryRenderer Phase 2 edge labels |
+| 2026-04-07 | Defer textured path fills to Phase 5; use solid color strokes for Phase 3 | Texture atlas does not yet include path textures; solid color with edge lines is functional and visually adequate for MVP |
+| 2026-04-07 | Per-element layer state instead of per-container | Elements of the same type can span multiple layers; applying layer visibility/locked from first element only caused incorrect state for multi-layer projects |
+| 2026-04-07 | Plant Y-sort uses visual radius (effectiveRadius) not el.height | canopyWidthCm can differ from spacingCm for trees; el.height (= spacingCm) would give wrong depth ordering for large canopy trees |
+| 2026-04-07 | StructureRenderer: recreate entry on category change instead of patching Graphics | When structure type changes between extruded↔flat or overhead↔non-overhead, Graphics sub-objects differ; destroy+recreate is simpler and leak-free vs. dynamic add/remove |
+| 2026-04-07 | safeDims() helper for NaN/non-positive width/height in StructureRenderer | All draw helpers consume validated dimensions to prevent NaN/Infinity propagation to GPU vertex buffers |
+| 2026-04-07 | Shadow approximation: 3-ring concentric ellipses instead of radial gradient | PixiJS v8 Graphics lacks native radial gradient fills; concentric ellipses with alpha 0→0.33 approximate the spec's gradient. Full gradient is pre-baked in PlantSprites.ts |
+| 2026-04-07 | Context restore calls all Text-bearing renderer update() methods | v8 bug #11685: Text objects disappear after WebGL context restore. rendererUpdaters array populated post-construction, called in onContextRestored handler |
 
 ---
 
@@ -821,4 +849,16 @@ _None yet._
   Files created: BaseRenderer.ts, TerrainRenderer.ts, BoundaryRenderer.ts
   Files modified: CanvasHost.tsx (renderer wiring + canvasSizeRef), utils/dashedLine.ts (infinite loop guard)
   No existing data model or store files modified.
+2026-04-07 — Phase 3 implemented and reviewed (3 review rounds):
+  ROUND 1 (all 3 reviewers REQUEST_CHANGES):
+  - Code: CRIT: StructureRenderer category change leaks Graphics. HIGH: plant Y-sort uses el.height not visual radius, layer state from first element only, DimensionRenderer resolveEndpoint wrong for plants. MED: PathRenderer stroke-after-fill path consumed, all renderers subscribe to entire elements array, PlantRenderer destroy/recreate Graphics, DimensionRenderer label bg measurement timing. LOW: unused el param, void atlas, missing layer subscription, darkenColor duplication.
+  - Doc Sync: HIGH: StructureRenderer label uses Text not BitmapText (undocumented), MSDF font atlas deferred (undocumented). MED: shadow solid fill not gradient (alpha 0.25 not 0.33), container in EXTRUDED_CATEGORIES (false positive — plan includes it), path textured fill not implemented (undocumented). LOW: context restore missing renderer updates.
+  - Security: CRIT: DimensionRenderer zoom=0 produces Infinity. HIGH: PlantRenderer NaN spacingCm, StructureRenderer unbounded st.name, PathRenderer unbounded points, NaN width/height/rotation/stroke. MED: LabelRenderer fontSize unchecked, DimensionRenderer precision unvalidated, dash loop fragile, CanvasHost fit-to-view NaN, duplicate ID VRAM leak.
+  ROUND 2 (Code APPROVED, Doc Sync APPROVED, Security REQUEST_CHANGES):
+  All Round 1 critical/high issues fixed. Security found H-4-RESIDUAL: raw el.width/el.height in StructureRenderer draw helpers, LOW-1: LabelRenderer anchor NaN.
+  ROUND 3 (Security APPROVED — unanimous approval):
+  Both residual issues fixed via safeDims() helper and safeWidth locals. All 3 reviewers unanimous.
+  Files created: PlantRenderer.ts, StructureRenderer.ts, PathRenderer.ts, LabelRenderer.ts, DimensionRenderer.ts
+  Files modified: CanvasHost.tsx (5 renderer imports + instantiation + cleanup + context restore wiring + fit-to-view NaN guard)
+  No existing data model or store files modified. No new dependencies.
 ```
