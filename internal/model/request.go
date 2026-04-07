@@ -1,11 +1,19 @@
 package model
 
+import "encoding/json"
+
 // GenerateRequest is the top-level body for POST /api/generate.
 // See api-contract.md "## Request Body" for the full field contract.
 type GenerateRequest struct {
 	Project   ProjectPayload  `json:"project"`
-	YardPhoto string          `json:"yard_photo,omitempty"` // base64 JPEG or PNG; empty = omitted
+	YardPhoto json.RawMessage `json:"yard_photo,omitempty"` // string (single photo) or []string (multi-photo); base64 JPEG or PNG
 	Options   GenerateOptions `json:"options"`
+}
+
+// PhotoEntry holds decoded yard photo bytes and detected MIME type.
+type PhotoEntry struct {
+	Bytes    []byte
+	MIMEType string // "image/jpeg" or "image/png"
 }
 
 // GenerateOptions mirrors api-contract.md "## Options and Defaults".
@@ -25,11 +33,12 @@ type GenerateOptions struct {
 // PromptParts holds the structured text parts that get interleaved with images
 // in the Gemini request. The client assembles them as:
 //
-//	[SegmapInstruction, segmap_blob, YardPhotoInstruction?, yard_photo_blob?, ScenePrompt]
+//	[SegmapInstruction, segmap_blob, YardPhotoInstructions[0], photo_0_blob, ..., ScenePrompt]
 type PromptParts struct {
-	SegmapInstruction    string // text placed immediately before the segmap image
-	YardPhotoInstruction string // text placed immediately before the yard photo (empty if no photo)
-	ScenePrompt          string // main scene description placed after all images
+	SegmapInstruction     string   // text placed immediately before the segmap image
+	YardPhotoInstruction  string   // single-photo instruction (backward compat, used when YardPhotoInstructions is empty)
+	YardPhotoInstructions []string // per-photo instructions (one per yard photo); takes precedence over YardPhotoInstruction
+	ScenePrompt           string   // main scene description placed after all images
 }
 
 // EffectiveOptions is GenerateOptions after all defaults have been applied.
