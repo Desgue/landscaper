@@ -115,16 +115,17 @@ React host (CanvasHost.tsx)
 
 **Important PixiJS v8 specifics:**
 - Set `eventMode = 'none'` and `interactiveChildren = false` on world container — all hit testing goes through `InteractionManager` using existing pure-math `hitTestAll.ts`
-- World-space `Text` objects need `resolution = zoom * devicePixelRatio` updated on zoom change, then `updateText()` call to re-rasterize for crispness
+- World-space `Text` objects need `resolution = Math.min(zoom * devicePixelRatio, 4)` (clamped to prevent enormous internal canvases). **Debounce re-rasterization** — during active zoom, use sprite `scale` for GPU scaling; only call `updateText()` after zoom gesture settles (150ms idle)
 - No built-in dashed line support — implement a `drawDashedLine()` utility using computed dash segments
 - Even-odd fill for boundary overlay → use `Graphics.cut()` API instead
 - PNG export `renderer.extract` methods are async in v8 (return Promises)
+- **Coordinate conversion:** Use `event.global` (stage-space) + `toWorld()` from `viewport.ts` for world coordinates. Do NOT use `getLocalPosition(worldContainer)` — it returns container-local coords which are wrong when the world container has pan/zoom transforms applied
 
 ### Layer Consolidation (12 Konva Layers -> 3 PixiJS Containers)
 
 | PixiJS Container | Contents | eventMode |
 |------------------|----------|-----------|
-| **world** | Grid, Terrain chunks, Overflow dim, Paths, Structures+Plants (Y-sorted), Labels, Dimensions | `'none'` (events go through interaction container) |
+| **world** | Grid, Terrain chunks, Paths, Structures+Plants (Y-sorted), Labels, Dimensions, Overflow dim (topmost) | `'none'` (events go through interaction container) |
 | **interaction** | Transparent hit area (full stage), selection handles, box-select rect, snap guides | `'static'` |
 | **hud** | (empty — HTML overlays handle this) | `'none'` |
 
@@ -134,10 +135,10 @@ React host (CanvasHost.tsx)
 |---------------|----------|-------|
 | `world.grid` | Grid dots/lines | No |
 | `world.terrain` | Cached terrain RenderTexture chunks | No |
-| `world.overflowDim` | Boundary outside-dim overlay | No |
 | `world.paths` | Path strokes | No (flat, always below structures) |
-| `world.elements` | Structures + Plants (Y-sorted) | Yes — `sortableChildren = true` |
-| `world.labels` | Text labels + dimension lines | No (always on top) |
+| `world.elements` | Structures + Plants (Y-sorted) | Yes — `sortableChildren = true` (consider PixiJS v8 Render Layers as more performant alternative) |
+| `world.labels` | Text labels + dimension lines | No |
+| `world.overflowDim` | Boundary outside-dim overlay | No (must be above labels/elements to dim everything outside boundary, matching current Konva layer 10 behavior) |
 
 The `interaction` container needs a transparent hit area sprite covering the full stage to catch clicks on empty space (for box-select start and deselection).
 
@@ -146,6 +147,15 @@ HTML overlays (YardBoundaryHTMLOverlays, LabelHTMLOverlays, MeasurementHTMLOverl
 ### Coordinate System
 
 **No changes.** World units remain centimeters, Y-axis points DOWN. The PixiJS stage uses the same `panX`, `panY`, `zoom` viewport transform as Konva. `useViewportStore` is unchanged.
+
+### Resource Lifecycle
+
+**PixiJS does NOT garbage-collect GPU resources.** Every `Texture`, `RenderTexture`, and `Graphics` object consumes VRAM until explicitly destroyed. The `DisposalManager` (Phase 1) tracks all allocated resources:
+
+- **Renderers** call `disposalManager.register(resource)` for every created texture/RenderTexture/Graphics
+- **On unmount/project-switch:** `disposalManager.destroyAll()` calls `.destroy({ children: true, texture: true })` on everything
+- **Store subscriptions** via `connectStore()` return unsubscribe handles; all must be called on teardown
+- **VRAM budget:** Terrain chunk pool capped at `MAX_CHUNK_POOL = 24` RenderTextures (~24MB at 512x512). Atlas capped at 2048x2048 (~16MB per page). Total budget target: <64MB VRAM
 
 ### Texture Atlas Strategy
 
@@ -192,7 +202,9 @@ sortKey = (TYPE_LAYER_ORDER[el.type], effectiveBottomY(el), el.id)
 | Path | 1 | (not sorted — in `world.paths` container, always below) |
 | Flat structure (surface, overhead) | 2 | `el.y + el.height` |
 | Extruded structure (boundary, feature, furniture) | 3 | `el.y` (top edge — south face hangs below) |
-| Plant | 4 | `el.y + el.height` |
+| Plant | 3 | `el.y + el.height` |
+
+**Critical: Plants and extruded structures share TYPE_LAYER_ORDER = 3.** This ensures Y-sorting determines overlap between plants and walls/fences regardless of type. A plant behind a fence (lower Y) correctly draws below it, and a plant in front (higher Y) draws on top. If they were in separate tiers, ALL plants would draw above ALL structures regardless of position, breaking the 2.5D illusion.
 
 **Key insight:** Extruded elements sort by their TOP edge (`el.y`), not bottom edge. The south-face strip extends visually below the sort position, so elements in front of the wall correctly draw on top of the south face. Using the bottom edge would cause the south face to incorrectly overlap elements in front.
 
@@ -213,18 +225,21 @@ sortKey = (TYPE_LAYER_ORDER[el.type], effectiveBottomY(el), el.id)
 
 ##### Tasks
 
-- [ ] **SPIKE: Verify `@pixi/react` + React 19.2 compatibility.** Test that `<Application>` mounts correctly with React 19 concurrent features. If incompatible, fall back to imperative PixiJS mount via `useEffect` + raw `Application.init()`. This task MUST complete before all others.
+- [ ] **SPIKE: Verify `@pixi/react` + React 19.2 compatibility.** Test that `<Application>` mounts correctly with React 19 concurrent features. **Must use `@pixi/react` v8** (rebuilt for React 19; v7 is incompatible). If incompatible: remove `@pixi/react` install task, `CanvasHost` uses `useEffect` + `Application.init()` + manual cleanup in return function. All other tasks remain unchanged — the imperative scene graph approach is identical either way. This task MUST complete before all others.
 - [ ] Install `pixi.js` v8, `@pixi/react` (if compatible) — add to package.json
 - [ ] Install PixiJS DevTools Chrome extension for scene graph debugging
 - [ ] Create `src/canvas-pixi/CanvasHost.tsx` — PixiJS Application host with Retina/DPI-aware setup (`resolution: window.devicePixelRatio`, proper `renderer.resize()` on container resize)
 - [ ] Register WebGL context loss handler — show "Canvas lost, click to restore" overlay on `webglcontextlost`, re-init on `webglcontextrestored`
 - [ ] Wire viewport: read `useViewportStore` (panX, panY, zoom) and apply as PixiJS stage transform
 - [ ] Implement pan (hand tool, middle-click) and wheel zoom via PixiJS FederatedPointerEvent
-- [ ] Implement cursor world-position tracking (feed `useCursorStore`) — use `event.getLocalPosition(worldContainer)` not Konva's `getRelativePointerPosition()`
+- [ ] Implement cursor world-position tracking (feed `useCursorStore`) — use `event.global` coordinates and apply inverse viewport transform via `toWorld()` from `viewport.ts` (NOT `getLocalPosition()` which returns container-local coords, not world coords)
 - [ ] Define cursor management strategy: use wrapper div `style.cursor` (same as current Konva approach), NOT PixiJS `displayObject.cursor`
 - [ ] Create `src/canvas-pixi/utils/dashedLine.ts` — `drawDashedLine(graphics, x1, y1, x2, y2, dashArray)` utility that computes dash segments as individual `moveTo/lineTo` calls (~20 LOC)
 - [ ] Create `src/canvas-pixi/GridRenderer.ts` — render dot grid using pre-rendered dashed-line Canvas2D pattern as TilingSprite, respecting `gridVisible` and `snapIncrementCm`
-- [ ] Add feature flag `USE_PIXI` in app config — when true, render `CanvasHost` instead of `CanvasRoot`; when false, keep Konva (parallel operation)
+- [ ] Create `src/canvas-pixi/DisposalManager.ts` — tracks all created Textures, RenderTextures, and Graphics objects. Provides `register(resource)` and `destroyAll()`. Wire `destroyAll()` to CanvasHost unmount and project-switch events. **PixiJS does NOT garbage-collect GPU resources** — every texture/renderTexture must be explicitly destroyed
+- [ ] Create `src/canvas-pixi/connectStore.ts` — `connectStore<T>(store, selector, callback) → unsubscribe` utility for imperative renderer modules to subscribe to Zustand stores. Returns cleanup handle. All renderers must use this pattern (not direct `store.subscribe()`)
+- [ ] Wire `ResizeObserver` on container div — calls `app.renderer.resize()`, updates interaction hit area dimensions, and triggers terrain chunk visibility recompute on container size change
+- [ ] Add feature flag `USE_PIXI` in app config — when true, render `CanvasHost` via `React.lazy(() => import('./canvas-pixi/CanvasHost'))`; when false, render `CanvasRoot` via `React.lazy(() => import('./canvas/CanvasRoot'))`. Use dynamic `import()` so only the active renderer loads (avoids ~350KB bundle bloat from shipping both)
 - [ ] Verify: empty grid renders, pan/zoom works, viewport store stays in sync, Retina displays look crisp
 
 ##### Decisions
@@ -253,7 +268,8 @@ _None yet._
 - [ ] Implement `TextureAtlas.ts` — build atlas from procedural textures at startup using `Texture.from(canvas)` where canvas is offscreen Canvas2D
 - [ ] Create placeholder plant sprites — SVG-based sprites rendered to textures (middle ground between colored circles and hand-drawn art). Include foreshortened ellipse drop shadow: `shadowOffsetY = canopyRadius * 0.3`, `shadowAlpha = 0.33`, ellipse radii `(canopyRadius * 0.5, canopyRadius * 0.2)`, radial gradient from `rgba(0,0,0,0.33)` to `rgba(0,0,0,0)`
 - [ ] Create placeholder structure sprites — colored rectangles with south-face extrusion strip (procedural for MVP)
-- [ ] Export `getTerrainTexture(terrainTypeId)`, `getPlantSprite(plantTypeId)`, `getStructureSprite(structureTypeId)` lookup functions
+- [ ] Implement solid-color fallback texture — used when procedural generation fails (canvas allocation failure, OOM) or when a lookup receives an unknown ID. Log a warning on fallback
+- [ ] Export `getTerrainTexture(terrainTypeId, neighbors?)`, `getPlantSprite(plantTypeId)`, `getStructureSprite(structureTypeId)` lookup functions — all return fallback texture on unknown ID, never throw. The `neighbors?` parameter on terrain is optional (ignored in MVP) but reserves the API signature for Phase 5 autotiling (16+ Wang tile variants per type require neighbor-aware lookup)
 
 ##### Decisions
 
@@ -265,6 +281,22 @@ _None yet._
 
 > Render terrain cells as textured tiles and the yard boundary as a styled polygon. No interaction yet — just visual output reading from the existing project store.
 
+#### Feature: Shared renderer infrastructure [ ]
+
+**Status:** `todo`
+**Note:** Must be completed before any element renderers (terrain, plants, structures, etc.)
+
+##### Tasks
+
+- [ ] Create `src/canvas-pixi/BaseRenderer.ts` — shared utilities for all renderers: dirty tracking (`markDirty()` / `isDirty()`), visibility and locked-opacity handling (0.5 alpha when locked), Y-sort key computation (`computeSortKey(el)`), and zoom-dependent text resolution management (debounced `updateTextResolution()`). All element renderers extend or compose this base
+- [ ] Set up visual regression test harness — screenshot comparison tests for terrain rendering, Y-sort ordering, and boundary overlay. Use PixiJS `renderer.extract` to capture snapshots in headless WebGL (e.g., via `@pixi/node` or headless Chrome)
+
+##### Decisions
+
+_None yet._
+
+---
+
 #### Feature: Textured terrain rendering [ ]
 
 **Status:** `todo`
@@ -273,8 +305,10 @@ _None yet._
 ##### Tasks
 
 - [ ] Create `src/canvas-pixi/TerrainRenderer.ts` — reads `project.elements` where `type === 'terrain'`, renders each cell as a 100x100 textured `Sprite` (NOT TilingSprite — each cell can have a different terrain type)
-- [ ] Implement terrain chunk caching — group terrain cells into 10x10 chunks, render each chunk to a `RenderTexture` for performance. **Chunks need a 1-cell overlap buffer** to correctly blend transition cells at chunk boundaries
+- [ ] Implement terrain chunk caching — group terrain cells into 10x10 chunks, render each chunk to a `RenderTexture` at **fixed 512x512 resolution** (NOT 1:1 world pixels — 1100x1100 at full res = ~4.8MB VRAM per chunk, which exceeds mobile GPU budgets at scale). **Chunks need a 1-cell overlap buffer** to correctly blend transition cells at chunk boundaries
+- [ ] Implement chunk pool with LRU eviction — `MAX_CHUNK_POOL = 24` RenderTextures. When pool is full, evict least-recently-used chunks. Register all RenderTextures with `DisposalManager`
 - [ ] Implement dirty-chunk tracking — when terrain cells change (paint tool), mark only the affected chunk(s) as dirty and re-render them, NOT all chunks. This is critical for paint tool responsiveness
+- [ ] Implement chunk-level viewport culling — compute AABB for each chunk, set `chunk.visible = false` when entirely outside viewport bounds (from `useViewportStore`). ~15 LOC, prevents rendering off-screen chunks. Element-level sub-chunk culling is deferred to Phase 5
 - [ ] Implement terrain transition blending — when cell A borders a different terrain type cell B, render B's texture on top of A's with an alpha-gradient mask fading from opaque at center to transparent at the transition edge
 - [ ] Handle layer visibility and locked opacity (0.5 when locked)
 - [ ] Verify: terrain cells display with textures matching their `terrainTypeId`, transitions blend smoothly
@@ -342,7 +376,7 @@ _None yet._
 - [ ] `overhead` category structures render semi-transparent with dashed outline
 - [ ] Render structure name label centered on top face
 - [ ] Handle curved structures — render arc outline using sampleArc()
-- [ ] Y-sort structures by bottom edge
+- [ ] Y-sort structures: extruded categories (boundary, feature, furniture) by top edge (`el.y`), flat categories (surface, overhead) by bottom edge (`el.y + el.height`) — see Architecture Overview Y-Sort section
 
 ##### Decisions
 
@@ -377,8 +411,8 @@ _None yet._
 
 ##### Tasks
 
-- [ ] Create `src/canvas-pixi/LabelRenderer.ts` — render text labels using PixiJS `Text` with matching font/size/color/bold/italic. **Set `resolution = zoom * devicePixelRatio`** and call `updateText()` on zoom change for crispness at all zoom levels
-- [ ] Create `src/canvas-pixi/DimensionRenderer.ts` — render dimension lines with arrows, offset, and distance text. Same zoom-dependent resolution for text
+- [ ] Create `src/canvas-pixi/LabelRenderer.ts` — render text labels using PixiJS `Text` with matching font/size/color/bold/italic. **Text resolution strategy:** clamp to `Math.min(zoom * devicePixelRatio, 4)` to prevent enormous internal canvases. **Debounce re-rasterization** (150ms after zoom settles) — during active zoom, use sprite `scale` for free GPU scaling (slight blur during animation is acceptable). Only call `updateText()` once zoom gesture completes
+- [ ] Create `src/canvas-pixi/DimensionRenderer.ts` — render dimension lines with arrows, offset, and distance text. Same debounced zoom-dependent resolution strategy as LabelRenderer
 - [ ] Handle label text alignment (left, center, right)
 - [ ] Handle dimension linked endpoints (follow element positions)
 - [ ] Consider keeping editable text in HTML overlays (already exist) rather than PixiJS Text for editing UX
@@ -401,12 +435,13 @@ _None yet._
 ##### Tasks
 
 - [ ] Create `src/canvas-pixi/InteractionManager.ts` — central event handler on the PixiJS interaction container. Listens to `FederatedPointerEvent` and translates to `{worldX, worldY, button, shiftKey, altKey}` commands
-- [ ] Implement world-coordinate hit testing — reuse existing `hitTestAll.ts` (pure math, no Konva deps). Use `event.getLocalPosition(worldContainer)` for coordinate transform
+- [ ] Implement world-coordinate hit testing — reuse existing `hitTestAll.ts` (pure math, no Konva deps). Use `event.global` + inverse viewport transform via `toWorld()` from `viewport.ts` for world coordinate conversion
 - [ ] Implement click-to-select: single click hits elements in priority order, updates `useSelectionStore`
 - [ ] Implement box-select: drag from empty space draws selection rectangle, selects enclosed elements
 - [ ] Implement multi-select (Shift+click, Shift+drag)
 - [ ] Implement Tab key cycle through overlapping elements
 - [ ] Verify keyboard shortcuts still work with PixiJS canvas focused (Ctrl+Shift+1 fit-to-view, Delete to remove, etc.)
+- [ ] Write integration tests for InteractionManager event routing — verify click-to-select, box-select, multi-select, and coordinate conversion produce correct store updates
 
 ##### Decisions
 
@@ -526,9 +561,9 @@ _None yet._
 ##### Tasks
 
 - [ ] Profile render performance with 500+ terrain cells, 50+ plants, 20+ structures
-- [ ] Implement terrain chunk batching — group cells into RenderTexture chunks, re-render only dirty chunks
-- [ ] Implement culling — skip rendering elements outside visible viewport
+- [ ] Implement element-level sub-chunk culling — skip individual elements outside visible viewport within visible chunks (chunk-level AABB culling is implemented in Phase 2)
 - [ ] Verify smooth 60fps pan/zoom with full project loaded
+- _Note: Terrain chunk batching with dirty-chunk tracking was implemented in Phase 2 (Textured terrain rendering)_
 
 ##### Decisions
 
@@ -603,7 +638,11 @@ _None yet._
 | Selection/manipulation is 916 LOC of complex interaction logic | Migration may introduce regressions | Extract framework-agnostic state machine first (Phase 4), unit test it, then wire to PixiJS events |
 | WebGL context loss under memory pressure | Canvas goes blank | Register context loss/restore handlers in Phase 1; show recovery overlay |
 | Procedural textures look bad (white noise, visible tile grid) | Users perceive quality regression | Use simplex noise + seamless tiling; Phase 5 replaces with hand-drawn autotile assets |
-| Performance regression with many sprites | Large projects may lag | Terrain chunk batching with dirty-chunk tracking (Phase 2) + viewport culling (Phase 5) |
+| Performance regression with many sprites | Large projects may lag | Terrain chunk batching with dirty-chunk tracking (Phase 2) + chunk-level culling (Phase 2) + element-level culling (Phase 5) |
+| VRAM exhaustion on mobile/integrated GPUs | WebGL context loss, app crash | Fixed 512x512 chunk resolution, MAX_CHUNK_POOL=24 with LRU eviction, atlas capped at 2048x2048, total budget <64MB |
+| Text re-rasterization thrash during zoom | Frame drops during pinch-zoom with many labels | Debounce updateText() (150ms), use sprite scale during active zoom, clamp resolution to max 4 |
+| GPU resource leaks on project switch/unmount | Growing VRAM until context loss | DisposalManager tracks all resources, destroyAll() on unmount/switch |
+| Double bundle size from feature flag | ~350KB extra gzipped | Dynamic import() for both renderer paths via React.lazy |
 | HTML overlay positioning breaks | Overlays no longer align with canvas | HTML overlays use the same viewport transform — test early in Phase 1 |
 | No built-in dashed line support in PixiJS | Grid, boundary outline, snap guides look wrong | Custom `drawDashedLine()` utility in Phase 1 (~20 LOC) |
 | Y-sort depth ordering wrong for extruded walls | Plants/structures overlap incorrectly | Two-key sort with type layer priority; extruded elements sort by top edge, not bottom |
@@ -624,6 +663,14 @@ _None yet._
 | 2026-04-07 | EXTRUSION_SCALE = 0.5 (30° camera tilt) | Matches Prison Architect proportions; 0.3 was too flat — walls looked like thin ledges |
 | 2026-04-07 | Two-key Y-sort: extruded elements sort by top edge, flat elements by bottom edge | Prevents south-face extrusion from incorrectly overlapping elements in front |
 | 2026-04-07 | SVG-based plant sprites as middle-ground texture strategy | Better than colored circles, cheaper than hand-drawn art; bridges MVP to polish phase |
+| 2026-04-07 | Plants and extruded structures share Y-sort tier (both TYPE_LAYER_ORDER=3) | Separate tiers caused all plants to draw above all structures regardless of Y position, breaking 2.5D illusion |
+| 2026-04-07 | DisposalManager for GPU resource lifecycle | PixiJS does not GC GPU resources; explicit destroy() required on unmount/project-switch to prevent VRAM leaks |
+| 2026-04-07 | `connectStore()` utility for imperative Zustand subscriptions | Standardizes how .ts renderer modules subscribe to stores; ensures consistent cleanup handles |
+| 2026-04-07 | Terrain texture API signature `getTerrainTexture(id, neighbors?)` | Optional `neighbors` param ignored in MVP but reserves API for Phase 5 autotiling without breaking change |
+| 2026-04-07 | Use `event.global` + `toWorld()` for coordinate conversion, NOT `getLocalPosition()` | `getLocalPosition(worldContainer)` returns container-local coords which are wrong when pan/zoom transforms are applied |
+| 2026-04-07 | Debounce text re-rasterization (150ms), clamp resolution to max 4 | Prevents 50+ GPU texture uploads per frame during pinch-zoom; sprite scale provides free GPU scaling during animation |
+| 2026-04-07 | Fixed 512x512 chunk resolution + MAX_CHUNK_POOL=24 with LRU eviction | 1:1 world-pixel chunks (1100x1100) consume ~4.8MB each; at scale this exceeds mobile VRAM budgets |
+| 2026-04-07 | Chunk-level AABB culling in Phase 2, not Phase 5 | Without culling, 10k terrain cells render every frame; ~15 LOC prevents painful Phase 2-4 development |
 
 ---
 
@@ -644,4 +691,27 @@ _None yet._
   - Specified concrete plant shadow parameters (offset, opacity, foreshortened ellipse)
   - Split Phase 4 into 6 parallelizable sub-features; added SelectionLayer state machine extraction
   - Added 4 new risks to mitigation table
+2026-04-07 — Plan reviewed by 5 specialist agents (Architecture, Security, Code Quality, Performance, API Accuracy). 3 critical, 7 high, 7 medium issues identified and fixed:
+  CRITICAL:
+  - Fixed Y-sort: plants and extruded structures now share tier 3 (were separate tiers 3/4, causing all plants to draw above all structures)
+  - Fixed coordinate conversion: replaced getLocalPosition(worldContainer) with event.global + toWorld() (3 locations)
+  - Removed duplicate terrain chunk caching task from Phase 5 (already in Phase 2)
+  HIGH:
+  - Added DisposalManager for GPU resource lifecycle (Phase 1)
+  - Fixed terrain VRAM: chunks now 512x512 fixed resolution + MAX_CHUNK_POOL=24 with LRU eviction
+  - Added connectStore() utility for imperative Zustand subscriptions (Phase 1)
+  - Fixed overflowDim layer order: moved to after labels (was incorrectly below elements)
+  - Added text resolution debounce (150ms) + clamp (max 4) to prevent zoom thrashing
+  - Moved chunk-level AABB culling from Phase 5 to Phase 2
+  - Added fallback texture for generation failures + unknown IDs
+  MEDIUM:
+  - Added @pixi/react v8 requirement + imperative fallback instructions to spike task
+  - Added ResizeObserver wiring task (Phase 1)
+  - Future-proofed texture API: getTerrainTexture(id, neighbors?) for autotiling
+  - Added visual regression test harness (Phase 2) + InteractionManager integration tests (Phase 4)
+  - Added BaseRenderer shared infrastructure (Phase 2, before element renderers)
+  - Fixed contradictory Y-sort task in Phase 3 structures
+  - Changed feature flag to use dynamic import() for code splitting
+  - Added Resource Lifecycle section to architecture overview
+  - Added 9 new decision log entries, 5 new risks to mitigation table
 ```
