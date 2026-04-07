@@ -9,6 +9,7 @@ import type {
 } from '../types/generate';
 import { DEFAULT_OPTIONS } from '../types/generate';
 import { useProjectStore } from './useProjectStore';
+import { buildRequestBody, sendGenerateRequest, mapErrorToToast } from '../api/generateClient';
 
 interface GenerateStore {
   // Navigation
@@ -24,6 +25,7 @@ interface GenerateStore {
   // Generation state
   status: GenerateStatus;
   resultUrl: string | null;
+  resultMimeType: string | null;
 
   // Feature 4: Conversational editing
   chatHistory: ChatMessage[];
@@ -46,7 +48,7 @@ interface GenerateStore {
   setOption<K extends keyof GenerateOptions>(key: K, value: GenerateOptions[K]): void;
   setOptions(patch: Partial<GenerateOptions>): void;
   setYardPhoto(dataUrl: string | null, filename: string | null): void;
-  generate(): void;
+  generate(): Promise<void>;
   cancel(): void;
   clearResult(): void;
 
@@ -74,7 +76,9 @@ interface GenerateStore {
   restoreFromProject(): void;
 }
 
-let cancelTimer: ReturnType<typeof setTimeout> | null = null;
+let activeController: AbortController | null = null;
+let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+let isTimeoutAbort = false;
 
 export const useGenerateStore = create<GenerateStore>((set, get) => ({
   activeFeature: 'initial',
@@ -83,6 +87,7 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
   yardPhotoName: null,
   status: { kind: 'idle' },
   resultUrl: null,
+  resultMimeType: null,
   chatHistory: [],
   editVersions: [],
   draftVariants: [],
@@ -121,15 +126,55 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
     set({ yardPhoto: dataUrl, yardPhotoName: filename });
   },
 
-  generate() {
-    // Stubbed — simulates a 3-second generation
+  async generate() {
+    // Concurrent guard: no-op if already loading
+    if (get().status.kind === 'loading') return;
+
+    const { options, yardPhoto } = get();
+    const projectStore = useProjectStore.getState();
+    const project = projectStore.currentProject;
+    if (!project) return;
+
+    const body = buildRequestBody(
+      project as unknown as Record<string, unknown>,
+      projectStore.registries as unknown as Record<string, unknown>,
+      options,
+      yardPhoto,
+    );
+
+    // Set up AbortController and timeout
+    const controller = new AbortController();
+    activeController = controller;
+    isTimeoutAbort = false;
+
+    timeoutTimer = setTimeout(() => {
+      isTimeoutAbort = true;
+      controller.abort();
+    }, 60_000);
+
     set({ status: { kind: 'loading', startedAt: Date.now() } });
-    cancelTimer = setTimeout(() => {
-      // Use a placeholder image for the mock result
+
+    try {
+      const blob = await sendGenerateRequest(body, controller.signal);
+
+      // If cancel() already ran, don't overwrite idle status
+      if (activeController !== controller) return;
+
+      // Revoke previous object URL to prevent memory leak
+      const prevUrl = get().resultUrl;
+      if (prevUrl && prevUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(prevUrl);
+      }
+
+      const url = URL.createObjectURL(blob);
+      const mimeType = blob.type || 'image/png';
+
       set({
-        status: { kind: 'success', resultUrl: '/mock-result.png' },
-        resultUrl: '/mock-result.png',
+        status: { kind: 'success', resultUrl: url },
+        resultUrl: url,
+        resultMimeType: mimeType,
       });
+
       // Add to edit versions
       const versions = get().editVersions;
       set({
@@ -138,25 +183,54 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
           {
             id: crypto.randomUUID(),
             label: `v${versions.length + 1}`,
-            imageUrl: '/mock-result.png',
+            imageUrl: url,
             timestamp: Date.now(),
             source: get().activeFeature,
           },
         ],
       });
-    }, 3000);
+    } catch (err) {
+      // If cancel() already ran, don't overwrite idle status
+      if (activeController !== controller) return;
+
+      // Attach timeout flag for mapErrorToToast
+      if (isTimeoutAbort && err instanceof DOMException && err.name === 'AbortError') {
+        (err as unknown as { isTimeout: boolean }).isTimeout = true;
+      }
+
+      const toast = mapErrorToToast(err);
+      if (toast) {
+        set({ status: { kind: 'error', message: toast } });
+      } else {
+        // User cancel — no toast
+        set({ status: { kind: 'idle' } });
+      }
+    } finally {
+      if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
+      activeController = null;
+      isTimeoutAbort = false;
+    }
   },
 
   cancel() {
-    if (cancelTimer) {
-      clearTimeout(cancelTimer);
-      cancelTimer = null;
+    if (timeoutTimer) {
+      clearTimeout(timeoutTimer);
+      timeoutTimer = null;
     }
+    if (activeController) {
+      activeController.abort();
+      activeController = null;
+    }
+    isTimeoutAbort = false;
     set({ status: { kind: 'idle' } });
   },
 
   clearResult() {
-    set({ status: { kind: 'idle' }, resultUrl: null });
+    const prevUrl = get().resultUrl;
+    if (prevUrl && prevUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(prevUrl);
+    }
+    set({ status: { kind: 'idle' }, resultUrl: null, resultMimeType: null });
   },
 
   // Chat actions
@@ -300,7 +374,15 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
   restoreFromProject() {
     const project = useProjectStore.getState().currentProject;
     if (project?.uiState.lastGenerateOptions) {
-      set({ options: { ...DEFAULT_OPTIONS, ...project.uiState.lastGenerateOptions } });
+      const validKeys = new Set(Object.keys(DEFAULT_OPTIONS));
+      const persisted = project.uiState.lastGenerateOptions as Record<string, unknown>;
+      const filtered: Record<string, unknown> = {};
+      for (const key of Object.keys(persisted)) {
+        if (validKeys.has(key)) {
+          filtered[key] = persisted[key];
+        }
+      }
+      set({ options: { ...DEFAULT_OPTIONS, ...filtered as Partial<GenerateOptions> } });
     }
   },
 }));
