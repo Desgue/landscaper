@@ -18,18 +18,8 @@ const LazyGeneratePage = React.lazy(() => import('./pages/GeneratePage'))
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-800">
-      <Navbar />
-      <main>
-        <Hero />
-        <Features />
-        <Gallery />
-        <HowItWorks />
-        <TrustBar />
-        <Pricing />
-        <CTABanner />
-      </main>
-      <Footer />
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      Loading…
     </div>
   )
 }
