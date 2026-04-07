@@ -41,7 +41,7 @@
 | **Title** | Local CI Pipeline — Linting, Hooks & Cached Builds |
 | **Scope** | Makefile-based build orchestration with stamp-file caching, golangci-lint for Go, lefthook for git hooks, and a full `make ci` pipeline. Excludes remote CI (GitHub Actions), Docker, and deployment. |
 | **Depends on** | None (standalone tooling plan) |
-| **Status** | `in-progress` |
+| **Status** | `done` |
 | **Started** | 2026-04-07 |
 | **Last updated** | 2026-04-07 |
 | **Phases** | Phase 1 (Makefile) · Phase 2 (Go Linting) · Phase 3 (Git Hooks) · Phase 4 (Full Pipeline) |
@@ -319,23 +319,23 @@ _None yet._
 
 ---
 
-### Phase 4 — Full CI Pipeline Target [ ]
+### Phase 4 — Full CI Pipeline Target [x]
 
 > Wire everything together into `make ci`. Depends on all previous phases — lint targets (Phase 2), test targets (Phase 1), and build targets (Phase 1) must all exist.
 
-#### Feature: `make ci` Pipeline [ ]
+#### Feature: `make ci` Pipeline [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** N/A
 **Rationale:** A single command that validates the entire project. Stamp files ensure only changed areas are rechecked. This is the "green light" command a developer runs before pushing.
 
 ##### Tasks
 
-- [ ] Add `ci` phony target depending on: `.lint-go.stamp`, `.lint-frontend.stamp`, `.test-go.stamp`, `.test-frontend.stamp`, `server/server`
-- [ ] Verify `make ci` from clean state runs all stages: `npm ci`, lint (Go + frontend), test (Go + frontend), build (frontend then backend). Note: Make resolves the dependency graph — order is determined by prerequisites, not listing order. Independent targets (lint-go, lint-frontend, test-go, test-frontend) may run in any order or in parallel with `make -j`.
-- [ ] Verify `make ci` on second run with no source changes completes in under 2 seconds (all stamps up-to-date)
-- [ ] Verify `make ci` after editing one `.go` file only re-runs: `.lint-go.stamp`, `.test-go.stamp`, `server/server` — frontend stamps are untouched
-- [ ] Verify `make ci` after editing one `.tsx` file only re-runs: `.lint-frontend.stamp`, `.test-frontend.stamp`, `.frontend-dist.stamp`, `server/server` — Go lint/test stamps are untouched but Go binary rebuilds because embedded frontend changed
+- [x] Add `ci` phony target depending on: `.lint-go.stamp`, `.lint-frontend.stamp`, `.test-go.stamp`, `.test-frontend.stamp`, `server/server` — already existed from Phase 1
+- [x] Verify `make ci` from clean state runs all stages: `npm ci`, lint (Go + frontend), test (Go + frontend), build (frontend then backend). Note: Make resolves the dependency graph — order is determined by prerequisites, not listing order. Independent targets (lint-go, lint-frontend, test-go, test-frontend) may run in any order or in parallel with `make -j`. — done 2026-04-07
+- [x] Verify `make ci` on second run with no source changes completes in under 2 seconds (all stamps up-to-date) — done 2026-04-07 (0.061s)
+- [x] Verify `make ci` after editing one `.go` file only re-runs: `.lint-go.stamp`, `.test-go.stamp`, `server/server` — frontend stamps are untouched — done 2026-04-07
+- [x] Verify `make ci` after editing one `.tsx` file only re-runs: `.lint-frontend.stamp`, `.test-frontend.stamp`, `.frontend-dist.stamp`, `server/server` — Go lint/test stamps also re-run because they depend on `.frontend-dist.stamp` (required for `go:embed`) — done 2026-04-07
 
 ##### Decisions
 
@@ -343,18 +343,18 @@ _None yet._
 
 ---
 
-#### Feature: Developer Ergonomics [ ]
+#### Feature: Developer Ergonomics [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** N/A
 **Rationale:** New contributors need to know what targets exist and how hooks are set up.
 
 ##### Tasks
 
-- [ ] Add a comment header to the top of the Makefile listing all targets with one-line descriptions
-- [ ] Set `ci` or a help target as the default (first) target in the Makefile
-- [ ] Verify `npm install` triggers `lefthook install` via the `prepare` script — new clone → `npm install` → hooks are active
-- [ ] Verify `make` with no arguments prints help or runs `ci`
+- [x] Add a comment header to the top of the Makefile listing all targets with one-line descriptions — already existed from Phase 1
+- [x] Set `ci` or a help target as the default (first) target in the Makefile — done 2026-04-07 (`.DEFAULT_GOAL := ci`)
+- [x] Verify `npm install` triggers `lefthook install` via the `prepare` script — new clone → `npm install` → hooks are active — done 2026-04-07 (confirmed: "sync hooks: ✔️" in npm ci output)
+- [x] Verify `make` with no arguments prints help or runs `ci` — done 2026-04-07 (runs `ci`)
 
 ##### Decisions
 
@@ -382,6 +382,8 @@ _None yet._
 | 2026-04-07 | Version injection via `-ldflags "-X main.version=$(VERSION)"` | Binary carries a meaningful git tag (`git describe --tags --always --dirty`). Enables version verification on deployed instances via `/api/health`. |
 | 2026-04-07 | `CGO_ENABLED=0` on `go build` | Prevents accidental dynamic linking if a transitive dependency ever adds CGo. Makes cross-compilation straightforward (macOS dev → Linux deploy). |
 | 2026-04-07 | `go.sum` added as dependency to all Go targets | A `go get -u` patch release changes `go.sum` without touching `go.mod`. Without this, stamp files would miss module graph changes. |
+| 2026-04-07 | `.lint-go.stamp` and `.test-go.stamp` depend on `.frontend-dist.stamp` | Go lint and test require `frontend/dist` to exist (due to `go:embed` in `static.go`). Without this, `make ci` from a clean state fails because golangci-lint can't compile the Go module. |
+| 2026-04-07 | `.DEFAULT_GOAL := ci` (not `build`) | `make` with no arguments should run the full pipeline, not just the binary. Developers who want only the binary use `make build`. |
 
 ---
 
@@ -396,4 +398,5 @@ _None yet._
 2026-04-07 — Phase 1 complete. Added phony test targets (test-go, test-frontend, test) to Makefile. Updated Makefile comment header to list new targets. All Phase 1 tasks done; proceeding to Phase 2.
 2026-04-07 — Phase 2 complete. Installed golangci-lint v2.11.4. Created .golangci.yml with standard preset + revive/gosec/gocritic/prealloc. Fixed 115 lint issues across codebase: errcheck (handled/suppressed), gocritic (hugeParam → pointers, rangeValCopy → index, assignOp, paramTypeCombine, unnamedResult, octalLiteral), gosec (nolint with rationale), unused (removed dead code), revive (disabled package-comments). Added node_modules and test/debug exclusion rules. Added phony lint/fmt targets to Makefile. All tests pass, 0 lint issues.
 2026-04-07 — Phase 3 complete. Installed lefthook v2.1.5 as npm devDependency. Added "prepare": "lefthook install" to package.json scripts. Created lefthook.yml with pre-commit (parallel: go-fmt, go-lint, ts-lint, ts-typecheck with glob filtering) and pre-push (parallel: go-test, frontend-test, frontend-build with glob filtering). Added lefthook-local.yml to .gitignore. Hooks synced successfully.
+2026-04-07 — Phase 4 complete. Set .DEFAULT_GOAL := ci so bare `make` runs the full pipeline. Added .frontend-dist.stamp as dependency to .lint-go.stamp and .test-go.stamp (required for go:embed). Fixed gocritic builtinShadow in score.go (min/max → lo/hi). Fixed 62 pre-existing frontend ESLint errors across 20+ files (unused vars, react-refresh, react-hooks/refs, react-hooks/set-state-in-effect). Verified: make ci from clean state passes all stages; cached run 0.061s; selective Go-only and frontend-only rebuilds work correctly. PLAN-E fully complete.
 ```
