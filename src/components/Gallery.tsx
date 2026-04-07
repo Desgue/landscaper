@@ -37,7 +37,7 @@ export default function Gallery() {
               <img
                 src={img.src}
                 alt={`${img.label} garden preview`}
-                className="w-full h-56 object-cover transition-transform duration-300 group-hover:scale-105"
+                className="w-full aspect-video object-cover transition-transform duration-300 group-hover:scale-105"
                 loading="lazy"
               />
               <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-4">

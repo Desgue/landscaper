@@ -3,6 +3,9 @@ import Hero from './components/Hero'
 import Features from './components/Features'
 import Gallery from './components/Gallery'
 import HowItWorks from './components/HowItWorks'
+import TrustBar from './components/TrustBar'
+import Pricing from './components/Pricing'
+import CTABanner from './components/CTABanner'
 import Footer from './components/Footer'
 import './index.css'
 
@@ -15,6 +18,9 @@ export default function App() {
         <Features />
         <Gallery />
         <HowItWorks />
+        <TrustBar />
+        <Pricing />
+        <CTABanner />
       </main>
       <Footer />
     </div>
