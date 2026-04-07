@@ -1,28 +1,40 @@
+import cottageImg from '../assets/landing/cottage.png'
+import kitchenImg from '../assets/landing/kitchen.png'
+import japaneseImg from '../assets/landing/japanese.png'
+import mediterraneanImg from '../assets/landing/mediterranean.png'
+
 const features = [
   {
     title: 'Canvas-based design tool',
     description:
       'Draw your site boundary, paint terrain types, and place plants, structures, and paths on a real-world grid. Every element snaps, layers, and composites to scale.',
     icon: <CanvasIcon />,
+    image: cottageImg,
+    alt: 'Cottage garden with roses, lavender, and a winding flagstone path at golden hour',
   },
   {
     title: 'Full plant & material library',
     description:
       'Choose from built-in plant types — herbs, trees, shrubs, climbers — with accurate spacing and growth form. Lay terrain, add structures, paths, and get automatic material cost estimates.',
     icon: <PlantIcon />,
+    image: kitchenImg,
+    alt: 'Kitchen garden with raised beds of tomatoes, basil, and herbs along a gravel path',
   },
   {
     title: 'Project journal',
     description:
       'Log entries linked directly to canvas elements. Track site observations, planting dates, and progress notes. Entries include a weather snapshot fetched automatically at the time of writing.',
     icon: <JournalIcon />,
+    image: japaneseImg,
+    alt: 'Japanese garden with a red maple tree, stone bench, and raked gravel in autumn',
   },
   {
     title: 'AI visualisation',
     description:
-      "Generate a photorealistic bird's-eye render of your plan. Greenprint builds a 3D scene from your layout and submits it to an image model — no prompting required.",
+      "Generate a photorealistic render of your plan. Greenprint builds a segmentation map from your layout and submits it to an image model — no prompting required.",
     icon: <ImageIcon />,
-
+    image: mediterraneanImg,
+    alt: 'Mediterranean garden with lavender, an olive tree, stone wall, and terracotta gravel',
   },
 ]
 
@@ -44,18 +56,26 @@ export default function Features() {
           {features.map((f) => (
             <div
               key={f.title}
-              className="bg-white rounded-xl border border-gray-200 p-7 flex gap-5"
+              className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col"
             >
-              <div className="shrink-0 w-10 h-10 rounded-lg bg-green-50 text-green-600 flex items-center justify-center">
-                {f.icon}
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-1.5">
-                  {f.title}
-                </h3>
-                <p className="text-sm text-gray-500 leading-relaxed">
-                  {f.description}
-                </p>
+              <img
+                src={f.image}
+                alt={f.alt}
+                className="w-full h-48 object-cover"
+                loading="lazy"
+              />
+              <div className="p-7 flex gap-5">
+                <div className="shrink-0 w-10 h-10 rounded-lg bg-green-50 text-green-600 flex items-center justify-center">
+                  {f.icon}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1.5">
+                    {f.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    {f.description}
+                  </p>
+                </div>
               </div>
             </div>
           ))}
