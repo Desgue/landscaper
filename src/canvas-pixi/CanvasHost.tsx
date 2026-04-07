@@ -94,11 +94,15 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
     return 'default'
   }, [isPanActive, isDragging, activeTool])
 
+  // Coerce to boolean so the init effect only re-runs on 0↔non-zero
+  // transitions, not on every pixel resize.
+  const hasSize = width > 0 && height > 0
+
   // ======================================================================
   // Application init + scene graph setup
   // ======================================================================
   useEffect(() => {
-    if (width === 0 || height === 0) return
+    if (!hasSize) return
     const container = containerRef.current
     if (!container) return
 
@@ -563,10 +567,12 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       destroyed = true
       cleanupRef.current()
     }
-    // Only re-init if width/height change to 0 and back (rare).
-    // Resize is handled by ResizeObserver below.
+    // Re-run when dimensions become available (0→non-zero transition).
+    // Subsequent resizes are handled cheaply by the resize useEffect below,
+    // so we do NOT include raw width/height here to avoid destroying the
+    // entire PixiJS scene graph on every resize.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [hasSize])
 
   // ======================================================================
   // Resize handling
