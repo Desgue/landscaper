@@ -312,7 +312,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
           }
 
           const { zoom } = useViewportStore.getState()
-          const factor = deltaY < 0 ? 1.1 : 1 / 1.1
+          const factor = deltaY < 0 ? 1.25 : 1 / 1.25
           const targetZoom = clampZoom(zoom * factor)
 
           zoomAnimFrom = zoom
