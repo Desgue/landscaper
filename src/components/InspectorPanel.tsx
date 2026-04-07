@@ -225,33 +225,9 @@ function PlantInspector({ element }: { element: PlantElement }) {
       <ReadonlyField label="Plant Type" value={plantType?.name ?? element.plantTypeId} />
       <div className={dividerCls} />
 
-      {/* Position (editable, meters <-> cm) */}
-      <div className="mb-2">
-        <div className={labelCls}>Position X (m)</div>
-        <input
-          type="number"
-          step="0.01"
-          className={inputCls}
-          value={(element.x / 100).toFixed(2)}
-          onChange={(e) => {
-            const v = parseFloat(e.target.value)
-            if (!isNaN(v)) update((el) => { el.x = v * 100 })
-          }}
-        />
-      </div>
-      <div className="mb-2">
-        <div className={labelCls}>Position Y (m)</div>
-        <input
-          type="number"
-          step="0.01"
-          className={inputCls}
-          value={(element.y / 100).toFixed(2)}
-          onChange={(e) => {
-            const v = parseFloat(e.target.value)
-            if (!isNaN(v)) update((el) => { el.y = v * 100 })
-          }}
-        />
-      </div>
+      {/* Position (read-only — BUG-6: position changes must go through canvas drag to respect snap/collision) */}
+      <ReadonlyField label="Position X (m)" value={(element.x / 100).toFixed(2)} />
+      <ReadonlyField label="Position Y (m)" value={(element.y / 100).toFixed(2)} />
 
       <div className={dividerCls} />
 
@@ -376,33 +352,9 @@ function StructureInspector({ element }: { element: StructureElement }) {
       <ReadonlyField label="Structure Type" value={structureType?.name ?? element.structureTypeId} />
       <div className={dividerCls} />
 
-      {/* Position (meters) */}
-      <div className="mb-2">
-        <div className={labelCls}>Position X (m)</div>
-        <input
-          type="number"
-          step="0.01"
-          className={inputCls}
-          value={(element.x / 100).toFixed(2)}
-          onChange={(e) => {
-            const v = parseFloat(e.target.value)
-            if (!isNaN(v)) update((el) => { el.x = v * 100 })
-          }}
-        />
-      </div>
-      <div className="mb-2">
-        <div className={labelCls}>Position Y (m)</div>
-        <input
-          type="number"
-          step="0.01"
-          className={inputCls}
-          value={(element.y / 100).toFixed(2)}
-          onChange={(e) => {
-            const v = parseFloat(e.target.value)
-            if (!isNaN(v)) update((el) => { el.y = v * 100 })
-          }}
-        />
-      </div>
+      {/* Position (read-only — BUG-6: position changes must go through canvas drag to respect snap/collision) */}
+      <ReadonlyField label="Position X (m)" value={(element.x / 100).toFixed(2)} />
+      <ReadonlyField label="Position Y (m)" value={(element.y / 100).toFixed(2)} />
 
       <div className={dividerCls} />
 
