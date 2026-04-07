@@ -10,12 +10,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/joho/godotenv"
+
 	"greenprint"
 	"greenprint/internal/gemini"
 	"greenprint/internal/handler"
 )
 
 func main() {
+	// Load .env file if present (silently ignored in production)
+	_ = godotenv.Load()
+
 	// Read env vars
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	if apiKey == "" {
