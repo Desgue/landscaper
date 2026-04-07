@@ -12,33 +12,36 @@ import (
 )
 
 // Segmentation color constants.
+// Non-natural, high-contrast palette so Gemini never confuses diagram shapes
+// with photorealistic content. Hue bands: plants=pink/magenta, terrain=cyan/gold,
+// paths=neon green, structures=red/orange.
 const (
 	ColorVoid          = "#000000"
-	ColorBareSoil      = "#8B4513"
-	ColorLawnGrass     = "#00AA00"
-	ColorSoilMulch     = "#6B3A2A"
-	ColorGravelStone   = "#AAAAAA"
-	ColorWoodDecking   = "#C8A96E"
-	ColorWater         = "#4169E1"
-	ColorPathStone     = "#999999"
-	ColorPathBrick     = "#CC6644"
-	ColorPathWood      = "#B8860B"
-	ColorPathConcrete  = "#BBBBBB"
-	ColorPathOther     = "#888888"
-	ColorTreeTrunk     = "#5C3317"
-	ColorTreeCanopy    = "#228B22"
-	ColorShrub         = "#3A7A3A"
-	ColorHerb          = "#66BB66"
-	ColorGroundcover   = "#558B55"
-	ColorClimber       = "#4A7A4A"
-	ColorStructWood    = "#DEB887"
-	ColorStructMetal   = "#B0C4DE"
-	ColorStructMasonry = "#D2B48C"
-	ColorStructStone   = "#C9A96E"
-	ColorStructOther   = "#BBAA99"
-	ColorWaterFeature  = "#4169E1"
-	ColorFireFeature   = "#FF6633"
-	ColorNoMaterial    = "#888888" // fallback for path or structure with no material field
+	ColorBareSoil      = "#FFA500" // orange — yard boundary fill
+	ColorLawnGrass     = "#00FFFF" // cyan
+	ColorSoilMulch     = "#FFD700" // gold
+	ColorGravelStone   = "#7B68EE" // medium slate blue
+	ColorWoodDecking   = "#00CED1" // dark turquoise
+	ColorWater         = "#E0FFFF" // light cyan
+	ColorPathStone     = "#ADFF2F" // green-yellow neon
+	ColorPathBrick     = "#7FFF00" // chartreuse
+	ColorPathWood      = "#32CD32" // lime green
+	ColorPathConcrete  = "#98FB98" // pale green
+	ColorPathOther     = "#00FA9A" // medium spring green
+	ColorTreeTrunk     = "#8B008B" // dark magenta
+	ColorTreeCanopy    = "#FF00FF" // magenta
+	ColorShrub         = "#FF1493" // deep pink
+	ColorHerb          = "#FF69B4" // hot pink
+	ColorGroundcover   = "#DA70D6" // orchid purple
+	ColorClimber       = "#FF00FF" // magenta
+	ColorStructWood    = "#FF4500" // orange-red
+	ColorStructMetal   = "#FF6347" // tomato
+	ColorStructMasonry = "#FF7F50" // coral
+	ColorStructStone   = "#DC143C" // crimson
+	ColorStructOther   = "#CD5C5C" // indian red
+	ColorWaterFeature  = "#1E90FF" // dodger blue
+	ColorFireFeature   = "#FFD700" // gold
+	ColorNoMaterial    = "#C0C0C0" // silver — fallback for path or structure with no material field
 )
 
 // Output resolution.
