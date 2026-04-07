@@ -32,9 +32,9 @@ var AspectRatioMap = map[string]string{
 }
 
 // Generate sends the prompt parts and images to Gemini and returns the generated image bytes and MIME type.
-// Parts are interleaved: [segmap_instruction, segmap_blob, photo_instruction?, photo_blob?, scene_prompt]
+// Parts are interleaved: [segmap_instruction, segmap_blob, photo_1_instruction, photo_1_blob, ..., scene_prompt]
 // This ordering ensures each instruction text is adjacent to the image it describes.
-func Generate(ctx context.Context, promptParts model.PromptParts, segMapBytes []byte, yardPhotoBytes []byte, yardPhotoMIMEType string, opts model.EffectiveOptions, apiKey string, modelName string) ([]byte, string, *Error) {
+func Generate(ctx context.Context, promptParts model.PromptParts, segMapBytes []byte, photos []model.PhotoEntry, opts model.EffectiveOptions, apiKey string, modelName string) ([]byte, string, *Error) {
 	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
 	defer cancel()
 
@@ -46,16 +46,22 @@ func Generate(ctx context.Context, promptParts model.PromptParts, segMapBytes []
 	}
 
 	// Assemble parts: interleave text instructions with their corresponding images
-	// Order: segmap instruction → segmap blob → [yard photo instruction → yard photo blob] → scene prompt
+	// Order: segmap instruction → segmap blob → [photo_N instruction → photo_N blob]... → scene prompt
 	parts := []*genai.Part{
 		{Text: promptParts.SegmapInstruction},
 		{InlineData: &genai.Blob{MIMEType: "image/png", Data: segMapBytes}},
 	}
-	if len(yardPhotoBytes) > 0 && promptParts.YardPhotoInstruction != "" {
-		parts = append(parts,
-			&genai.Part{Text: promptParts.YardPhotoInstruction},
-			&genai.Part{InlineData: &genai.Blob{MIMEType: yardPhotoMIMEType, Data: yardPhotoBytes}},
-		)
+	for i, photo := range photos {
+		instruction := promptParts.YardPhotoInstruction
+		if len(promptParts.YardPhotoInstructions) > i {
+			instruction = promptParts.YardPhotoInstructions[i]
+		}
+		if instruction != "" {
+			parts = append(parts,
+				&genai.Part{Text: instruction},
+				&genai.Part{InlineData: &genai.Blob{MIMEType: photo.MIMEType, Data: photo.Bytes}},
+			)
+		}
 	}
 	parts = append(parts, &genai.Part{Text: promptParts.ScenePrompt})
 
