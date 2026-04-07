@@ -14,6 +14,7 @@ const LazyAppLayout = React.lazy(() =>
     import('./components/AppLayout')
   )
 )
+const LazyGeneratePage = React.lazy(() => import('./pages/GeneratePage'))
 
 function LoadingFallback() {
   return (
@@ -35,6 +36,14 @@ function SuspenseAppLayout() {
   return (
     <Suspense fallback={<LoadingFallback />}>
       <LazyAppLayout />
+    </Suspense>
+  )
+}
+
+function SuspenseGeneratePage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <LazyGeneratePage />
     </Suspense>
   )
 }
@@ -61,7 +70,13 @@ const appCanvasRoute = createRoute({
   component: SuspenseAppLayout,
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, appRoute, appCanvasRoute])
+const appGenerateRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/app/generate',
+  component: SuspenseGeneratePage,
+})
+
+const routeTree = rootRoute.addChildren([indexRoute, appRoute, appCanvasRoute, appGenerateRoute])
 
 const router = createRouter({ routeTree })
 
