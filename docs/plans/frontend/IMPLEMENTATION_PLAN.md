@@ -38,6 +38,7 @@ PLAN-F: Image Generation UI
 | **E is last** | PLAN-E integrates work from all plans; starts only when A+B+C+D are `done` |
 | **B and D may overlap** | Once B has at least terrain + one element type complete, D agents can start on measurement and cost math in isolation |
 | **F starts after A** | PLAN-F depends only on PLAN-A (toolbar slot, project state, `markDirty()`). Can run in parallel with B, C, D, and E once A is `done`. Backend must be running for integration testing |
+| **H starts after G** | PLAN-H modifies only rendering internals (textures, renderers). Can run in parallel with C, D, E, F. No other plan depends on H outputs |
 
 ### Sub-Plan Files
 
@@ -49,6 +50,7 @@ PLAN-F: Image Generation UI
 | D | `docs/plans/frontend/PLAN-D.md` | Measurement · dimensions · journal · cost tracking | `todo` |
 | E | `docs/plans/frontend/PLAN-E.md` | PNG export · minimap · visual polish · shortcut audit | `todo` |
 | F | `docs/plans/frontend/PLAN-F.md` | Image generation UI · API client · options panel · result modal | `todo` |
+| H | `docs/plans/frontend/PLAN-H.md` | Image-based sprite loading · asset loader · TextureAtlas integration · renderer migration · built-in PNG sprites | `todo` |
 
 ---
 
