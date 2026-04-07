@@ -231,7 +231,7 @@ export function exportToPNG(project: Project): void {
 }
 
 function triggerDownload(dataUrl: string, projectName: string): void {
-  const safeName = projectName.replace(/[^a-zA-Z0-9 _\-]/g, '_').trim() || 'project'
+  const safeName = projectName.replace(/[^a-zA-Z0-9 _-]/g, '_').trim() || 'project'
   const a = document.createElement('a')
   a.href = dataUrl
   a.download = `${safeName}-preview.png`
