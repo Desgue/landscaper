@@ -34,7 +34,7 @@ export default function WelcomeScreen() {
   }
 
   useEffect(() => {
-    fetchProjects()
+    fetchProjects() // eslint-disable-line react-hooks/set-state-in-effect -- async data fetch on mount
   }, [])
 
   function openProject(project: Project) {

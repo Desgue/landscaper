@@ -45,10 +45,12 @@ export default function SidePalette() {
   // ── Effects ────────────────────────────────────────────────────────────────
 
   // BUG-5 fix: Sync palette tab when toolbar tool changes
-  useEffect(() => {
-    const tab = TOOL_TO_TAB[activeTool]
-    if (tab) setActiveTab(tab)
-  }, [activeTool])
+  const toolTab = TOOL_TO_TAB[activeTool]
+  const [prevTool, setPrevTool] = useState(activeTool)
+  if (prevTool !== activeTool) {
+    setPrevTool(activeTool)
+    if (toolTab) setActiveTab(toolTab)
+  }
 
   // BUG-1 fix: Auto-select first terrain type when switching to terrain tool with none selected
   useEffect(() => {

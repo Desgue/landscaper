@@ -3,7 +3,7 @@
  * Registered into inspector:geometry slot.
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type { CanvasElement, PathElement, TerrainElement } from '../types/schema'
 import { useProjectStore } from '../store/useProjectStore'
 import {
@@ -47,11 +47,14 @@ function TerrainGeometry({ element }: { element: TerrainElement }) {
   const totalArea = project ? aggregateTerrainArea(project.elements, element.terrainTypeId) : 1
 
   // Transient depth field — reset when element changes
-  const [depthCm, setDepthCm] = useState(DEFAULT_DEPTH[category] ?? 8)
+  const defaultDepth = DEFAULT_DEPTH[category] ?? 8
+  const [depthKey, setDepthKey] = useState({ terrainTypeId: element.terrainTypeId, category })
+  const [depthCm, setDepthCm] = useState(defaultDepth)
 
-  useEffect(() => {
-    setDepthCm(DEFAULT_DEPTH[category] ?? 8)
-  }, [element.terrainTypeId, category])
+  if (depthKey.terrainTypeId !== element.terrainTypeId || depthKey.category !== category) {
+    setDepthKey({ terrainTypeId: element.terrainTypeId, category })
+    setDepthCm(defaultDepth)
+  }
 
   const volumeM3 = materialVolume(totalArea, depthCm)
   return (
