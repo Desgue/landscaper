@@ -1,0 +1,12 @@
+=== PART 1: SEGMAP INSTRUCTION ===
+This image is a top-down color-coded layout map of a garden. Each colored shape represents an element: pink/magenta shapes are plants, red/orange shapes are structures, neon green shapes are paths, cyan is lawn, gold is soil/mulch. These colors are intentionally artificial — they exist ONLY to mark positions. Use this map ONLY to understand where each element is positioned and its approximate size. NO neon colors in the output. NO pink circles. NO geometric shapes from this map. NO flat diagram overlays. The output must be a photorealistic photograph, not a diagram.
+
+=== PART 2: [segmap.png blob] ===
+
+=== PART 3: YARD PHOTO INSTRUCTION ===
+This image is a real photograph of the yard. Match the perspective, camera angle, lighting, ground textures, fences, walls, and surroundings from this photo. Place the garden elements from the layout map into this real scene.
+
+=== PART 4: [yard-photo blob] ===
+
+=== PART 5: SCENE PROMPT ===
+High-end residential landscape photography, eye-level perspective, 24mm wide-angle lens, ground-level viewpoint, horizon at mid-frame, natural lighting, rich textures, sharp detail. A cottage garden, summer, golden hour. Place these elements at the positions shown by their corresponding colored shapes in the layout map: Malus domestica (Fruit Tree), Hydrangea macrophylla (Hydrangea), Lavandula angustifolia (Lavender), Salvia rosmarinus (Rosemary), Thymus vulgaris (Thyme), Mentha spicata (Mint), Lactuca sativa (Lettuce), Raised Bed, Bench, Grass, Mulch. Only include elements shown in the layout map. NO extra structures, furniture, or decorations not in the plan. NO bird's-eye view. NO floor plan. NO top-down diagram. NO colored circles or geometric overlays. NO cartoon or illustrated style. NO watermarks. NO text overlays. NO close-up of a single plant.

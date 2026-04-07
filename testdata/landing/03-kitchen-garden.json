@@ -1,0 +1,73 @@
+{
+  "version": "1.0",
+  "exportedAt": "2026-04-07T00:00:00.000Z",
+  "project": {
+    "id": "landing-kitchen",
+    "name": "Kitchen Garden",
+    "createdAt": "2026-04-07T00:00:00.000Z",
+    "updatedAt": "2026-04-07T00:00:00.000Z",
+    "location": { "lat": 43.7, "lng": 7.26 },
+    "yardBoundary": {
+      "vertices": [
+        { "x": 0, "y": 0 },
+        { "x": 1000, "y": 0 },
+        { "x": 1000, "y": 800 },
+        { "x": 0, "y": 800 }
+      ]
+    },
+    "layers": [
+      { "id": "l1", "visible": true, "locked": false, "name": "Default", "order": 0 }
+    ],
+    "elements": [
+      { "id": "t1", "type": "terrain", "layerId": "l1", "x": 0, "y": 0, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t2", "type": "terrain", "layerId": "l1", "x": 100, "y": 0, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t3", "type": "terrain", "layerId": "l1", "x": 500, "y": 300, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t4", "type": "terrain", "layerId": "l1", "x": 600, "y": 300, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+
+      { "id": "tom1", "type": "plant", "layerId": "l1", "x": 150, "y": 200, "width": 40, "height": 40, "plantTypeId": "tomato", "status": "planted", "quantity": 1 },
+      { "id": "tom2", "type": "plant", "layerId": "l1", "x": 210, "y": 200, "width": 40, "height": 40, "plantTypeId": "tomato", "status": "planted", "quantity": 1 },
+      { "id": "tom3", "type": "plant", "layerId": "l1", "x": 270, "y": 200, "width": 40, "height": 40, "plantTypeId": "tomato", "status": "planted", "quantity": 1 },
+      { "id": "basil1", "type": "plant", "layerId": "l1", "x": 150, "y": 260, "width": 25, "height": 25, "plantTypeId": "basil", "status": "planted", "quantity": 1 },
+      { "id": "basil2", "type": "plant", "layerId": "l1", "x": 200, "y": 260, "width": 25, "height": 25, "plantTypeId": "basil", "status": "planted", "quantity": 1 },
+      { "id": "rosemary1", "type": "plant", "layerId": "l1", "x": 550, "y": 350, "width": 45, "height": 45, "plantTypeId": "rosemary", "status": "planted", "quantity": 1 },
+      { "id": "thyme1", "type": "plant", "layerId": "l1", "x": 620, "y": 350, "width": 23, "height": 23, "plantTypeId": "thyme", "status": "planted", "quantity": 1 },
+      { "id": "pepper1", "type": "plant", "layerId": "l1", "x": 700, "y": 200, "width": 45, "height": 45, "plantTypeId": "pepper", "status": "planted", "quantity": 1 },
+      { "id": "lettuce1", "type": "plant", "layerId": "l1", "x": 700, "y": 280, "width": 25, "height": 25, "plantTypeId": "lettuce", "status": "planted", "quantity": 1 },
+      { "id": "lettuce2", "type": "plant", "layerId": "l1", "x": 750, "y": 280, "width": 25, "height": 25, "plantTypeId": "lettuce", "status": "planted", "quantity": 1 },
+
+      { "id": "bed1", "type": "structure", "layerId": "l1", "x": 100, "y": 150, "width": 300, "height": 200, "structureTypeId": "raised-bed", "shape": "straight", "rotation": 0 },
+      { "id": "bed2", "type": "structure", "layerId": "l1", "x": 650, "y": 150, "width": 250, "height": 200, "structureTypeId": "raised-bed", "shape": "straight", "rotation": 0 },
+
+      { "id": "path1", "type": "path", "layerId": "l1", "x": 0, "y": 0, "width": 0, "height": 0, "pathTypeId": "gravel-path", "strokeWidthCm": 70, "points": [
+        { "x": 500, "y": 0 },
+        { "x": 500, "y": 400 },
+        { "x": 500, "y": 800 }
+      ]},
+      { "id": "path2", "type": "path", "layerId": "l1", "x": 0, "y": 0, "width": 0, "height": 0, "pathTypeId": "gravel-path", "strokeWidthCm": 50, "points": [
+        { "x": 100, "y": 400 },
+        { "x": 500, "y": 400 },
+        { "x": 900, "y": 400 }
+      ]}
+    ]
+  },
+  "registries": {
+    "terrain": [
+      { "id": "grass", "name": "Grass", "category": "natural" },
+      { "id": "mulch", "name": "Bark Mulch", "category": "natural" }
+    ],
+    "plants": [
+      { "id": "tomato", "name": "Tomato", "growthForm": "herb", "spacingCm": 50 },
+      { "id": "basil", "name": "Basil", "growthForm": "herb", "spacingCm": 25 },
+      { "id": "rosemary", "name": "Rosemary", "growthForm": "herb", "spacingCm": 30 },
+      { "id": "thyme", "name": "Thyme", "growthForm": "herb", "spacingCm": 15 },
+      { "id": "pepper", "name": "Pepper", "growthForm": "herb", "spacingCm": 45 },
+      { "id": "lettuce", "name": "Lettuce", "growthForm": "herb", "spacingCm": 25 }
+    ],
+    "structures": [
+      { "id": "raised-bed", "name": "Raised Bed", "category": "container", "material": "wood" }
+    ],
+    "paths": [
+      { "id": "gravel-path", "name": "Gravel Path", "material": "gravel", "defaultWidthCm": 60 }
+    ]
+  }
+}

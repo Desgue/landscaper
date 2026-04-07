@@ -101,6 +101,12 @@ STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/generate"
   -d "$(make_request "$TESTDATA/minimal-project.json" '{"seed": "abc"}')")
 check_status "invalid seed" 400 "$STATUS"
 
+echo "[8b] Invalid image_size -> 400"
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/minimal-project.json" '{"image_size": "8K"}')")
+check_status "invalid image_size" 400 "$STATUS"
+
 # ---- Generation tests (require GEMINI_API_KEY) ----
 
 echo ""
@@ -169,6 +175,13 @@ STATUS=$(curl -s -o "$OUT_DIR/09-empty-yard.png" -w "%{http_code}" \
   -H "Content-Type: application/json" \
   -d "$(make_request "$TESTDATA/empty-yard.json")")
 check_status "empty yard" 200 "$STATUS"
+
+echo "[17b] Minimal, image_size 2K -> 200"
+STATUS=$(curl -s -o "$OUT_DIR/08b-image-size-2k.png" -w "%{http_code}" \
+  -X POST "$BASE_URL/api/generate" \
+  -H "Content-Type: application/json" \
+  -d "$(make_request "$TESTDATA/minimal-project.json" '{"image_size":"2K"}')")
+check_status "image_size 2K" 200 "$STATUS"
 
 echo "[18] Full project, exclude planned plants -> 200"
 STATUS=$(curl -s -o "$OUT_DIR/10-no-planned.png" -w "%{http_code}" \

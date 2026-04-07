@@ -1,0 +1,58 @@
+{
+  "version": "1.0",
+  "exportedAt": "2026-04-07T00:00:00.000Z",
+  "project": {
+    "id": "landing-tropical",
+    "name": "Tropical Garden",
+    "createdAt": "2026-04-07T00:00:00.000Z",
+    "updatedAt": "2026-04-07T00:00:00.000Z",
+    "location": { "lat": -8.5, "lng": 115.3 },
+    "yardBoundary": {
+      "vertices": [
+        { "x": 0, "y": 0 },
+        { "x": 1200, "y": 0 },
+        { "x": 1200, "y": 900 },
+        { "x": 0, "y": 900 }
+      ]
+    },
+    "layers": [
+      { "id": "l1", "visible": true, "locked": false, "name": "Default", "order": 0 }
+    ],
+    "elements": [
+      { "id": "t1", "type": "terrain", "layerId": "l1", "x": 0, "y": 0, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t2", "type": "terrain", "layerId": "l1", "x": 100, "y": 0, "width": 100, "height": 100, "terrainTypeId": "grass" },
+      { "id": "t3", "type": "terrain", "layerId": "l1", "x": 500, "y": 500, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+      { "id": "t4", "type": "terrain", "layerId": "l1", "x": 600, "y": 500, "width": 100, "height": 100, "terrainTypeId": "mulch" },
+
+      { "id": "palm1", "type": "plant", "layerId": "l1", "x": 100, "y": 100, "width": 400, "height": 400, "plantTypeId": "palm", "status": "planted", "quantity": 1 },
+      { "id": "palm2", "type": "plant", "layerId": "l1", "x": 800, "y": 200, "width": 350, "height": 350, "plantTypeId": "palm", "status": "planted", "quantity": 1 },
+      { "id": "hydra1", "type": "plant", "layerId": "l1", "x": 400, "y": 600, "width": 120, "height": 120, "plantTypeId": "hydrangea", "status": "planted", "quantity": 1 },
+      { "id": "hydra2", "type": "plant", "layerId": "l1", "x": 600, "y": 650, "width": 120, "height": 120, "plantTypeId": "hydrangea", "status": "planted", "quantity": 1 },
+
+      { "id": "pergola1", "type": "structure", "layerId": "l1", "x": 400, "y": 200, "width": 300, "height": 250, "structureTypeId": "pergola", "shape": "straight", "rotation": 0 },
+
+      { "id": "path1", "type": "path", "layerId": "l1", "x": 0, "y": 0, "width": 0, "height": 0, "pathTypeId": "stone-path", "strokeWidthCm": 80, "points": [
+        { "x": 0, "y": 450 },
+        { "x": 300, "y": 400 },
+        { "x": 600, "y": 450 },
+        { "x": 1200, "y": 400 }
+      ]}
+    ]
+  },
+  "registries": {
+    "terrain": [
+      { "id": "grass", "name": "Tropical Grass", "category": "natural" },
+      { "id": "mulch", "name": "Bark Mulch", "category": "natural" }
+    ],
+    "plants": [
+      { "id": "palm", "name": "Palm Tree", "growthForm": "tree", "spacingCm": 400, "canopyWidthCm": 400, "trunkWidthCm": 30 },
+      { "id": "hydrangea", "name": "Hydrangea", "growthForm": "shrub", "spacingCm": 120, "canopyWidthCm": 120 }
+    ],
+    "structures": [
+      { "id": "pergola", "name": "Bamboo Pergola", "category": "overhead", "material": "wood" }
+    ],
+    "paths": [
+      { "id": "stone-path", "name": "Stone Path", "material": "stone", "defaultWidthCm": 80 }
+    ]
+  }
+}

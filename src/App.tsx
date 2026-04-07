@@ -1,24 +1,24 @@
-import React, { Suspense } from 'react'
-import {
-  createRootRoute,
-  createRoute,
-  createRouter,
-  RouterProvider,
-  Outlet,
-} from '@tanstack/react-router'
-import LandingPage from './pages/LandingPage'
+import Navbar from './components/Navbar'
+import Hero from './components/Hero'
+import Features from './components/Features'
+import Gallery from './components/Gallery'
+import HowItWorks from './components/HowItWorks'
+import Footer from './components/Footer'
+import './index.css'
 
-const LazyWelcomeScreen = React.lazy(() => import('./components/WelcomeScreen'))
-const LazyAppLayout = React.lazy(() =>
-  import('./components/registerInspectorSlots').then(() =>
-    import('./components/AppLayout')
-  )
-)
+
 
 function LoadingFallback() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      Loading…
+    <div className="min-h-screen bg-white font-sans text-gray-800">
+      <Navbar />
+      <main>
+        <Hero />
+        <Features />
+        <Gallery />
+        <HowItWorks />
+      </main>
+      <Footer />
     </div>
   )
 }
