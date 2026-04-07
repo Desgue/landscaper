@@ -1,8 +1,9 @@
 /**
  * CanvasHost — PixiJS v8 canvas host component for the garden planner.
  *
- * Phase 1-2 infrastructure: scene graph, viewport, pan/zoom, grid,
- * render-on-demand, resource management, terrain rendering, boundary rendering.
+ * Phase 1-3 infrastructure: scene graph, viewport, pan/zoom, grid,
+ * render-on-demand, resource management, terrain/boundary/element rendering.
+ * Phase 4: interaction manager, selection state machine, tool handlers.
  *
  * Drop-in replacement for CanvasRoot (same props interface).
  * Activated via USE_PIXI feature flag.
@@ -13,6 +14,9 @@ import { useViewportStore } from '../store/useViewportStore'
 import { useToolStore } from '../store/useToolStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { useCursorStore } from '../store/useCursorStore'
+import { useSelectionStore } from '../store/useSelectionStore'
+import { useHistoryStore } from '../store/useHistoryStore'
+import { useInspectorStore } from '../store/useInspectorStore'
 import { toWorld, fitToView } from '../canvas/viewport'
 import { getAABB } from '../canvas/YardBoundaryLayer'
 import { RenderScheduler } from './RenderScheduler'
@@ -26,6 +30,17 @@ import { createStructureRenderer } from './StructureRenderer'
 import { createPathRenderer } from './PathRenderer'
 import { createLabelRenderer } from './LabelRenderer'
 import { createDimensionRenderer } from './DimensionRenderer'
+import { createSelectionOverlay } from './SelectionOverlay'
+import { createInteractionManager, type InteractionManagerHandle } from './InteractionManager'
+import { createTerrainPaintHandler } from './TerrainPaintHandler'
+import {
+  createStructurePlacementHandler,
+  createPlantPlacementHandler,
+  createLabelPlacementHandler,
+  createMeasurementHandler,
+} from './PlacementHandlers'
+import { createPathDrawingHandler } from './PathDrawingHandler'
+import { createBoundaryHandler } from './BoundaryHandler'
 
 interface CanvasHostProps {
   width: number
@@ -42,6 +57,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
   const interactionRef = useRef<Container | null>(null)
   const schedulerRef = useRef<RenderScheduler | null>(null)
   const canvasSizeRef = useRef({ width, height })
+  const interactionManagerRef = useRef<InteractionManagerHandle | null>(null)
 
   const [isDragging, setIsDragging] = useState(false)
   const [contextLost, setContextLost] = useState(false)
@@ -68,8 +84,14 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
   // ---- Cursor ----
   const getCursor = useCallback(() => {
     if (isPanActive) return isDragging ? 'grabbing' : 'grab'
+    if (activeTool === 'eraser') return 'crosshair'
+    if (activeTool === 'terrain') return 'crosshair'
+    if (activeTool === 'path') return 'crosshair'
+    if (activeTool === 'plant' || activeTool === 'structure' || activeTool === 'arc') return 'crosshair'
+    if (activeTool === 'label') return 'text'
+    if (activeTool === 'measurement') return 'crosshair'
     return 'default'
-  }, [isPanActive, isDragging])
+  }, [isPanActive, isDragging, activeTool])
 
   // ======================================================================
   // Application init + scene graph setup
@@ -261,6 +283,20 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       app.canvas.addEventListener('wheel', onWheel, { passive: false })
 
       // ------------------------------------------------------------------
+      // Double-click (native DOM, since PixiJS lacks native dblclick)
+      // ------------------------------------------------------------------
+      const onDblClick = (e: MouseEvent) => {
+        const rect = container.getBoundingClientRect()
+        const screenX = e.clientX - rect.left
+        const screenY = e.clientY - rect.top
+        const { panX, panY, zoom } = useViewportStore.getState()
+        const w = toWorld(screenX, screenY, panX, panY, zoom)
+        // Delegate to InteractionManager for centralized dispatch
+        interactionManagerRef.current?.handleDblClick(w.x, w.y)
+      }
+      app.canvas.addEventListener('dblclick', onDblClick)
+
+      // ------------------------------------------------------------------
       // WebGL context loss/restore
       // ------------------------------------------------------------------
       const onContextLost = () => {
@@ -365,6 +401,55 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       )
 
       // ------------------------------------------------------------------
+      // Phase 4: Selection overlay + Interaction manager + Tool handlers
+      // ------------------------------------------------------------------
+
+      // Selection overlay renders into a dedicated sub-container of world
+      // (must be in world space for correct pan/zoom transform on selection
+      // boxes, handles, and snap guide lines)
+      const selectionContainer = new Container()
+      selectionContainer.label = 'selection'
+      selectionContainer.eventMode = 'none'
+      world.addChild(selectionContainer)
+
+      const selectionOverlay = createSelectionOverlay(selectionContainer, scheduler)
+
+      // Create tool handlers (framework-agnostic, no PixiJS deps)
+      const terrainPaintHandler = createTerrainPaintHandler()
+      const structurePlacementHandler = createStructurePlacementHandler()
+      const plantPlacementHandler = createPlantPlacementHandler()
+      const labelPlacementHandler = createLabelPlacementHandler()
+      const measurementHandler = createMeasurementHandler()
+      const pathDrawingHandler = createPathDrawingHandler()
+      const boundaryHandler = createBoundaryHandler()
+
+      // Canvas rect accessor for coordinate conversion
+      const getCanvasRect = () => container.getBoundingClientRect()
+
+      // Central interaction manager: dispatches events to SSM or tool handlers
+      const interactionManager = createInteractionManager(
+        interaction,
+        scheduler,
+        selectionOverlay,
+        {
+          terrainPaint: terrainPaintHandler,
+          structurePlacement: structurePlacementHandler,
+          plantPlacement: plantPlacementHandler,
+          labelPlacement: labelPlacementHandler,
+          measurement: measurementHandler,
+          pathDrawing: pathDrawingHandler,
+          boundary: boundaryHandler,
+        },
+        getCanvasRect,
+        () => panStateRef.current.active,
+        container,
+      )
+      interactionManagerRef.current = interactionManager
+
+      // Register selection overlay for context restore (it uses Graphics)
+      rendererUpdaters.push(() => selectionOverlay.update())
+
+      // ------------------------------------------------------------------
       // Render scheduler
       // ------------------------------------------------------------------
       scheduler.start(app)
@@ -374,6 +459,16 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       // ------------------------------------------------------------------
       cleanupRef.current = () => {
         scheduler.stop()
+        interactionManager.destroy()
+        selectionOverlay.destroy()
+        terrainPaintHandler.destroy()
+        structurePlacementHandler.destroy()
+        plantPlacementHandler.destroy()
+        labelPlacementHandler.destroy()
+        measurementHandler.destroy()
+        pathDrawingHandler.destroy()
+        boundaryHandler.destroy()
+        interactionManagerRef.current = null
         dimensionRenderer.destroy()
         labelRenderer.destroy()
         structureRenderer.destroy()
@@ -390,6 +485,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         }
         clearInterval(gcInterval)
         app.canvas.removeEventListener('wheel', onWheel)
+        app.canvas.removeEventListener('dblclick', onDblClick)
         app.canvas.removeEventListener('webglcontextlost', onContextLost)
         app.canvas.removeEventListener('webglcontextrestored', onContextRestored)
         interaction.off('pointerdown', onPointerDown)
@@ -490,10 +586,15 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
   }, [])
 
   // ======================================================================
-  // Keyboard: Ctrl+Shift+1 for fit-to-view
+  // Keyboard shortcuts
   // ======================================================================
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip when typing in input fields
+      const tag = (document.activeElement?.tagName ?? '').toLowerCase()
+      const isInput = tag === 'input' || tag === 'textarea' || tag === 'select'
+
+      // Ctrl+Shift+1: fit-to-view
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '1') {
         e.preventDefault()
         const project = useProjectStore.getState().currentProject
@@ -512,7 +613,6 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         if (project?.elements) {
           for (const el of project.elements) {
             const bounds = { x: el.x, y: el.y, width: el.width, height: el.height }
-            // Skip elements with non-finite bounds to prevent NaN viewport corruption
             if (
               Number.isFinite(bounds.x) &&
               Number.isFinite(bounds.y) &&
@@ -526,6 +626,48 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
 
         const vp = fitToView(fitElements, width, height)
         useViewportStore.getState().setViewport(vp)
+        return
+      }
+
+      if (isInput) return
+
+      // Tab: cycle through overlapping elements at last click position
+      if (e.key === 'Tab' && useToolStore.getState().activeTool === 'select') {
+        e.preventDefault()
+        interactionManagerRef.current?.handleTabCycle()
+        return
+      }
+
+      // Delete/Backspace: remove selected elements
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const { selectedIds } = useSelectionStore.getState()
+        if (selectedIds.size === 0) return
+        const project = useProjectStore.getState().currentProject
+        if (!project) return
+        e.preventDefault()
+        const snapshot = structuredClone(project)
+        useProjectStore.getState().updateProject((draft) => {
+          draft.elements = draft.elements.filter((el) => !selectedIds.has(el.id))
+          for (const g of draft.groups) {
+            g.elementIds = g.elementIds.filter((id) => !selectedIds.has(id))
+          }
+        })
+        useHistoryStore.getState().pushHistory(snapshot)
+        useProjectStore.getState().markDirty()
+        useSelectionStore.getState().deselectAll()
+        useInspectorStore.getState().setInspectedElementId(null)
+        return
+      }
+
+      // Escape: exit group editing mode
+      if (e.key === 'Escape') {
+        const { groupEditingId } = useSelectionStore.getState()
+        if (groupEditingId !== null) {
+          useSelectionStore.getState().setGroupEditing(null)
+          useSelectionStore.getState().deselectAll()
+          useInspectorStore.getState().setInspectedElementId(null)
+        }
+        return
       }
     }
     window.addEventListener('keydown', handleKeyDown)
