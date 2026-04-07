@@ -78,6 +78,7 @@ grep -rn "eslint\|golangci" package.json .golangci.yml 2>/dev/null
 | `.golangci.yml` | Go linter configuration (golangci-lint v2) | Full read — short file |
 | `eslint.config.js` | Frontend lint rules (flat config, TS/TSX) | Full read — short file |
 | `tsconfig.json` | TypeScript project references → `tsconfig.app.json`, `tsconfig.node.json` | Full read — short file |
+| `lefthook.yml` | Git hook configuration (pre-commit: fmt/lint; pre-push: test/build) | Full read — short file |
 
 ---
 
@@ -212,22 +213,22 @@ _None yet._
 
 ---
 
-### Phase 3 — Git Hooks with Lefthook [ ]
+### Phase 3 — Git Hooks with Lefthook [x]
 
 > Install lefthook and configure pre-commit and pre-push hooks. Depends on Phase 2 — golangci-lint must be installed and `.golangci.yml` must exist before hooks can call it.
 
-#### Feature: Lefthook Installation [ ]
+#### Feature: Lefthook Installation [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** N/A — industry standard tooling
 **Rationale:** No git hooks exist currently. Lefthook is Go-native, runs hooks in parallel, and supports glob-based filtering so Go hooks only fire on `.go` changes and JS hooks only on `.ts/.tsx` changes. Installed via npm so `npm install` auto-sets up hooks for all contributors.
 
 ##### Tasks
 
-- [ ] Install lefthook as npm devDependency: `npm install lefthook --save-dev`
-- [ ] Add `"prepare": "lefthook install"` to `package.json` scripts
-- [ ] Run `npx lefthook install` to write `.git/hooks/*` shims
-- [ ] Add `lefthook-local.yml` to `.gitignore` (per-developer overrides, not committed)
+- [x] Install lefthook as npm devDependency: `npm install lefthook --save-dev` — done 2026-04-07
+- [x] Add `"prepare": "lefthook install"` to `package.json` scripts — done 2026-04-07
+- [x] Run `npx lefthook install` to write `.git/hooks/*` shims — done 2026-04-07
+- [x] Add `lefthook-local.yml` to `.gitignore` (per-developer overrides, not committed) — done 2026-04-07
 
 ##### Decisions
 
@@ -235,46 +236,46 @@ _None yet._
 
 ---
 
-#### Feature: Pre-commit Hooks [ ]
+#### Feature: Pre-commit Hooks [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** N/A
 **Rationale:** Pre-commit hooks provide fast feedback on staged changes. Target: under 5 seconds total. Only staged files are checked. Glob filtering ensures Go hooks skip when only TS files are staged (and vice versa).
 
 ##### Tasks
 
-- [ ] Create `lefthook.yml` in project root with `pre-commit.parallel: true`
-- [ ] Add `go-fmt` command:
+- [x] Create `lefthook.yml` in project root with `pre-commit.parallel: true` — done 2026-04-07
+- [x] Add `go-fmt` command: — done 2026-04-07
   ```yaml
   go-fmt:
     glob: "**/*.go"
     run: 'test -z "$(gofmt -l {staged_files})" || (echo "gofmt needed:" && gofmt -l {staged_files} && exit 1)'
   ```
   Note: `gofmt -l` always exits 0 — it prints names but never fails. The `test -z` wrapper checks for non-empty output and exits 1 if formatting is needed. Developer runs `make fmt` to fix.
-- [ ] Add `go-lint` command:
+- [x] Add `go-lint` command: — done 2026-04-07
   ```yaml
   go-lint:
     glob: "**/*.go"
     run: golangci-lint run --new-from-rev HEAD ./...
   ```
   Uses diff-mode to lint only code changed since HEAD. Note: checks full working tree diff, not just staged files — a known golangci-lint limitation. Skipped entirely if no `.go` files are staged.
-- [ ] Add `ts-lint` command:
+- [x] Add `ts-lint` command: — done 2026-04-07
   ```yaml
   ts-lint:
     glob: "**/*.{ts,tsx}"
     run: npx eslint {staged_files}
   ```
-- [ ] Add `ts-typecheck` command:
+- [x] Add `ts-typecheck` command: — done 2026-04-07
   ```yaml
   ts-typecheck:
     glob: "**/*.{ts,tsx}"
     run: npx tsc --noEmit
   ```
   No `{staged_files}` — tsc requires whole-project context. Runs only when TS files are staged.
-- [ ] Test: stage a `.go` file with a formatting error → commit blocked, message shows which file
-- [ ] Test: stage only `.ts` files → Go hooks (`go-fmt`, `go-lint`) are skipped entirely
-- [ ] Test: `LEFTHOOK=0 git commit -m "skip"` → all hooks bypassed
-- [ ] Test: `git commit --no-verify -m "skip"` → all hooks bypassed
+- [x] Test: stage a `.go` file with a formatting error → commit blocked, message shows which file — done 2026-04-07
+- [x] Test: stage only `.ts` files → Go hooks (`go-fmt`, `go-lint`) are skipped entirely — done 2026-04-07
+- [x] Test: `LEFTHOOK=0 git commit -m "skip"` → all hooks bypassed — done 2026-04-07
+- [x] Test: `git commit --no-verify -m "skip"` → all hooks bypassed — done 2026-04-07
 
 ##### Decisions
 
@@ -282,35 +283,35 @@ _None yet._
 
 ---
 
-#### Feature: Pre-push Hooks [ ]
+#### Feature: Pre-push Hooks [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Spec:** N/A
 **Rationale:** Slower checks (full test suites, build verification) run on push. Catches issues before they reach the remote. Acceptable runtime: 30–90 seconds.
 
 ##### Tasks
 
-- [ ] Add `pre-push` section to `lefthook.yml` with `parallel: true`
-- [ ] Add `go-test` command:
+- [x] Add `pre-push` section to `lefthook.yml` with `parallel: true` — done 2026-04-07
+- [x] Add `go-test` command: — done 2026-04-07
   ```yaml
   go-test:
     glob: "**/*.go"
     run: go test -race -count=1 -timeout=60s ./...
   ```
-- [ ] Add `frontend-test` command:
+- [x] Add `frontend-test` command: — done 2026-04-07
   ```yaml
   frontend-test:
     glob: "**/*.{ts,tsx}"
     run: npm run test
   ```
-- [ ] Add `frontend-build` command:
+- [x] Add `frontend-build` command: — done 2026-04-07
   ```yaml
   frontend-build:
     glob: "**/*.{ts,tsx,css,html}"
     run: npm run build
   ```
   Catches bundling errors that tsc --noEmit alone misses (Vite plugin issues, CSS errors, asset resolution).
-- [ ] Test: push with a failing Go test → push is blocked with test output shown
+- [x] Test: push with a failing Go test → push is blocked with test output shown — done 2026-04-07
 
 ##### Decisions
 
@@ -394,4 +395,5 @@ _None yet._
 2026-04-07 — Phase 1 partially complete. Makefile rewritten with stamp-file pattern, version injection, CGO_ENABLED=0. vite.config.ts updated to output directly to frontend/dist (outDir change). .gitignore updated with .*.stamp and frontend/dist. Stamp targets for lint and test exist but phony convenience targets (test-go, lint-go, etc.) deferred. .golangci.yml not yet created — .lint-go.stamp will fail until Phase 2.
 2026-04-07 — Phase 1 complete. Added phony test targets (test-go, test-frontend, test) to Makefile. Updated Makefile comment header to list new targets. All Phase 1 tasks done; proceeding to Phase 2.
 2026-04-07 — Phase 2 complete. Installed golangci-lint v2.11.4. Created .golangci.yml with standard preset + revive/gosec/gocritic/prealloc. Fixed 115 lint issues across codebase: errcheck (handled/suppressed), gocritic (hugeParam → pointers, rangeValCopy → index, assignOp, paramTypeCombine, unnamedResult, octalLiteral), gosec (nolint with rationale), unused (removed dead code), revive (disabled package-comments). Added node_modules and test/debug exclusion rules. Added phony lint/fmt targets to Makefile. All tests pass, 0 lint issues.
+2026-04-07 — Phase 3 complete. Installed lefthook v2.1.5 as npm devDependency. Added "prepare": "lefthook install" to package.json scripts. Created lefthook.yml with pre-commit (parallel: go-fmt, go-lint, ts-lint, ts-typecheck with glob filtering) and pre-push (parallel: go-test, frontend-test, frontend-build with glob filtering). Added lefthook-local.yml to .gitignore. Hooks synced successfully.
 ```
