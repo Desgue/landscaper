@@ -20,7 +20,7 @@ worldX = (screenX - panX) / zoom
 worldY = (screenY - panY) / zoom
 ```
 
-With Konva, the Stage's `x`, `y` = pan offset, `scaleX`/`scaleY` = zoom. Always keep `scaleX === scaleY` (uniform zoom).
+With PixiJS, the world container's `position` = pan offset, `scale` = zoom. Always keep `scale.x === scale.y` (uniform zoom). The world container uses `isRenderGroup = true` for GPU-optimized viewport transforms.
 
 ### Zoom Toward Cursor
 
@@ -326,7 +326,7 @@ counterclockwise = sagitta > 0   // assumes Canvas/screen coords (y-axis down)
 
 Use Canvas 2D `context.arc(center.x, center.y, |R|, startAngle, endAngle, counterclockwise)`.
 
-In Konva, use a custom `sceneFunc` on a Shape, or use `Konva.Arc` with `innerRadius: 0, outerRadius: |R|, angle: sweepDegrees, rotation: startDegrees`.
+In PixiJS, use `Graphics` with `g.arc(center.x, center.y, |R|, startAngle, endAngle, counterclockwise)` or sample the arc into a polyline via `sampleArc()` from `arcGeometry.ts`.
 
 ### Arc Bounding Box
 
@@ -398,7 +398,7 @@ Paths have a real-world width (e.g., brick edging = 10cm). Render by:
 4. Join consecutive offset segments with miter or round joins
 5. Fill the enclosed area
 
-For MVP, a simpler approach: render each segment as a thick stroked line (`context.lineWidth = widthInWorldUnits`). The Konva stage transform (`scaleX/scaleY = zoom`) handles the conversion to screen pixels — do not multiply by zoom again or the width will be double-scaled.
+For MVP, a simpler approach: render each segment as a thick stroked line (`g.stroke({ width: widthInWorldUnits })`). The PixiJS world container transform (`scale = zoom`) handles the conversion to screen pixels — do not multiply by zoom again or the width will be double-scaled.
 
 ### Closed Paths
 
@@ -423,7 +423,7 @@ For click selection, test the cursor position against each element:
 | Path (arc segment) | Distance from arc center ≈ radius ± pathWidth/2 + tolerance, and angle within sweep |
 | Yard boundary (polygon) | Ray casting point-in-polygon |
 
-Konva has built-in hit detection (`getIntersection()`) that handles most of these. For custom shapes (arcs, paths), implement `hitFunc`.
+Hit testing is performed via pure-math functions in `hitTestAll.ts` and `elementAABB.ts`. PixiJS event handling is disabled on the world container (`eventMode = 'none'`); all hit testing uses the existing math-based approach with world coordinates derived from pointer events.
 
 ### Selection Priority
 
@@ -481,7 +481,7 @@ rotatedX = center.x + (P.x - center.x) * cos(θ) - (P.y - center.y) * sin(θ)
 rotatedY = center.y + (P.x - center.x) * sin(θ) + (P.y - center.y) * cos(θ)
 ```
 
-Store rotation as degrees on the element. Konva handles rotation rendering natively via the `rotation` property on nodes.
+Store rotation as degrees on the element. PixiJS Container `rotation` is set in radians: `(degrees * Math.PI) / 180`.
 
 ### Rotation Snap
 
@@ -721,12 +721,12 @@ If the linked element is deleted, the dimension endpoint becomes a fixed world p
 
 | Feature | Reference | Key File/Pattern |
 |---------|-----------|-----------------|
-| Pan/zoom transforms | [Konva zoom-to-pointer](https://konvajs.org/docs/sandbox/Zooming_Relative_To_Pointer.html) | `newPos = pointer - mousePointTo * newScale` |
-| Grid snap | [Konva grid snap](https://konvajs.org/docs/sandbox/Objects_Snapping.html) | `Math.round(value / grid) * grid` on move |
+| Pan/zoom transforms | `src/canvas/viewport.ts` | `zoomTowardCursor()` — `newPos = pointer - mousePointTo * newScale` |
+| Grid snap | `src/snap/snapSystem.ts` | `Math.round(value / grid) * grid` on move |
 | Geometry snapping | [tldraw SnapManager](https://github.com/tldraw/tldraw) `packages/editor/src/lib/editor/managers/SnapManager/` | Per-axis snap resolution, closest wins, gap snapping |
 | Zoom-adaptive tolerance | [Excalidraw snapping.ts](https://github.com/excalidraw/excalidraw) `packages/excalidraw/snapping.ts` | `getSnapDistance()` scales with zoom |
 | Arc geometry | [Paper.js arcTo](https://github.com/paperjs/paper.js) `src/path/Path.js` | 3-point arc via through-point |
 | Polygon with dimensions | [JSketcher](https://github.com/xibyte/jsketcher) `web/app/sketcher/constr/` | Constraint solver (overkill — use edge propagation instead) |
 | Brush painting | [Tiled](https://github.com/mapeditor/tiled) | Sparse 2D map + brush stamp, grid traversal |
 | Mixed-segment paths | [@flatten-js/core](https://github.com/alexbol99/flatten-js) | Polygon edges can be Segment or Arc |
-| Hit testing | Konva built-in `getIntersection()` + custom `hitFunc` | Per-shape hit region |
+| Hit testing | `src/canvas/hitTestAll.ts` + `src/canvas/elementAABB.ts` | Pure-math hit testing per element type |

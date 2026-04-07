@@ -10,7 +10,7 @@ The canvas working area corresponds to the yard boundary defined during setup [y
 
 World units: centimeters. Display: meters with cm precision (e.g., `12.45m`). The canvas uses HTML Canvas conventions: the y-axis points down (increasing Y = moving down on screen). See [spatial-math-specification.md "## 5. Arc Geometry"] for how this affects arc direction flags.
 
-Transforms between world and screen coordinates use the viewport's pan offset and zoom scale. See [spatial-math-specification.md "## 1. Coordinate System"] for formulas, matrix form, and Konva integration.
+Transforms between world and screen coordinates use the viewport's pan offset and zoom scale. See [spatial-math-specification.md "## 1. Coordinate System"] for formulas and matrix form. The PixiJS world container's `position` and `scale` are set from the viewport store (`panX`, `panY`, `zoom`).
 
 Zoom range: 0.05 to 10.0. Never round world coordinates — only round to integer pixels at final render.
 
@@ -75,16 +75,18 @@ The bar length in pixels is computed as `distanceCm * zoom`. The displayed dista
 
 ## Render Layer Order (bottom to top)
 
-1. Grid lines (background)
-2. Overflow dim overlay (outside yard boundary only — see Overflow Dimming below)
-3. Terrain
-4. Yard boundary (dashed outline)
-5. Paths/borders
-6. Structures
-7. Plants
-8. Labels
-9. Dimensions (leader lines, arrowheads, distance text) [measurement-dimensions.md "## Dimension Element"]
-10. Selection overlay, handles, guides (UI layer)
+Rendered via PixiJS v8 with three top-level Containers (`world`, `interaction`, `hud`). The `world` container holds these sub-containers in draw order:
+
+1. Grid (dot pattern via TilingSprite)
+2. Terrain (chunked Sprites with cacheAsTexture)
+3. Paths (Graphics strokes)
+4. Boundary (dashed polygon outline, vertex handles)
+5. Elements — structures + plants (Y-sorted via `sortableChildren`)
+6. Labels + dimension lines (Text)
+7. Overflow dim overlay (outside yard boundary — see Overflow Dimming below)
+8. Selection overlay, handles, snap guides, hover highlight
+
+The `interaction` container provides a transparent hit area for pointer events. HTML overlays (scale bar, boundary editing, label editing) remain as DOM elements.
 
 Layer visibility [layers-groups.md "## Layer Visibility"] affects which elements are rendered: elements on hidden layers are skipped at their respective layer position. The type-based render order above is always preserved — layers do NOT change render order.
 

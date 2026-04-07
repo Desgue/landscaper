@@ -39,7 +39,7 @@ After placement, the arc has 3 draggable handles: start point, end point, and ra
 
 Structures are the only element type that can rotate. Rotation is around the center point. No angle snap by default (free rotation). Shift+15-degree snap may be added in a future phase. Other element types (terrain, plants, labels, paths) have no rotation handle.
 
-See [spatial-math-specification.md "## 8. Rotation"] for the rotation formula and Konva integration.
+See [spatial-math-specification.md "## 8. Rotation"] for the rotation formula and PixiJS Container rotation mapping.
 
 ## Resize
 
