@@ -19,7 +19,7 @@ Accept: image/png
 ```json
 {
   "project":    { "...full JSON export per data-schema.md ## Export Format..." },
-  "yard_photo": "string (base64-encoded JPEG or PNG of the real yard) | omit for segmentation-only generation",
+  "yard_photo": "string | string[] (1–4 base64-encoded JPEG or PNG photos) | omit for segmentation-only generation",
   "options": {
     "include_planned": "boolean (default: true)",
     "garden_style":    "cottage | formal | tropical | mediterranean | japanese | kitchen | native | contemporary | garden",
@@ -33,7 +33,7 @@ Accept: image/png
 }
 ```
 
-`options` is optional. All `options` fields are optional. `yard_photo` is optional — when omitted, generation uses the segmentation map only. When present, the yard photo is passed to Gemini as a second reference image alongside the segmentation map, grounding the output in the real yard's perspective and lighting. See [data-schema.md "## Export Format"] for the full `project` JSON shape.
+`options` is optional. All `options` fields are optional. `yard_photo` is optional — when omitted, generation uses the segmentation map only. When present, the yard photo is passed to Gemini as a second reference image alongside the segmentation map, grounding the output in the real yard's perspective and lighting. Accepts either a single base64 string (backward compatible) or an array of 1–4 base64 strings. Each photo is decoded and validated independently. An empty array is treated as no photos. See [data-schema.md "## Export Format"] for the full `project` JSON shape.
 
 ---
 
@@ -122,7 +122,7 @@ See [go-types.md "## File: internal/model/request.go"] for the exact Go struct t
 
 | Context | Field path | Type | Lifecycle |
 |---|---|---|---|
-| **API request** | `request.yard_photo` | top-level string (base64) | Per-request; sent by frontend when calling generate |
+| **API request** | `request.yard_photo` | top-level string or string[] (base64) | Per-request; sent by frontend when calling generate |
 | **Project storage** | `project.yardPhoto` (frontend schema) | stored in IndexedDB | Persisted with the project; excluded from JSON export |
 
 The frontend reads `project.yardPhoto` from app state and copies it to the top-level `yard_photo` field when building the API request. The backend only sees `request.yard_photo` — it never reads `project.yardPhoto` (that field, if present in the project JSON, is inside the project object and the backend ignores it).
@@ -161,7 +161,9 @@ Validated before any rendering begins. All invalid requests return HTTP 400 imme
 | `options.image_size` | One of 3 allowed values (`1K`, `2K`, `4K`) if present | `"invalid image_size"` |
 | `options.seed` | Integer or omitted; `-1` means random | `"invalid seed"` |
 | `options.include_planned` | Boolean or omitted | `"invalid include_planned"` |
-| `yard_photo` | Valid base64 string decoding to JPEG or PNG magic bytes if present | `"invalid yard_photo"` |
+| `yard_photo` | Each photo: valid base64 decoding to JPEG or PNG magic bytes; max 3 MB decoded per photo | `"invalid yard_photo"` |
+| `yard_photo` (array length) | 1–4 entries when array; empty array treated as omitted | `"too many yard photos (max 4)"` |
+| `yard_photo` (per-photo size) | Each decoded photo <= 3 MB | `"yard photo too large"` |
 
 `project.elements` and `project.registries` are not validated at request time — missing or unknown registry entries are handled during rendering. `yard_photo` magic byte check: JPEG starts with `\xFF\xD8\xFF`; PNG starts with `\x89PNG\r\n\x1a\n`. Validation decodes the base64 and inspects the first 8 bytes only — the full image is not validated.
 
@@ -193,8 +195,10 @@ Exact error strings per case:
 | No image part in Gemini response | 502 | `"no image in Nano Banana response"` |
 | Gemini API returns error | 502 | `"Nano Banana error: {upstream message}"` |
 | `yard_photo` present but invalid base64 or wrong format | 400 | `"invalid yard_photo"` |
+| `yard_photo` array exceeds 4 entries | 400 | `"too many yard photos (max 4)"` |
+| `yard_photo` single photo exceeds 3 MB decoded | 400 | `"yard photo too large"` |
 | `options.include_planned` unrecognized | 400 | `"invalid include_planned"` |
-| Gemini API timeout (> 60s) | 504 | `"image generation timed out"` |
+| Gemini API timeout (> 120s) | 504 | `"image generation timed out"` |
 
 Gemini error handling is defined in [gemini-client.md "## Error Handling"].
 
@@ -362,7 +366,7 @@ Scenario: Season defaults to summer when location is null
 ```
 Scenario: Gemini API timeout
   Given a valid request that passes all validation
-  And the Gemini API does not respond within 60 seconds
+  And the Gemini API does not respond within 120 seconds
   When POST /api/generate is called
   Then the response status is 504
   And the response body is { "error": "image generation timed out" }
@@ -431,4 +435,49 @@ Scenario: Planned plants excluded
   Then plants with status "planned" are excluded from the segmentation map and prompt
   And the response status is 200
   And the response body is a valid PNG
+```
+
+### Scenario: yard_photo as array of 2 photos
+
+```
+Scenario: Multi-photo yard_photo array
+  Given a valid project JSON with a yard boundary of >= 3 vertices
+  And yard_photo is an array of 2 valid base64-encoded JPEG photos
+  When POST /api/generate is called
+  Then both photos are sent to Gemini with per-photo instruction text
+  And the prompt includes per-photo context instructions ("photo 1 of 2", "photo 2 of 2")
+  And the response status is 200
+```
+
+### Scenario: yard_photo as array exceeding max (5 photos)
+
+```
+Scenario: Too many yard photos
+  Given a valid project JSON with a yard boundary of >= 3 vertices
+  And yard_photo is an array of 5 valid base64-encoded JPEG photos
+  When POST /api/generate is called
+  Then the response status is 400
+  And the response body is { "error": "too many yard photos (max 4)" }
+```
+
+### Scenario: yard_photo as array with one invalid entry
+
+```
+Scenario: Mixed valid/invalid photos in array
+  Given a valid project JSON with a yard boundary of >= 3 vertices
+  And yard_photo is an array where one entry is valid JPEG and one is invalid base64
+  When POST /api/generate is called
+  Then the response status is 400
+  And the response body is { "error": "invalid yard_photo" }
+```
+
+### Scenario: yard_photo as empty array
+
+```
+Scenario: Empty yard_photo array treated as no photos
+  Given a valid project JSON with a yard boundary of >= 3 vertices
+  And yard_photo is an empty array []
+  When POST /api/generate is called
+  Then no yard photos are sent to Gemini
+  And the response status is 200
 ```

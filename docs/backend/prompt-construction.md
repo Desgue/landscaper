@@ -4,10 +4,22 @@ Covers Stage 3 of the image generation pipeline: building structured prompt part
 
 ## Architecture: Interleaved Multi-Part Prompts
 
-Instead of a single text string, the prompt builder produces a `PromptParts` struct with three text blocks. These are interleaved with image blobs by the Gemini client so each instruction is adjacent to the image it describes:
+Instead of a single text string, the prompt builder produces a `PromptParts` struct whose text blocks are interleaved with image blobs by the Gemini client so each instruction is adjacent to the image it describes.
+
+The number of parts scales with the yard photo count:
 
 ```
-[SegmapInstruction] → [segmap PNG blob] → [YardPhotoInstruction?] → [yard photo blob?] → [ScenePrompt]
+0 photos (3 parts):   [segmap_instruction] [segmap_blob] [scene_prompt]
+
+1 photo  (5 parts):   [segmap_instruction] [segmap_blob]
+                      [photo_instruction] [photo_blob]
+                      [scene_prompt]
+
+N photos (3+2N parts): [segmap_instruction] [segmap_blob]
+                       [photo_1_instruction] [photo_1_blob]
+                       ...
+                       [photo_N_instruction] [photo_N_blob]
+                       [scene_prompt]
 ```
 
 This ordering ensures the model reads each image's role explanation immediately before seeing that image, improving spatial compliance and preventing segmentation map artifacts from bleeding into the output.
@@ -31,13 +43,26 @@ The color legend maps to the segmentation color table in [segmentation-render.md
 
 ## Yard Photo Instruction
 
-Fixed text placed immediately before the yard photo blob. Only included when `yard_photo` is present in the request. Omitted entirely when absent.
+Text placed immediately before each yard photo blob. Only included when one or more yard photos are present in the request. Omitted entirely when no photos are provided.
+
+The instruction text varies by photo count.
+
+**Single photo (`photoCount == 1`)** — fixed text, identical to the original single-photo behaviour:
 
 ```
 This image is a real photograph of the yard. Match the perspective, camera angle,
 lighting, ground textures, fences, walls, and surroundings from this photo. Place
 the garden elements from the layout map into this real scene.
 ```
+
+**Multiple photos (`photoCount > 1`)** — each photo receives its own numbered instruction. For photo N of M:
+
+```
+This is yard photo N of M. Use all yard photos together to understand the yard's
+perspective, lighting, and surroundings from different angles.
+```
+
+For example, in a three-photo request the instructions are "This is yard photo 1 of 3 …", "This is yard photo 2 of 3 …", and "This is yard photo 3 of 3 …".
 
 ## Scene Prompt (SCHEMA Order)
 
@@ -214,18 +239,28 @@ These use declarative "NO" statements rather than "don't" phrasing, following th
 
 ## Full Prompt Assembly
 
-The `Build` function returns a `PromptParts` struct. The Gemini client interleaves these text parts with image blobs.
+The `Build` function accepts a `photoCount int` parameter (replacing the former `hasYardPhoto bool`) and returns a `PromptParts` struct. The Gemini client interleaves these text parts with image blobs.
 
-When `yard_photo` is absent (3 parts total):
+When `photoCount == 0` (3 parts total):
 
 ```
 [segmap_instruction_text] [segmap_png] [scene_prompt_text]
 ```
 
-When `yard_photo` is present (5 parts total):
+When `photoCount == 1` (5 parts total):
 
 ```
 [segmap_instruction_text] [segmap_png] [yard_photo_instruction_text] [yard_photo_blob] [scene_prompt_text]
+```
+
+When `photoCount == N` where N > 1 (3 + 2N parts total):
+
+```
+[segmap_instruction_text] [segmap_png]
+[photo_1_instruction_text] [photo_1_blob]
+...
+[photo_N_instruction_text] [photo_N_blob]
+[scene_prompt_text]
 ```
 
 ### Example scene prompt with elements:

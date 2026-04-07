@@ -13,10 +13,10 @@ Environment variables:
 | `GEMINI_API_KEY` | Yes | — |
 | `GEMINI_MODEL` | No | `gemini-3.1-flash-image-preview` |
 
-A context with a 60-second timeout is created per request, not at package level. The client is initialized inside the request handler and closed when the request completes.
+A context with a 120-second timeout is created per request, not at package level. The client is initialized inside the request handler and closed when the request completes.
 
 ```go
-ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+ctx, cancel := context.WithTimeout(r.Context(), 120*time.Second)
 defer cancel()
 
 client, err := genai.NewClient(ctx, &genai.ClientConfig{
@@ -32,20 +32,26 @@ defer client.Close()
 
 ## Request Construction
 
-The request is assembled from structured `PromptParts` (interleaved text instructions + image blobs), the segmentation map, and an optional yard photo. Parts are interleaved so each instruction is adjacent to the image it describes:
+The request is assembled from structured `PromptParts` (interleaved text instructions + image blobs), the segmentation map, and 0–4 yard photos. Parts are interleaved so each instruction is adjacent to the image it describes:
 
 ```go
 // Assemble parts: interleave text instructions with their corresponding images
-// Order: segmap instruction → segmap blob → [yard photo instruction → yard photo blob] → scene prompt
+// Order: segmap instruction → segmap blob → [photo N instruction → photo N blob]... → scene prompt
 parts := []*genai.Part{
     {Text: promptParts.SegmapInstruction},
     {InlineData: &genai.Blob{MIMEType: "image/png", Data: segMapBytes}},
 }
-if len(yardPhotoBytes) > 0 && promptParts.YardPhotoInstruction != "" {
-    parts = append(parts,
-        &genai.Part{Text: promptParts.YardPhotoInstruction},
-        &genai.Part{InlineData: &genai.Blob{MIMEType: yardPhotoMIMEType, Data: yardPhotoBytes}},
-    )
+for i, photo := range photos {
+    instruction := promptParts.YardPhotoInstruction
+    if len(promptParts.YardPhotoInstructions) > i {
+        instruction = promptParts.YardPhotoInstructions[i]
+    }
+    if instruction != "" {
+        parts = append(parts,
+            &genai.Part{Text: instruction},
+            &genai.Part{InlineData: &genai.Blob{MIMEType: photo.MIMEType, Data: photo.Bytes}},
+        )
+    }
 }
 parts = append(parts, &genai.Part{Text: promptParts.ScenePrompt})
 
@@ -71,15 +77,15 @@ resp, err := client.Models.GenerateContent(ctx, modelName, contents, cfg)
 
 - `promptParts` — `PromptParts` struct from [prompt-construction.md "## Full Prompt Assembly"]
 - `segMapBytes` — PNG bytes from [segmentation-render.md "## Stage 2: 2D Segmentation Render"]
-- `yardPhotoBytes` — decoded bytes from `request.yard_photo` base64 field; empty slice when field is absent
-- `yardPhotoMIMEType` — `"image/jpeg"` or `"image/png"`, detected from magic bytes during validation
+- `photos` — `[]model.PhotoEntry` of decoded yard photos; empty slice when no photos are provided
 
 Parameters sent to Nano Banana:
 
 | Parameter | Value | Source |
 |---|---|---|
 | model | `$GEMINI_MODEL` | env var |
-| parts | interleaved text instructions + image blobs | [prompt-construction.md "## Full Prompt Assembly"] |
+| parts | interleaved text instructions + image blobs; 3 parts when no photos, 3 + 2N parts for N photos | [prompt-construction.md "## Full Prompt Assembly"] |
+| `photos []PhotoEntry` | Decoded yard photo bytes and MIME types. 0–4 entries. Each photo is interleaved with its own instruction text. | `request.yard_photos` base64 fields; detected MIME type per entry |
 | `ImageConfig.AspectRatio` | `"1:1"` / `"4:3"` / `"3:4"` | derived from `options.aspect_ratio` |
 | `ImageConfig.ImageSize` | `"1K"` / `"2K"` / `"4K"` | from `options.image_size` (default `"1K"`) |
 | `ThinkingConfig.ThinkingLevel` | `HIGH` | enables internal spatial reasoning before rendering |
@@ -105,7 +111,7 @@ No automatic retry on any error.
 
 | Condition | HTTP status | Error message body |
 |---|---|---|
-| Context deadline exceeded (> 60s) | 504 | `"image generation timed out"` |
+| Context deadline exceeded (> 120s) | 504 | `"image generation timed out"` |
 | Gemini API error response | 502 | `"Nano Banana error: {upstream message}"` |
 | No image/png part in response | 502 | `"no image in Nano Banana response"` |
 
@@ -136,10 +142,10 @@ Scenario: Seed parameter is omitted when seed is -1
   When the Gemini client sends the request
   Then the GenerationConfig seed field is not set
 
-Scenario: Gemini API does not respond within 60 seconds
+Scenario: Gemini API does not respond within 120 seconds
   Given a valid segmentation map PNG in segMapBytes
   And a valid constructed prompt string
-  And the Gemini API does not respond before the 60-second context deadline
+  And the Gemini API does not respond before the 120-second context deadline
   When the Gemini client sends the request
   Then the response has HTTP status 504
   And the response body is "image generation timed out"
@@ -175,19 +181,25 @@ Scenario: aspect_ratio "square" maps to Gemini aspect_ratio "1:1"
   When the Gemini client sends the request
   Then the GenerationConfig aspect_ratio field is set to "1:1"
 
-Scenario: yard_photo present sends 5 interleaved parts
+Scenario: 1 yard photo sends 5 interleaved parts
   Given a valid segmentation map PNG in segMapBytes
   And valid PromptParts with YardPhotoInstruction set
-  And yardPhotoBytes contains a decoded JPEG image
-  When the Gemini client sends the request
+  And photos contains 1 decoded JPEG PhotoEntry
+  When Generate is called
   Then the request contents have 5 parts: segmap instruction text, segmap blob, yard photo instruction text, yard photo blob, scene prompt text
   And the yard photo blob MIMEType is "image/jpeg"
 
-Scenario: yard_photo absent sends 3 interleaved parts
+Scenario: 2 yard photos sends 7 interleaved parts
+  Given a prompt with segmap instruction and scene prompt
+  And 2 decoded yard photos with per-photo instructions
+  When Generate is called
+  Then the Gemini request contains 7 parts: segmap instruction, segmap blob, photo 1 instruction, photo 1 blob, photo 2 instruction, photo 2 blob, scene prompt
+
+Scenario: 0 yard photos sends 3 interleaved parts
   Given a valid segmentation map PNG in segMapBytes
   And valid PromptParts with empty YardPhotoInstruction
-  And yardPhotoBytes is empty
-  When the Gemini client sends the request
+  And photos is an empty slice
+  When Generate is called
   Then the request contents have 3 parts: segmap instruction text, segmap blob, scene prompt text
   And no yard photo blob is present
 
