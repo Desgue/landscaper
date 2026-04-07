@@ -61,6 +61,7 @@ var botanicalNames = map[string]string{
 	"boxwood":         "Buxus sempervirens",
 	"lavender":        "Lavandula angustifolia",
 	"hydrangea":       "Hydrangea macrophylla",
+	"rose":            "Rosa gallica",
 	"rose-bush":       "Rosa floribunda",
 	"holly":           "Ilex aquifolium",
 	"privet":          "Ligustrum vulgare",

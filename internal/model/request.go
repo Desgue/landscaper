@@ -18,7 +18,7 @@ type GenerateOptions struct {
 	TimeOfDay      string `json:"time_of_day,omitempty"`
 	Viewpoint      string `json:"viewpoint,omitempty"`
 	AspectRatio    string `json:"aspect_ratio,omitempty"`
-	ImageSize      string `json:"image_size,omitempty"` // "512", "1K", "2K", "4K"; default "1K"
+	ImageSize      string `json:"image_size,omitempty"` // "1K", "2K", "4K"; default "1K"
 	Seed           *int   `json:"seed,omitempty"`       // pointer: absent vs explicit -1 are distinct
 }
 
@@ -42,7 +42,7 @@ type EffectiveOptions struct {
 	TimeOfDay      string // e.g. "golden hour"
 	Viewpoint      string // e.g. "eye-level"
 	AspectRatio    string // e.g. "square"
-	ImageSize      string // "512", "1K", "2K", "4K"
+	ImageSize      string // "1K", "2K", "4K"
 	Seed           int    // -1 = random
 }
 
