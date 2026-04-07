@@ -23,9 +23,6 @@ import { createTerrainRenderer } from './TerrainRenderer'
 import { createBoundaryRenderer } from './BoundaryRenderer'
 import { createTextureAtlas } from './textures/TextureAtlas'
 
-/** Feature flag — set to true to use PixiJS renderer instead of Konva. */
-export const USE_PIXI = false
-
 interface CanvasHostProps {
   width: number
   height: number
