@@ -11,6 +11,7 @@
 | A | [`PLAN-A.md`](PLAN-A.md) | Go module init, request types, HTTP server & routing, request validation, structured logging | `todo` |
 | B | [`PLAN-B.md`](PLAN-B.md) | Element filtering, segmentation render, prompt construction, Gemini client | `todo` |
 | C | [`PLAN-C.md`](PLAN-C.md) | Pipeline orchestration, contract test fixtures, build pipeline, dev proxy verification | `done` |
+| E | [`PLAN-E.md`](PLAN-E.md) | Local CI pipeline: Makefile caching, golangci-lint, lefthook hooks, `make ci` | `todo` |
 
 ## Execution Order
 
