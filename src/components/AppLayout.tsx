@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, lazy, Suspense } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import TopToolbar from './TopToolbar'
 import SidePalette from './SidePalette'
@@ -6,7 +6,14 @@ import InspectorPanel from './InspectorPanel'
 import LayerPanel from './LayerPanel'
 import StatusBar from './StatusBar'
 import Minimap from './Minimap'
-import CanvasRoot from '../canvas/CanvasRoot'
+
+// Renderer selection via env var — only the active renderer is bundled (code-split)
+const USE_PIXI = import.meta.env.VITE_USE_PIXI === 'true'
+const Canvas = lazy(() =>
+  USE_PIXI
+    ? import('../canvas-pixi/CanvasHost')
+    : import('../canvas/CanvasRoot'),
+)
 import ZOrderContextMenu from './ZOrderContextMenu'
 import JournalView from './JournalView'
 import CostSummaryPanel from './CostSummaryPanel'
@@ -81,7 +88,9 @@ export default function AppLayout() {
               className="flex-1 relative overflow-hidden"
               style={{ background: '#f5f5f5' }}
             >
-              <CanvasRoot width={canvasSize.width} height={canvasSize.height} />
+              <Suspense fallback={null}>
+                <Canvas width={canvasSize.width} height={canvasSize.height} />
+              </Suspense>
               <Minimap canvasWidth={canvasSize.width} canvasHeight={canvasSize.height} />
             </div>
 
