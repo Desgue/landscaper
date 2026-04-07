@@ -66,7 +66,7 @@ export interface InteractionManagerHandle extends RendererHandle {
 
 export function createInteractionManager(
   interactionContainer: Container,
-  scheduler: RenderScheduler,
+  _scheduler: RenderScheduler,
   selectionOverlay: ReturnType<typeof createSelectionOverlay>,
   toolHandlers: ToolHandlers,
   getCanvasRect: () => DOMRect,
@@ -95,7 +95,8 @@ export function createInteractionManager(
     const screenX = native.clientX - cachedRect.left
     const screenY = native.clientY - cachedRect.top
     const { panX, panY, zoom } = useViewportStore.getState()
-    return toWorld(screenX, screenY, panX, panY, zoom)
+    const w = toWorld(screenX, screenY, panX, panY, zoom)
+    return { worldX: w.x, worldY: w.y }
   }
 
   // ---- Tool dispatch helpers ----

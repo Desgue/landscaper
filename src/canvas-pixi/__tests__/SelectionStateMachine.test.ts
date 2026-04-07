@@ -11,14 +11,14 @@ import {
   getHandlePositions,
   getHandleAtPoint,
   isOnRotationHandle,
-  type PointerEvent,
+  type SelectionPointerEvent,
 } from '../SelectionStateMachine'
 import { useProjectStore } from '../../store/useProjectStore'
 import { useSelectionStore } from '../../store/useSelectionStore'
 import { useToolStore } from '../../store/useToolStore'
 import { useViewportStore } from '../../store/useViewportStore'
 import { useHistoryStore } from '../../store/useHistoryStore'
-import type { Project, StructureElement, LabelElement, PlantElement } from '../../types/schema'
+import type { Project, StructureElement } from '../../types/schema'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -66,41 +66,15 @@ function makeStructure(overrides: Partial<StructureElement> = {}): StructureElem
   }
 }
 
-function makeLabel(overrides: Partial<LabelElement> = {}): LabelElement {
-  return {
-    id: crypto.randomUUID(),
-    type: 'label',
-    text: 'Test',
-    fontSize: 16,
-    fontColor: '#000000',
-    fontFamily: 'sans-serif',
-    textAlign: 'left',
-    bold: false,
-    italic: false,
-    x: 300,
-    y: 300,
-    width: 200,
-    height: 50,
-    rotation: 0,
-    zIndex: 0,
-    locked: false,
-    layerId: 'layer-1',
-    groupId: null,
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-    ...overrides,
-  }
-}
-
-function down(worldX: number, worldY: number, opts: Partial<PointerEvent> = {}): PointerEvent {
+function down(worldX: number, worldY: number, opts: Partial<SelectionPointerEvent> = {}): SelectionPointerEvent {
   return { worldX, worldY, button: 0, shiftKey: false, altKey: false, type: 'down', ...opts }
 }
 
-function move(worldX: number, worldY: number, opts: Partial<PointerEvent> = {}): PointerEvent {
+function move(worldX: number, worldY: number, opts: Partial<SelectionPointerEvent> = {}): SelectionPointerEvent {
   return { worldX, worldY, button: 0, shiftKey: false, altKey: false, type: 'move', ...opts }
 }
 
-function up(worldX: number, worldY: number, opts: Partial<PointerEvent> = {}): PointerEvent {
+function up(worldX: number, worldY: number, opts: Partial<SelectionPointerEvent> = {}): SelectionPointerEvent {
   return { worldX, worldY, button: 0, shiftKey: false, altKey: false, type: 'up', ...opts }
 }
 

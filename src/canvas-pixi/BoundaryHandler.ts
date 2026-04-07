@@ -10,13 +10,12 @@
  * remain in the existing YardBoundaryHTMLOverlays component.
  */
 
-import type { Vec2, YardBoundary, YardBoundaryEdge, Project } from '../types/schema'
+import type { Vec2, YardBoundaryEdge, Project } from '../types/schema'
 import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { useToolStore } from '../store/useToolStore'
 import { snapPoint } from '../snap/snapSystem'
-import { sampleArc } from '../canvas/arcGeometry'
 import type { RendererHandle } from './BaseRenderer'
 
 // ---------------------------------------------------------------------------
