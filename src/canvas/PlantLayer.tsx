@@ -29,6 +29,7 @@ interface PlantToolState {
   setSelectedPlantTypeId: (id: string) => void
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const usePlantToolStore = create<PlantToolState>((set) => ({
   selectedPlantTypeId: null,
   setSelectedPlantTypeId: (id: string) => set({ selectedPlantTypeId: id }),
@@ -69,6 +70,7 @@ function effectiveRadius(_element: PlantElement, plantType: PlantType): number {
 }
 
 /** Point-in-plant hit test (circle). */
+// eslint-disable-next-line react-refresh/only-export-components
 export function hitTest(element: PlantElement, worldX: number, worldY: number): boolean {
   const registries = useProjectStore.getState().registries
   const plantType = registries.plants.find((p) => p.id === element.plantTypeId)
@@ -80,6 +82,7 @@ export function hitTest(element: PlantElement, worldX: number, worldY: number): 
 }
 
 /** Axis-aligned bounding box of a PlantElement. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getAABB(element: PlantElement): { x: number; y: number; w: number; h: number } {
   const registries = useProjectStore.getState().registries
   const plantType = registries.plants.find((p) => p.id === element.plantTypeId)

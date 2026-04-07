@@ -28,6 +28,7 @@ interface PathToolState {
   setSelectedPathTypeId: (id: string) => void
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const usePathToolStore = create<PathToolState>((set) => ({
   selectedPathTypeId: null,
   setSelectedPathTypeId: (id: string) => set({ selectedPathTypeId: id }),
@@ -36,6 +37,7 @@ export const usePathToolStore = create<PathToolState>((set) => ({
 // ─── PLAN-B interface contracts ─────────────────────────────────────────────
 
 /** Point-in-path hit test (proximity to any segment, within half stroke width). */
+// eslint-disable-next-line react-refresh/only-export-components
 export function hitTest(element: PathElement, worldX: number, worldY: number): boolean {
   const halfW = element.strokeWidthCm / 2
   const pts = element.points
@@ -52,6 +54,7 @@ export function hitTest(element: PathElement, worldX: number, worldY: number): b
 }
 
 /** Axis-aligned bounding box of a PathElement. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getAABB(element: PathElement): { x: number; y: number; w: number; h: number } {
   if (element.points.length === 0) return { x: element.x, y: element.y, w: 0, h: 0 }
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity

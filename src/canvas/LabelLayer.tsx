@@ -41,6 +41,7 @@ interface LabelToolState {
   setEditing: (id: string | null) => void
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useLabelToolStore = create<LabelToolState>((set) => ({
   isEditing: false,
   editingLabelId: null,
@@ -50,6 +51,7 @@ export const useLabelToolStore = create<LabelToolState>((set) => ({
 // ─── PLAN-B interface contracts ─────────────────────────────────────────────
 
 /** AABB hit test for a label element. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function hitTest(element: LabelElement, worldX: number, worldY: number): boolean {
   return (
     worldX >= element.x &&
@@ -60,6 +62,7 @@ export function hitTest(element: LabelElement, worldX: number, worldY: number): 
 }
 
 /** Axis-aligned bounding box of a LabelElement. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getAABB(element: LabelElement): { x: number; y: number; w: number; h: number } {
   return { x: element.x, y: element.y, w: element.width, h: element.height }
 }

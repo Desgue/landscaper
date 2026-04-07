@@ -26,6 +26,7 @@ import { sampleArc, segmentsIntersect, arcAABB } from './arcGeometry'
 // ─── PLAN-B interface contracts ───────────────────────────────────────────────
 
 /** Point-in-polygon test via horizontal ray casting, with arc edge support (FIX 14). */
+// eslint-disable-next-line react-refresh/only-export-components
 export function hitTest(boundary: YardBoundary | null, worldX: number, worldY: number): boolean {
   if (!boundary || boundary.vertices.length < 3) return false
   const verts = boundary.vertices
@@ -54,6 +55,7 @@ export function hitTest(boundary: YardBoundary | null, worldX: number, worldY: n
 }
 
 /** Axis-aligned bounding box of a YardBoundary (including arc edge bulge). */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getAABB(boundary: YardBoundary): { x: number; y: number; w: number; h: number } {
   if (boundary.vertices.length === 0) return { x: 0, y: 0, w: 0, h: 0 }
   const verts = boundary.vertices

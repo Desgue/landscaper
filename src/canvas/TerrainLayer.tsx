@@ -30,6 +30,7 @@ interface TerrainPaintState {
   setBrushSize: (size: 1 | 2 | 3) => void
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useTerrainPaintStore = create<TerrainPaintState>((set) => ({
   selectedTerrainTypeId: null,
   brushSize: 1,
@@ -40,6 +41,7 @@ export const useTerrainPaintStore = create<TerrainPaintState>((set) => ({
 // ─── PLAN-B interface contracts ───────────────────────────────────────────────
 
 /** Point-in-terrain-cell hit test. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function hitTest(element: TerrainElement, worldX: number, worldY: number): boolean {
   return (
     worldX >= element.x &&
@@ -50,6 +52,7 @@ export function hitTest(element: TerrainElement, worldX: number, worldY: number)
 }
 
 /** Axis-aligned bounding box of a TerrainElement (always 100×100). */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getAABB(element: TerrainElement): { x: number; y: number; w: number; h: number } {
   return { x: element.x, y: element.y, w: 100, h: 100 }
 }

@@ -31,6 +31,7 @@ interface StructureToolState {
   setSelectedStructureTypeId: (id: string) => void
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useStructureToolStore = create<StructureToolState>((set) => ({
   selectedStructureTypeId: null,
   setSelectedStructureTypeId: (id: string) => set({ selectedStructureTypeId: id }),
@@ -58,6 +59,7 @@ const BLOCKING_CATEGORIES = new Set(['boundary', 'feature', 'furniture'])
 // ─── PLAN-C/D interface contracts ───────────────────────────────────────────
 
 /** AABB hit test (ignores rotation for MVP). */
+// eslint-disable-next-line react-refresh/only-export-components
 export function hitTest(element: StructureElement, worldX: number, worldY: number): boolean {
   return (
     worldX >= element.x &&
@@ -68,6 +70,7 @@ export function hitTest(element: StructureElement, worldX: number, worldY: numbe
 }
 
 /** Axis-aligned bounding box of a StructureElement. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getAABB(element: StructureElement): { x: number; y: number; w: number; h: number } {
   return { x: element.x, y: element.y, w: element.width, h: element.height }
 }
@@ -165,6 +168,7 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
   const isActive = (isStructureTool || isArcTool) && selectedStructureTypeId !== null
 
   // Reset all placement state when tool changes
+  /* eslint-disable react-hooks/set-state-in-effect -- intentional reset on tool change */
   useEffect(() => {
     placingRef.current = null
     arcPlacingRef.current = null
@@ -172,6 +176,7 @@ export default function StructureLayer({ width: _width, height: _height }: Struc
     setArcPreview(null)
     setArcAnchor(null)
   }, [activeTool])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Escape key cancels in-progress placement
   useEffect(() => {

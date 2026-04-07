@@ -36,6 +36,7 @@ interface MeasurementStore {
   reset: () => void
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useMeasurementStore = create<MeasurementStore>((set) => ({
   phase: 'idle',
   startPoint: null,
@@ -58,6 +59,7 @@ function pointToSegmentDistance(p: Vec2, a: Vec2, b: Vec2): number {
   return Math.sqrt((p.x - projX) ** 2 + (p.y - projY) ** 2)
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function hitTest(element: DimensionElement, worldX: number, worldY: number): boolean {
   const geo = computeDimensionGeometry(element.startPoint, element.endPoint, element.offsetCm)
   const tolerance = 15
@@ -68,6 +70,7 @@ export function hitTest(element: DimensionElement, worldX: number, worldY: numbe
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function getAABB(element: DimensionElement): AABB {
   return dimensionAABB(element.startPoint, element.endPoint, element.offsetCm)
 }
