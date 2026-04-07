@@ -17,7 +17,7 @@ A **"Generate Preview"** button sits in the top toolbar, right side — visually
 ```
 
 - Label: "Generate Preview" with a spark/wand icon. Abbreviated to "Generate" at narrower widths.
-- Color: blue accent `#1971c2`, filled pill button.
+- Color: gold accent `#E8A838`, filled pill button.
 - Disabled state: when `project.yardBoundary` is null. Tooltip reads: "Set up a yard boundary before generating."
 - Clicking the button opens the **Generate Options Panel**.
 
@@ -60,17 +60,17 @@ A centered modal dialog. Not a popover — it must not close on outside click be
 | Season | Dropdown | early spring, late spring, summer, late summer, autumn, winter, **Auto (detect)** | "Auto (detect)" |
 | Time of Day | Dropdown | morning, midday, golden hour, overcast | "golden hour" |
 | Viewpoint | Dropdown | eye-level, elevated, isometric | "eye-level" |
-| Aspect Ratio | Dropdown | square (1:1), landscape (16:9), portrait (9:16) | "square" |
+| Aspect Ratio | Dropdown | square (1:1), landscape (4:3), portrait (3:4) | "square" |
 | Seed | Number input | any integer; empty = random | empty (random) |
 | Include Planned | Toggle | on / off | on |
 
 **Season "Auto (detect)" option**: maps to omitting `season` from the request — the backend derives it from `project.location.lat` and the server date. If `project.location` is null, the backend defaults to `"summer"`. The UI label is "Auto (detect from location)" when `project.location` is set, "Auto (defaults to summer)" when not set.
 
-**Reference Photo**: reads from `project.yardPhoto` (pre-filled if stored). Accepts JPEG and PNG. After upload, show a small thumbnail (max 120×80px, cover crop). Clicking "Remove" clears `project.yardPhoto` from project state and calls `markDirty()`.
+**Reference Photo**: reads from `useGenerateStore.yardPhoto` (session-scoped, not persisted to the project). Accepts JPEG and PNG. After upload, show a small thumbnail (max 120×80px, cover crop). Clicking "Remove" clears `yardPhoto` from the generate store.
 
 ### Persisting Options
 
-The last-used options (except seed and reference photo) are stored in `project.uiState.lastGenerateOptions` so the panel re-opens with the same settings. `seed` always resets to empty (random). Reference photo is read from `project.yardPhoto` each time.
+The last-used options (except seed and reference photo) are stored in `project.uiState.lastGenerateOptions` so the panel re-opens with the same settings. `seed` always resets to empty (random). Reference photo is session-scoped in the generate store and must be re-uploaded each session.
 
 `project.uiState.lastGenerateOptions` shape:
 ```json
@@ -98,7 +98,7 @@ const requestBody = {
     ...project,           // spread the full project object
     registries,           // merge registries inside project (see api-contract.md "## Project Field Shape")
   },
-  yard_photo: project.yardPhoto ?? undefined,  // top-level field, not inside project
+  yard_photo: generateStore.yardPhoto ?? undefined,  // top-level field, read from generate store
   options: {
     garden_style:     options.gardenStyle  ?? undefined,
     season:           options.season       ?? undefined,  // null → omit → backend derives
@@ -113,7 +113,7 @@ const requestBody = {
 
 `registries` comes from the same app state slice as `project`. They are top-level siblings in app state but are merged into the project object for the API request — matching the Go backend's `ProjectPayload.Registries` field. See [api-contract.md "## Project Field Shape"].
 
-The request is sent as `POST /api/generate` with `Content-Type: application/json`. The response is `image/png` bytes on success.
+The request is sent as `POST /api/generate` with `Content-Type: application/json`. The response is image bytes (`image/png` or `image/jpeg`) on success.
 
 ---
 
@@ -142,29 +142,25 @@ After the user clicks **Generate**:
 
 ---
 
-## Result Modal
+## Result View
 
-On HTTP 200 (successful PNG response):
+On HTTP 200 (successful image response):
 
-1. Loading overlay closes.
-2. A **result modal** opens, centered, with the generated image:
+1. Loading state clears.
+2. The **result view** appears in the workspace area, displaying the generated image:
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  Your Garden Preview                                 [✕] │
-├──────────────────────────────────────────────────────────┤
 │                                                          │
-│              [generated image, max 80vh]                 │
+│              [generated image, max 55vh]                 │
 │                                                          │
-├──────────────────────────────────────────────────────────┤
-│  [↺ Generate Again]                      [↓ Download]   │
+│        [↺ Generate Again]    [↓ Download]                │
 └──────────────────────────────────────────────────────────┘
 ```
 
-- The image is displayed at its natural resolution, scaled to fit within the modal (max 80vh, maintain aspect ratio). A click expands it to full screen.
-- **Download** triggers a browser file download of the PNG with filename `{project.name}-preview.png`.
-- **Generate Again** closes the result modal and reopens the Generate Options Panel with the same settings pre-filled (so the user can tweak and retry).
-- **[✕]** closes the modal. The generated image is not stored — if the user closes without downloading, it is gone.
+- The image is displayed at its natural resolution, scaled to fit within the workspace (max 55vh, maintain aspect ratio).
+- **Download** triggers a browser file download with filename `{project.name}-preview.{ext}` where `ext` is derived from the response MIME type (`image/jpeg` → `.jpg`, otherwise `.png`). Uses `resultMimeType` from the generate store.
+- **Generate Again** calls `clearResult()` (which revokes the blob URL) and sets `activeFeature` back to `'initial'` so the user sees the options panel again.
 
 ---
 
@@ -178,10 +174,16 @@ On non-200 HTTP response:
 | Condition | HTTP | Toast message |
 |---|---|---|
 | No yard boundary | 400 `"project has no yard boundary"` | "Set up a yard boundary before generating." |
+| Yard photo too large | 400 `"yard photo too large"` | "Your reference photo is too large. Use an image under 3 MB." |
+| Invalid request / missing project | 400 `"invalid request body"` or `"project is required"` | "Something went wrong. Please try again." |
 | Other 400 | 400 | "Generation failed: check your options and try again." |
+| Payload too large | 413 | "Your project is too large to send. Try removing some elements." |
+| Server error | 500 | "Something went wrong on the server. Please try again." |
 | Gemini error | 502 | "The AI service returned an error. Try again in a moment." |
-| Timeout | 504 | "Generation timed out (60s). Try again or simplify your garden layout." |
+| Timeout | 504 | "Generation timed out. Try again or simplify your garden layout." |
+| Other 5xx | 5xx | "Something went wrong on the server. Please try again." |
 | Network error (no response) | — | "Could not reach the server. Check your connection." |
+| Client 60s timeout | — | "Generation timed out. Try again or simplify your garden layout." |
 | Abort (user cancelled) | — | No toast shown. |
 
 The toast does not show raw error messages from the backend. The `error` field in the JSON response body may be logged to the browser console for debugging but is not shown to the user verbatim.
@@ -190,22 +192,17 @@ The toast does not show raw error messages from the backend. The `error` field i
 
 ## Reference Photo
 
-`project.yardPhoto` is managed in two places:
+The yard reference photo is managed in `useGenerateStore` as session-scoped state (`yardPhoto: string | null`, `yardPhotoName: string | null`). It is **not** persisted to the `Project` type or IndexedDB — users must re-upload each session. Future work may persist it to the project.
 
-1. **Generate Options Panel** — upload / remove during the generation flow.
-2. **Inspector or Project Settings** — a dedicated "Yard Reference Photo" section for managing it outside of the generate flow (upload once, persists across generate sessions).
+The photo is uploaded via the **Generate Options Panel** (InitialGeneration component):
 
-When a new photo is uploaded (either place):
+When a new photo is uploaded:
 - Validate file type: accept `image/jpeg` and `image/png` only. Other types show inline error: "Please upload a JPEG or PNG image."
-- Validate file size: max 5 MB. Larger files show: "Photo too large. Maximum size is 5 MB."
-- Convert to base64 string and store in `project.yardPhoto`.
-- Call `markDirty()` to trigger auto-save.
+- Validate file size: max 3 MB (matches backend per-photo decoded limit). Larger files show: "Photo too large. Maximum size is 3 MB."
+- Convert to base64 data URL via `FileReader.readAsDataURL()` and store in `useGenerateStore.yardPhoto`.
 
 When removed:
-- Set `project.yardPhoto = null`.
-- Call `markDirty()`.
-
-`project.yardPhoto` is stored in IndexedDB but **excluded from JSON export**. See [data-schema.md "### Yard Photo Storage"].
+- Call `setYardPhoto(null, null)` on the generate store.
 
 ---
 
@@ -233,14 +230,14 @@ Scenario: User cancels during loading
   When the user clicks "Cancel"
   Then the fetch is aborted
   And the loading overlay closes
-  And no result modal or error toast appears
+  And no result view or error toast appears
 
-Scenario: Successful generation shows result modal
+Scenario: Successful generation shows result view
   Given a valid project with a yard boundary
-  And POST /api/generate returns HTTP 200 with PNG bytes
+  And POST /api/generate returns HTTP 200 with image bytes
   When the generation completes
-  Then the loading overlay closes
-  And the result modal opens displaying the generated image
+  Then the loading state clears
+  And the result view appears displaying the generated image
 
 Scenario: 504 timeout shows specific toast
   Given POST /api/generate returns HTTP 504
@@ -255,8 +252,8 @@ Scenario: Uploading an invalid file type shows inline error
   And an inline error reads "Please upload a JPEG or PNG image."
 
 Scenario: yardPhoto included as top-level field in request
-  Given project.yardPhoto is a non-null base64 string
+  Given useGenerateStore.yardPhoto is a non-null base64 string
   When the request body is constructed
-  Then the top-level "yard_photo" field equals project.yardPhoto
+  Then the top-level "yard_photo" field equals the store's yardPhoto
   And the "project" field does not contain a "yardPhoto" key
 ```

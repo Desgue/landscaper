@@ -41,7 +41,7 @@
 | **Scope** | Wire the existing generate UI to `POST /api/generate`. Fix type mismatches between `generate.ts` and API contract. Add download, error toasts, yard boundary gate, and request timeout. Excludes: rebuilding the generate page/nav/workspace (already exist), backend changes, and advanced features (chat, drafts, materials, style transfer, outpainting). |
 | **Depends on** | PLAN-A (project state, `markDirty()`); existing generate UI components (already built) |
 | **Unblocks** | Nothing — standalone feature |
-| **Status** | `todo` |
+| **Status** | `done` |
 | **Started** | — |
 | **Last updated** | 2026-04-07 |
 | **Phases** | Phase 1: Type Fixes & API Client · Phase 2: Store Integration · Phase 3: UI Completion |
@@ -173,13 +173,13 @@ User clicks Generate
 
 ## Phases
 
-### Phase 1 — Type Fixes & API Client [ ]
+### Phase 1 — Type Fixes & API Client [x]
 
 > Fix the generate.ts types to match the API contract, then build the API client module. No store or UI changes yet — this phase produces a pure function that later phases consume.
 
-#### Feature: Fix generate.ts Type Mismatches [ ]
+#### Feature: Fix generate.ts Type Mismatches [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Modifies:** `src/types/generate.ts`
 
 ##### Tasks
@@ -203,9 +203,9 @@ _None yet._
 
 ---
 
-#### Feature: API Client Module [ ]
+#### Feature: API Client Module [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Produces:** `src/api/generateClient.ts`
 
 ##### Tasks
@@ -247,13 +247,13 @@ _None yet._
 
 ---
 
-### Phase 2 — Store Integration [ ]
+### Phase 2 — Store Integration [x]
 
 > Replace the `generate()` stub in useGenerateStore with the real API client. Add AbortController lifecycle, timeout, and object URL management.
 
-#### Feature: Wire generate() to Real API [ ]
+#### Feature: Wire generate() to Real API [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Modifies:** `src/store/useGenerateStore.ts`
 
 ##### Tasks
@@ -272,13 +272,13 @@ _None yet._
 
 ---
 
-### Phase 3 — UI Completion [ ]
+### Phase 3 — UI Completion [x]
 
 > Fill the remaining UI gaps: download button, "Generate Again", error toasts, and yard boundary disabled states.
 
-#### Feature: Result View Enhancements [ ]
+#### Feature: Result View Enhancements [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Modifies:** `src/components/generate/Workspace.tsx`
 
 ##### Tasks
@@ -294,9 +294,9 @@ _None yet._
 
 ---
 
-#### Feature: Error Toast Component [ ]
+#### Feature: Error Toast Component [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Produces:** `src/components/ErrorToast.tsx` (or integrated into existing toast/notification system if one exists)
 
 ##### Tasks
@@ -312,9 +312,9 @@ _None yet._
 
 ---
 
-#### Feature: Yard Boundary Gate [ ]
+#### Feature: Yard Boundary Gate [x]
 
-**Status:** `todo`
+**Status:** `done`
 **Modifies:** `src/components/TopToolbar.tsx`, `src/components/generate/features/InitialGeneration.tsx`
 
 ##### Tasks
