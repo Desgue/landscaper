@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+
+const MAX_IMPORT_SIZE_BYTES = 50 * 1024 * 1024 // 50 MB
 import { useRouter } from '@tanstack/react-router'
 import { getAllProjects, saveProject, deleteProject } from '../db/projectsDb'
 import { validateImport } from '../db/schemaValidation'
@@ -98,6 +100,10 @@ export default function WelcomeScreen() {
     console.debug('[import] File selected: name=%s size=%d bytes', file.name, file.size)
     // Reset so the same file can be re-imported
     e.target.value = ''
+    if (file.size > MAX_IMPORT_SIZE_BYTES) {
+      alert(`File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed size is ${MAX_IMPORT_SIZE_BYTES / 1024 / 1024} MB.`)
+      return
+    }
     let parsed: unknown
     try {
       const text = await file.text()

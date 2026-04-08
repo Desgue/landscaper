@@ -7,6 +7,7 @@ import {
   Outlet,
 } from '@tanstack/react-router'
 import LandingPage from './pages/LandingPage'
+import ErrorBoundary from './components/ErrorBoundary'
 
 const LazyWelcomeScreen = React.lazy(() => import('./components/WelcomeScreen'))
 const LazyAppLayout = React.lazy(() =>
@@ -26,25 +27,31 @@ function LoadingFallback() {
 
 function SuspenseWelcome() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <LazyWelcomeScreen />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingFallback />}>
+        <LazyWelcomeScreen />
+      </Suspense>
+    </ErrorBoundary>
   )
 }
 
 function SuspenseAppLayout() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <LazyAppLayout />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingFallback />}>
+        <LazyAppLayout />
+      </Suspense>
+    </ErrorBoundary>
   )
 }
 
 function SuspenseGeneratePage() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <LazyGeneratePage />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingFallback />}>
+        <LazyGeneratePage />
+      </Suspense>
+    </ErrorBoundary>
   )
 }
 
