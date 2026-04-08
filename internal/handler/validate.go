@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"greenprint/internal/model"
@@ -212,7 +213,14 @@ func parseYardPhotos(raw json.RawMessage) ([]model.PhotoEntry, error) {
 }
 
 // decodePhoto decodes a single base64-encoded photo and validates magic bytes.
+// Accepts both raw base64 and data-URL format (data:image/jpeg;base64,...).
 func decodePhoto(b64 string) (model.PhotoEntry, error) {
+	// Strip data-URL prefix if present (e.g. "data:image/jpeg;base64,...")
+	if strings.HasPrefix(b64, "data:") {
+		if idx := strings.Index(b64, ";base64,"); idx != -1 {
+			b64 = b64[idx+8:]
+		}
+	}
 	// Pre-check: reject obviously oversized input before allocating decode buffer.
 	if base64.StdEncoding.DecodedLen(len(b64)) > maxPhotoBytes {
 		return model.PhotoEntry{}, fmt.Errorf("yard photo too large")
