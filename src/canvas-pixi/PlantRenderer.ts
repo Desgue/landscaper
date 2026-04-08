@@ -23,6 +23,9 @@ import type { RendererHandle } from './BaseRenderer'
 import type { RenderScheduler } from './RenderScheduler'
 import type { TextureAtlas } from './textures/TextureAtlas'
 import type { PlantElement, PlantType, PlantStatus, Layer } from '../types/schema'
+import type { CanvasTokens } from '../tokens/canvasTokens'
+import { pixiIntToHex } from '../tokens/canvasTokens'
+import { updatePlantColors } from './textures/PlantSprites'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -52,7 +55,7 @@ const STATUS_SYMBOLS: Record<PlantStatus, string> = {
   removed: '✕',   // x mark
 }
 
-const STATUS_COLORS: Record<PlantStatus, string> = {
+let STATUS_COLORS: Record<PlantStatus, string> = {
   planned: '#9E9E9E',
   planted: '#4CAF50',
   growing: '#66BB6A',
@@ -353,6 +356,30 @@ export function createPlantRenderer(
 
   return {
     update: rebuildFromStore,
+    setTokens(tokens: CanvasTokens) {
+      // Update status colors (integer → hex for Text fill)
+      STATUS_COLORS = {
+        planned: pixiIntToHex(tokens.plantStatusColors.planned),
+        planted: pixiIntToHex(tokens.plantStatusColors.planted),
+        growing: pixiIntToHex(tokens.plantStatusColors.growing),
+        harvested: pixiIntToHex(tokens.plantStatusColors.harvested),
+        removed: pixiIntToHex(tokens.plantStatusColors.removed),
+      }
+
+      // Update category colors in PlantSprites (integer → hex for Canvas2D)
+      updatePlantColors({
+        vegetable: pixiIntToHex(tokens.plantColors.vegetable),
+        herb: pixiIntToHex(tokens.plantColors.herb),
+        fruit: pixiIntToHex(tokens.plantColors.fruit),
+        flower: pixiIntToHex(tokens.plantColors.flower),
+        tree: pixiIntToHex(tokens.plantColors.tree),
+        shrub: pixiIntToHex(tokens.plantColors.shrub),
+      })
+
+      // Invalidate cached textures (colors are baked in) and rebuild
+      atlas.invalidatePlantCache()
+      rebuildFromStore()
+    },
     destroy(): void {
       for (const unsub of unsubs) unsub()
       unsubs.length = 0
