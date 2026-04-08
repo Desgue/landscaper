@@ -130,7 +130,7 @@ BAU-3, BAU-4, BAU-7, BAU-9, BAU-10, BAU-11, BAU-13, BAU-15, BAU-19, BAU-20, BAU-
 | BAU-8 | ~~IndexedDB migration system~~ | ~~high~~ | `dropped` — over-engineered; schema evolution handled by validation on load |
 | BAU-15 | Go server graceful shutdown | medium | `planned` — [ENG-15](https://linear.app/dg-tech/issue/ENG-15) |
 | BAU-16 | ~~Anonymous error tracking (Sentry or similar)~~ | ~~low~~ | `dropped` — premature for personal project; BAU-4 toasts cover user-facing errors |
-| BAU-31 | Deploy to Railway | high | `open` |
+| BAU-31 | Deploy to Railway | high | `planned` — [ENG-24](https://linear.app/dg-tech/issue/ENG-24) |
 
 ### Cleanup & Documentation
 
