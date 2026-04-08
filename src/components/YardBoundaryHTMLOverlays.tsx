@@ -100,6 +100,16 @@ export default function YardBoundaryHTMLOverlays() {
   const showPlacement = isPlacing && activeTool === 'select'
   const showEditing = yardBoundary !== null && !isPlacing
 
+  // Stable callbacks for EdgeLengthInput (prevents cleanup effect churn on pan/zoom)
+  const handleEdgeCommit = useCallback((idx: number, meters: number) => {
+    useBoundaryUIStore.getState().boundaryHandle?.applyEdgeLength(idx, meters)
+    useBoundaryUIStore.getState().setEditingEdgeIndex(null)
+  }, [])
+
+  const handleEdgeCancel = useCallback(() => {
+    useBoundaryUIStore.getState().setEditingEdgeIndex(null)
+  }, [])
+
   // Escape key cancels placement (stopPropagation prevents CanvasHost conflict)
   useEffect(() => {
     if (!showPlacement) return
@@ -183,11 +193,8 @@ export default function YardBoundaryHTMLOverlays() {
               edgeIndex={i}
               midScreen={mid}
               currentLengthM={mid.lengthM}
-              onCommit={(idx, meters) => {
-                boundaryHandle?.applyEdgeLength(idx, meters)
-                setEditingEdgeIndex(null)
-              }}
-              onCancel={() => setEditingEdgeIndex(null)}
+              onCommit={handleEdgeCommit}
+              onCancel={handleEdgeCancel}
             />
           ) : (
             <button

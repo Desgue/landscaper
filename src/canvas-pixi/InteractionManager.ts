@@ -259,6 +259,10 @@ export function createInteractionManager(
       if (newTool !== oldTool) {
         ssm.reset()
         selectionOverlay.updateVisualState(ssm.getVisualState())
+        // Cancel in-progress boundary placement when leaving select tool
+        if (oldTool === 'select' && toolHandlers.boundary.getPlacementState().isPlacing) {
+          toolHandlers.boundary.destroy()
+        }
       }
     },
   )
