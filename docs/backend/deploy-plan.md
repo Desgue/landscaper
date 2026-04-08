@@ -119,12 +119,14 @@ Greenprint is a stateless Go HTTP server that:
   [deploy]
   startCommand = "./server/server"
   healthcheckPath = "/api/health"
-  healthcheckTimeout = 30
+  healthcheckTimeout = 60
   restartPolicyType = "ON_FAILURE"
   restartPolicyMaxRetries = 3
   ```
-- [ ] Verify `go.mod` has a Go version that Railway/Railpack can satisfy (check if `go 1.26.1` causes issues — may need to pin to a released version like `1.23`)
-- [ ] Test the build pipeline locally: `npm ci && npm run build && go build -o server ./cmd/server` — confirm the binary starts and serves both SPA and API
+  Note: `healthcheckTimeout = 60` (not 30) — the Go binary embeds a Vite SPA and cold-start is slower than a bare binary; 30s is too short for first deploy.
+- [ ] Create `.railwayignore` at repo root to prevent `railway up` from uploading local secrets (`.env`, `.env.*`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.crt`, `.npmrc`, `.claude/`, `node_modules/`, SSH keys). `railway up` does NOT respect `.gitignore`.
+- [ ] Verify `go.mod` has a Go version that Railway/Railpack can satisfy (check if `go 1.26.1` causes issues — set `RAILPACK_GO_VERSION=1.26.1` env var first; fall back to updating `go.mod` if Mise doesn't carry it)
+- [ ] Test the build pipeline locally: `make clean && make build` — confirm `server/server` binary exists and `GET /api/health` returns `{"ok": true}`
 
 ##### Decisions
 
