@@ -4,37 +4,30 @@
 // Union types are derived below — never hand-written.
 
 export const GARDEN_STYLES = [
-  { value: 'cottage', label: 'Cottage' },
-  { value: 'formal', label: 'Formal' },
-  { value: 'tropical', label: 'Tropical' },
-  { value: 'mediterranean', label: 'Mediterranean' },
-  { value: 'japanese', label: 'Japanese' },
-  { value: 'kitchen', label: 'Kitchen Garden' },
-  { value: 'native', label: 'Native' },
   { value: 'contemporary', label: 'Contemporary' },
-  { value: 'garden', label: 'Garden' },
+  { value: 'cottage', label: 'Cottage' },
+  { value: 'japanese', label: 'Japanese' },
+  { value: 'tropical', label: 'Tropical' },
+  { value: 'formal', label: 'Formal' },
 ] as const;
 
 export const SEASONS = [
-  { value: 'auto', label: 'Auto (detect)' },
-  { value: 'early spring', label: 'Early Spring' },
-  { value: 'late spring', label: 'Late Spring' },
+  { value: 'spring', label: 'Spring' },
   { value: 'summer', label: 'Summer' },
-  { value: 'late summer', label: 'Late Summer' },
   { value: 'autumn', label: 'Autumn' },
   { value: 'winter', label: 'Winter' },
 ] as const;
 
 export const TIMES_OF_DAY = [
   { value: 'morning', label: 'Morning' },
-  { value: 'midday', label: 'Midday' },
+  { value: 'afternoon', label: 'Afternoon' },
   { value: 'golden hour', label: 'Golden Hour' },
-  { value: 'overcast', label: 'Overcast' },
 ] as const;
 
 export const VIEWPOINTS = [
-  { value: 'eye-level', label: 'Eye Level' },
+  { value: 'eye-level', label: 'Eye-level' },
   { value: 'elevated', label: 'Elevated' },
+  { value: 'overhead', label: 'Overhead' },
   { value: 'isometric', label: 'Isometric' },
 ] as const;
 
@@ -73,9 +66,9 @@ export interface GenerateOptions {
 }
 
 export const DEFAULT_OPTIONS: GenerateOptions = {
-  gardenStyle: 'garden',
-  season: 'auto',
-  timeOfDay: 'golden hour',
+  gardenStyle: 'contemporary',
+  season: 'summer',
+  timeOfDay: 'afternoon',
   viewpoint: 'eye-level',
   aspectRatio: 'square',
   imageSize: '1K',
