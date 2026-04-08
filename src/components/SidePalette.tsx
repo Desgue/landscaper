@@ -3,6 +3,9 @@ import { useProjectStore } from '../store/useProjectStore'
 import { useToolStore } from '../store/useToolStore'
 import { useTerrainPaintStore, usePlantToolStore, useStructureToolStore, usePathToolStore } from '../canvas/toolStores'
 import type { ToolId } from '../types/schema'
+import { PLANT_COLORS } from '../tokens/plantColors'
+import { STRUCTURE_CATEGORY_COLORS } from '../tokens/structureColors'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 type Tab = 'Terrain' | 'Plants' | 'Structures' | 'Paths'
 const TABS: Tab[] = ['Terrain', 'Plants', 'Structures', 'Paths']
@@ -13,26 +16,6 @@ const TOOL_TO_TAB: Partial<Record<ToolId, Tab>> = {
   structure: 'Structures',
   arc: 'Structures',
   path: 'Paths',
-}
-
-const PLANT_COLORS: Record<string, string> = {
-  vegetable: 'var(--ls-plant-vegetable)',
-  herb: 'var(--ls-plant-herb)',
-  fruit: 'var(--ls-plant-fruit)',
-  flower: 'var(--ls-plant-flower)',
-  tree: 'var(--ls-plant-tree)',
-  shrub: 'var(--ls-plant-shrub)',
-  other: 'var(--ls-text-tertiary)',
-}
-
-// TODO(ENG-32+): extract to src/tokens/structureColors.ts and map to --ls-structure-category-* tokens
-const STRUCTURE_CATEGORY_COLORS: Record<string, string> = {
-  boundary: '#6b7280',
-  container: '#92400e',
-  surface: '#d97706',
-  overhead: '#7c3aed',
-  feature: '#0891b2',
-  furniture: '#1d4ed8',
 }
 
 export default function SidePalette() {
@@ -110,26 +93,21 @@ export default function SidePalette() {
     >
       {!collapsed && (
         <>
-          {/* Tabs */}
-          <div className="flex border-b border-gray-200 flex-shrink-0">
-            {TABS.map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className="flex-1 text-xs py-2 font-medium transition-colors"
-                style={{
-                  color: activeTab === tab ? 'var(--ls-color-interactive)' : 'var(--ls-text-tertiary)',
-                  borderBottom: activeTab === tab ? '2px solid var(--ls-color-interactive)' : '2px solid transparent',
-                  background: 'transparent',
-                }}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)} className="flex flex-col flex-1 overflow-hidden">
+            <TabsList className="flex-shrink-0 w-full rounded-none border-b border-gray-200 bg-transparent h-auto p-0">
+              {TABS.map(tab => (
+                <TabsTrigger
+                  key={tab}
+                  value={tab}
+                  className="flex-1 text-xs py-2 font-medium rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--ls-color-interactive)] data-[state=active]:text-[var(--ls-color-interactive)] data-[state=active]:shadow-none"
+                  style={{ color: activeTab === tab ? undefined : 'var(--ls-text-tertiary)' }}
+                >
+                  {tab}
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-          {/* Content */}
-          {activeTab === 'Terrain' ? (
+          <TabsContent value="Terrain" className="flex-1 overflow-hidden mt-0">
             <div className="flex-1 overflow-y-auto p-3">
               <div className="flex flex-wrap gap-2">
                 {terrainTypes.map((tt) => (
@@ -202,7 +180,9 @@ export default function SidePalette() {
                 </div>
               </div>
             </div>
-          ) : activeTab === 'Plants' ? (
+          </TabsContent>
+
+          <TabsContent value="Plants" className="flex-1 overflow-hidden mt-0">
             <div className="flex-1 overflow-y-auto p-3">
               <div className="flex flex-wrap gap-2">
                 {plantTypes.map((pt) => {
@@ -252,7 +232,9 @@ export default function SidePalette() {
                 })}
               </div>
             </div>
-          ) : activeTab === 'Structures' ? (
+          </TabsContent>
+
+          <TabsContent value="Structures" className="flex-1 overflow-hidden mt-0">
             <div className="flex-1 overflow-y-auto p-3">
               <div className="flex flex-wrap gap-2">
                 {structureTypes.map((st) => {
@@ -302,7 +284,9 @@ export default function SidePalette() {
                 })}
               </div>
             </div>
-          ) : activeTab === 'Paths' ? (
+          </TabsContent>
+
+          <TabsContent value="Paths" className="flex-1 overflow-hidden mt-0">
             <div className="flex-1 overflow-y-auto p-3">
               <div className="flex flex-wrap gap-2">
                 {pathTypes.map((pt) => (
@@ -349,11 +333,9 @@ export default function SidePalette() {
                 ))}
               </div>
             </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-sm text-gray-400">
-              No items yet
-            </div>
-          )}
+          </TabsContent>
+
+          </Tabs>
         </>
       )}
 

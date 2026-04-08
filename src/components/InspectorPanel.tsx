@@ -6,6 +6,17 @@ import {
   inspectorSlotRegistry,
   InspectorSlotsContext,
 } from './inspectorSlots'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import type {
   CanvasElement,
   TerrainElement,
@@ -28,7 +39,6 @@ function useInspectorSlots() {
 // ─── Shared UI helpers ──────────────────────────────────────────────────────
 
 const labelCls = 'text-xs text-[var(--ls-text-tertiary)] font-medium mb-0.5'
-const inputCls = 'rounded border border-[var(--ls-border-subtle)] px-2 py-1 text-sm w-full'
 const readonlyCls = 'rounded border border-[var(--ls-border-subtle)] bg-[var(--ls-surface-panel)] px-2 py-1 text-sm w-full text-[var(--ls-text-secondary)]'
 const dividerCls = 'border-t border-[var(--ls-border-subtle)] my-3'
 
@@ -52,8 +62,7 @@ function LayerDropdown({ element }: { element: CanvasElement }) {
   const layers = project?.layers ?? []
 
   const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const newLayerId = e.target.value
+    (newLayerId: string) => {
       const proj = useProjectStore.getState().currentProject
       if (!proj) return
 
@@ -83,13 +92,18 @@ function LayerDropdown({ element }: { element: CanvasElement }) {
   return (
     <div className="mb-2">
       <div className={labelCls}>Layer</div>
-      <select className={inputCls} value={element.layerId} onChange={handleChange}>
-        {layers.map((layer: Layer) => (
-          <option key={layer.id} value={layer.id}>
-            {layer.name}
-          </option>
-        ))}
-      </select>
+      <Select value={element.layerId} onValueChange={handleChange}>
+        <SelectTrigger className="h-8 text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {layers.map((layer: Layer) => (
+            <SelectItem key={layer.id} value={layer.id}>
+              {layer.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   )
 }
@@ -101,8 +115,7 @@ function LockedToggle({ element }: { element: CanvasElement }) {
   const pushHistory = useHistoryStore((s) => s.pushHistory)
 
   const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const locked = e.target.checked
+    (locked: boolean) => {
       const proj = useProjectStore.getState().currentProject
       if (!proj) return
       const snapshot = structuredClone(proj)
@@ -118,13 +131,12 @@ function LockedToggle({ element }: { element: CanvasElement }) {
 
   return (
     <div className="mb-2 flex items-center gap-2">
-      <input
-        type="checkbox"
+      <Checkbox
+        id={`locked-${element.id}`}
         checked={element.locked}
-        onChange={handleChange}
-        className="rounded border-[var(--ls-border-default)]"
+        onCheckedChange={(checked) => handleChange(checked === true)}
       />
-      <span className={labelCls + ' mb-0'}>Locked</span>
+      <Label htmlFor={`locked-${element.id}`} className={labelCls + ' mb-0'}>Locked</Label>
     </div>
   )
 }
@@ -234,26 +246,27 @@ function PlantInspector({ element }: { element: PlantElement }) {
       {/* Status */}
       <div className="mb-2">
         <div className={labelCls}>Status</div>
-        <select
-          className={inputCls}
-          value={element.status}
-          onChange={(e) => update((el) => { el.status = e.target.value as PlantStatus })}
-        >
-          <option value="planned">Planned</option>
-          <option value="planted">Planted</option>
-          <option value="growing">Growing</option>
-          <option value="harvested">Harvested</option>
-          <option value="removed">Removed</option>
-        </select>
+        <Select value={element.status} onValueChange={(v) => update((el) => { el.status = v as PlantStatus })}>
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="planned">Planned</SelectItem>
+            <SelectItem value="planted">Planted</SelectItem>
+            <SelectItem value="growing">Growing</SelectItem>
+            <SelectItem value="harvested">Harvested</SelectItem>
+            <SelectItem value="removed">Removed</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Planted Date (visible when status !== planned) */}
       {element.status !== 'planned' && (
         <div className="mb-2">
           <div className={labelCls}>Planted Date</div>
-          <input
+          <Input
             type="date"
-            className={inputCls}
+            className="h-8 text-sm"
             value={element.plantedDate ?? ''}
             onChange={(e) => update((el) => { el.plantedDate = e.target.value || null })}
           />
@@ -263,11 +276,11 @@ function PlantInspector({ element }: { element: PlantElement }) {
       {/* Quantity */}
       <div className="mb-2">
         <div className={labelCls}>Quantity</div>
-        <input
+        <Input
           type="number"
           min={1}
           step={1}
-          className={inputCls}
+          className="h-8 text-sm"
           value={element.quantity}
           onChange={(e) => {
             const v = parseInt(e.target.value, 10)
@@ -281,8 +294,8 @@ function PlantInspector({ element }: { element: PlantElement }) {
       {/* Notes */}
       <div className="mb-2">
         <div className={labelCls}>Notes</div>
-        <textarea
-          className={inputCls + ' resize-y min-h-[60px]'}
+        <Textarea
+          className="resize-y min-h-[60px] text-sm"
           value={element.notes ?? ''}
           onFocus={startEdit}
           onChange={(e) => updateLive((el) => { el.notes = e.target.value || null })}
@@ -361,11 +374,11 @@ function StructureInspector({ element }: { element: StructureElement }) {
       {/* Dimensions (meters) */}
       <div className="mb-2">
         <div className={labelCls}>Width (m)</div>
-        <input
+        <Input
           type="number"
           step="0.01"
           min="0.01"
-          className={inputCls}
+          className="h-8 text-sm"
           value={(element.width / 100).toFixed(2)}
           onChange={(e) => {
             const v = parseFloat(e.target.value)
@@ -375,11 +388,11 @@ function StructureInspector({ element }: { element: StructureElement }) {
       </div>
       <div className="mb-2">
         <div className={labelCls}>Height (m)</div>
-        <input
+        <Input
           type="number"
           step="0.01"
           min="0.01"
-          className={inputCls}
+          className="h-8 text-sm"
           value={(element.height / 100).toFixed(2)}
           onChange={(e) => {
             const v = parseFloat(e.target.value)
@@ -413,10 +426,10 @@ function StructureInspector({ element }: { element: StructureElement }) {
       {element.shape === 'curved' && (
         <div className="mb-2">
           <div className={labelCls}>Arc Sagitta (cm)</div>
-          <input
+          <Input
             type="number"
             step="1"
-            className={inputCls}
+            className="h-8 text-sm"
             value={element.arcSagitta ?? 0}
             onChange={(e) => {
               const v = parseFloat(e.target.value)
@@ -429,12 +442,12 @@ function StructureInspector({ element }: { element: StructureElement }) {
       {/* Rotation */}
       <div className="mb-2">
         <div className={labelCls}>Rotation (deg)</div>
-        <input
+        <Input
           type="number"
           step="1"
           min="0"
           max="359"
-          className={inputCls}
+          className="h-8 text-sm"
           value={element.rotation}
           onChange={(e) => {
             const v = parseFloat(e.target.value)
@@ -448,8 +461,8 @@ function StructureInspector({ element }: { element: StructureElement }) {
       {/* Notes */}
       <div className="mb-2">
         <div className={labelCls}>Notes</div>
-        <textarea
-          className={inputCls + ' resize-y min-h-[60px]'}
+        <Textarea
+          className="resize-y min-h-[60px] text-sm"
           value={element.notes ?? ''}
           onFocus={startEdit}
           onChange={(e) => updateLive((el) => { el.notes = e.target.value || null })}
@@ -503,11 +516,11 @@ function PathInspector({ element }: { element: PathElement }) {
       {/* Width */}
       <div className="mb-2">
         <div className={labelCls}>Width (cm)</div>
-        <input
+        <Input
           type="number"
           step="1"
           min="1"
-          className={inputCls}
+          className="h-8 text-sm"
           value={element.strokeWidthCm}
           onChange={(e) => {
             const v = parseInt(e.target.value, 10)
@@ -520,13 +533,12 @@ function PathInspector({ element }: { element: PathElement }) {
 
       {/* Closed */}
       <div className="mb-2 flex items-center gap-2">
-        <input
-          type="checkbox"
+        <Checkbox
+          id={`closed-${element.id}`}
           checked={element.closed}
-          onChange={(e) => update((el) => { el.closed = e.target.checked })}
-          className="rounded border-[var(--ls-border-default)]"
+          onCheckedChange={(checked) => update((el) => { el.closed = checked === true })}
         />
-        <span className={labelCls + ' mb-0'}>Closed</span>
+        <Label htmlFor={`closed-${element.id}`} className={labelCls + ' mb-0'}>Closed</Label>
       </div>
 
       <ReadonlyField label="Points" value={String(element.points.length)} />
@@ -591,8 +603,8 @@ function LabelInspector({ element }: { element: LabelElement }) {
       {/* Text */}
       <div className="mb-2">
         <div className={labelCls}>Text</div>
-        <textarea
-          className={inputCls + ' resize-y min-h-[60px]'}
+        <Textarea
+          className="resize-y min-h-[60px] text-sm"
           value={element.text}
           onFocus={startEdit}
           onChange={(e) => updateLive((el) => { el.text = e.target.value })}
@@ -606,12 +618,12 @@ function LabelInspector({ element }: { element: LabelElement }) {
       {/* Font Size */}
       <div className="mb-2">
         <div className={labelCls}>Font Size</div>
-        <input
+        <Input
           type="number"
           min={4}
           max={200}
           step={1}
-          className={inputCls}
+          className="h-8 text-sm"
           value={element.fontSize}
           onChange={(e) => {
             const v = parseInt(e.target.value, 10)
@@ -653,24 +665,22 @@ function LabelInspector({ element }: { element: LabelElement }) {
 
       {/* Bold */}
       <div className="mb-2 flex items-center gap-2">
-        <input
-          type="checkbox"
+        <Checkbox
+          id={`bold-${element.id}`}
           checked={element.bold}
-          onChange={(e) => update((el) => { el.bold = e.target.checked })}
-          className="rounded border-[var(--ls-border-default)]"
+          onCheckedChange={(checked) => update((el) => { el.bold = checked === true })}
         />
-        <span className={labelCls + ' mb-0'}>Bold</span>
+        <Label htmlFor={`bold-${element.id}`} className={labelCls + ' mb-0'}>Bold</Label>
       </div>
 
       {/* Italic */}
       <div className="mb-2 flex items-center gap-2">
-        <input
-          type="checkbox"
+        <Checkbox
+          id={`italic-${element.id}`}
           checked={element.italic}
-          onChange={(e) => update((el) => { el.italic = e.target.checked })}
-          className="rounded border-[var(--ls-border-default)]"
+          onCheckedChange={(checked) => update((el) => { el.italic = checked === true })}
         />
-        <span className={labelCls + ' mb-0'}>Italic</span>
+        <Label htmlFor={`italic-${element.id}`} className={labelCls + ' mb-0'}>Italic</Label>
       </div>
 
       <div className={dividerCls} />
@@ -732,10 +742,10 @@ function DimensionInspector({ element }: { element: DimensionElement }) {
       <div className={dividerCls} />
       <div className="mb-2">
         <div className={labelCls}>Offset (cm)</div>
-        <input
+        <Input
           type="number"
           step="5"
-          className={inputCls}
+          className="h-8 text-sm"
           value={element.offsetCm}
           onChange={(e) => {
             const v = parseFloat(e.target.value)

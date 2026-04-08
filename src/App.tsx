@@ -6,6 +6,7 @@ import {
   RouterProvider,
   Outlet,
 } from '@tanstack/react-router'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import LandingPage from './pages/LandingPage'
 import ErrorBoundary from './components/ErrorBoundary'
 
@@ -94,5 +95,9 @@ declare module '@tanstack/react-router' {
 }
 
 export default function App() {
-  return <RouterProvider router={router} />
+  return (
+    <TooltipProvider>
+      <RouterProvider router={router} />
+    </TooltipProvider>
+  )
 }
