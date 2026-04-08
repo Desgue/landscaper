@@ -53,7 +53,8 @@ Chain 2 — Rendering (safe to run now, no UI chrome):
   BAU-19 → BAU-27 → BAU-22
 
 Chain 3 — Error UX (safe to run now):
-  BAU-4 → BAU-21, BAU-10, BAU-9
+  BAU-2 + BAU-3 (parallel, no blockers)
+  BAU-4 → BAU-9 + BAU-10 + BAU-21 (parallel)
 ```
 
 ### Parallel execution tracks
@@ -61,25 +62,89 @@ Chain 3 — Error UX (safe to run now):
 | Track | Sequence | Notes |
 |-------|----------|-------|
 | **A — Rendering** | BAU-19 → BAU-27 → BAU-22 | Fix visibility first, then scale, then structure distortion |
-| **B — Errors** | BAU-2 + BAU-3 (parallel) → BAU-4 → BAU-21 + BAU-10 + BAU-9 (parallel) | BAU-4 toast system unlocks 3 items |
-| **C — UI Rethink** | BAU-30 → BAU-5 + BAU-6 + BAU-14 + BAU-23 + BAU-24 + BAU-25 + BAU-26 + LP | All UI-heavy work gates on new identity |
+| **B — Errors** | BAU-2 + BAU-3 (parallel) → BAU-4 → BAU-9 + BAU-10 + BAU-21 (parallel) | BAU-4 toast system unlocks 3 items; BAU-2 + BAU-3 unblock BAU-4 |
+| **C — UI Rethink** | BAU-30 → BAU-5 → BAU-6 → BAU-13 + BAU-14 (parallel) | BAU-30 gates BAU-5; BAU-5 gates BAU-6 and BAU-14; BAU-6 gates BAU-13 |
+| **C — UI Rethink (spikes)** | BAU-30 → BAU-23 + BAU-24 (parallel) → BAU-25 + BAU-26 (parallel) | All spike work gates on BAU-30 identity decision |
+| **D — Standalone** | BAU-7, BAU-11, BAU-15, BAU-20, BAU-28, BAU-29, BAU-31 | No blockers; can start immediately in any order |
 
-Tracks A and B can run now in parallel. Track C starts after BAU-30 spike completes.
+Tracks A, B (partial), and D can run now in parallel. Track C starts after BAU-30 spike completes.
 
 ### Cross-category dependencies
 
 | Upstream | Downstream | Reason |
 |----------|------------|--------|
-| BAU-30 (spike) | BAU-5, BAU-6, BAU-14, BAU-23, BAU-24, BAU-25, BAU-26, Landing page | All involve significant UI; design direction must be decided first |
-| BAU-30 (spike) | BAU-2, BAU-21 (partial) | Core logic is safe now; fallback page design and visual feedback style wait for BAU-30 |
+| BAU-30 (spike) | BAU-5, BAU-6, BAU-13, BAU-14, BAU-23, BAU-24, BAU-25, BAU-26, Landing page | All involve significant UI; design direction must be decided first |
 | BAU-19 (rendering) | BAU-27 (rendering) | Must fix tree visibility before sprite scaling matters |
-| BAU-4 (errors) | BAU-21 (UX), BAU-10 (errors), BAU-9 (errors) | All need the centralized toast system |
+| BAU-27 (rendering) | BAU-22 (rendering) | Fix sprite scaling before addressing structure texture distortion |
+| BAU-4 (errors) | BAU-9 (errors), BAU-10 (errors), BAU-21 (UX) | All need the centralized toast system |
 | BAU-5 (refactor) | BAU-6 (refactor), BAU-14 (UX) | Split InspectorPanel before restyling or batch editing |
+| BAU-6 (refactor) | BAU-13 (UX) | Inspector consolidation must land before adding shortcut toggles |
 | BAU-23 (spike) | BAU-25 (spike), BAU-26 (spike) | Plant schedule embeds in PDF; SVG/DXF shares export arch |
 
 ### No dependencies (safe to start now)
 
-BAU-3, BAU-4, BAU-7, BAU-9, BAU-10, BAU-11, BAU-13, BAU-15, BAU-19, BAU-20, BAU-22, BAU-27, BAU-28, BAU-29, BAU-31
+BAU-2, BAU-3, BAU-4, BAU-7, BAU-11, BAU-15, BAU-19, BAU-20, BAU-28, BAU-29, BAU-31
+
+---
+
+## Recommended Implementation Order
+
+Derived from dependency chains and priority. Items within a wave are independent and can run in parallel.
+
+### Wave 1 — Urgent Bugs + Foundation Unlockers
+
+| Order | Issue | Title | Rationale |
+|-------|-------|-------|-----------|
+| 1 | [ENG-41](https://linear.app/dg-tech/issue/ENG-41) | BAU-2: Error boundary for lazy imports | Urgent, tiny, prevents white-screen crashes |
+| 2 | [ENG-42](https://linear.app/dg-tech/issue/ENG-42) | BAU-3: File size validation on import | Urgent, tiny, prevents memory crash |
+| 3 | [ENG-35](https://linear.app/dg-tech/issue/ENG-35) | BAU-19: Trees/shrubs not visible on canvas | Urgent, core functionality broken |
+| 4 | [ENG-36](https://linear.app/dg-tech/issue/ENG-36) | BAU-4: Centralized error logging + toasts | High; unblocks BAU-21, BAU-10, BAU-9 |
+| 5 | [ENG-39](https://linear.app/dg-tech/issue/ENG-39) | [Phase 1] CI workflow + .nvmrc | High infra; unblocks deploy workflow |
+| 6 | [ENG-33](https://linear.app/dg-tech/issue/ENG-33) | [Phase 4] Migrate PixiJS colors to buildCanvasTokens() | Urgent Todo; active design token phase |
+
+### Wave 2 — Now-Unblocked Bugs + Infra
+
+| Order | Issue | Title | Unblocked by |
+|-------|-------|-------|--------------|
+| 7 | [ENG-46](https://linear.app/dg-tech/issue/ENG-46) | BAU-21: Plant placement failure feedback | ENG-36 (toast) |
+| 8 | [ENG-51](https://linear.app/dg-tech/issue/ENG-51) | BAU-10: PNG export error feedback | ENG-36 (toast) |
+| 9 | [ENG-44](https://linear.app/dg-tech/issue/ENG-44) | BAU-9: API retry with exponential backoff | ENG-36 (toast) |
+| 10 | [ENG-49](https://linear.app/dg-tech/issue/ENG-49) | BAU-22: Structure sprite extrusion strip | Standalone bug |
+| 11 | [ENG-50](https://linear.app/dg-tech/issue/ENG-50) | BAU-28: Structure bounding box rotation | Standalone bug |
+| 12 | [ENG-43](https://linear.app/dg-tech/issue/ENG-43) | BAU-27: Plant sprites at fixed 64px | Standalone high bug |
+| 13 | [ENG-26](https://linear.app/dg-tech/issue/ENG-26) | [Phase 2] Railway: project init + first deploy | Standalone infra |
+| 14 | [ENG-27](https://linear.app/dg-tech/issue/ENG-27) | [Phase 3] Smoke test + production hardening | ENG-26 |
+| 15 | [ENG-40](https://linear.app/dg-tech/issue/ENG-40) | [Phase 2] Create deploy-on-tag workflow | ENG-39 |
+| 16 | [ENG-34](https://linear.app/dg-tech/issue/ENG-34) | [Phase 5] Zustand layout-mode store (deprecate /generate) | Urgent Todo |
+
+### Wave 3 — Refactors That Unblock Features
+
+| Order | Issue | Title | Rationale |
+|-------|-------|-------|-----------|
+| 17 | [ENG-47](https://linear.app/dg-tech/issue/ENG-47) | BAU-5: Break down large components | Unblocks BAU-6 and BAU-14 |
+| 18 | [ENG-55](https://linear.app/dg-tech/issue/ENG-55) | BAU-11: Remove generate store stubs | Low-risk cleanup |
+
+### Wave 4 — Features + UX
+
+| Order | Issue | Title | Unblocked by |
+|-------|-------|-------|--------------|
+| 19 | [ENG-48](https://linear.app/dg-tech/issue/ENG-48) | BAU-6: Consolidate inspectors to shadcn/ui | ENG-47 |
+| 20 | [ENG-53](https://linear.app/dg-tech/issue/ENG-53) | BAU-14: Multi-select plant batch editing | ENG-47 |
+| 21 | [ENG-52](https://linear.app/dg-tech/issue/ENG-52) | BAU-13: Bold/italic keyboard shortcuts | Standalone |
+| 22 | [ENG-54](https://linear.app/dg-tech/issue/ENG-54) | BAU-29: Angle snapping for structure rotation | Standalone |
+| 23 | [ENG-37](https://linear.app/dg-tech/issue/ENG-37) | PLAN-H: Image-based sprite loading pipeline | Standalone |
+| 24 | [ENG-45](https://linear.app/dg-tech/issue/ENG-45) | BAU-7: Canvas keyboard accessibility | Large effort; non-blocking |
+
+### Wave 5 — Spikes (Blocked on BAU-30)
+
+These all depend on BAU-30 (design direction spike) completing first.
+
+| Order | Issue | Title | Unblocked by |
+|-------|-------|-------|--------------|
+| 25 | [ENG-17](https://linear.app/dg-tech/issue/ENG-17) | BAU-23: Professional design tool parity spike | BAU-30 |
+| 26 | [ENG-18](https://linear.app/dg-tech/issue/ENG-18) | BAU-24: Construction lines spike | BAU-30 |
+| 27 | [ENG-19](https://linear.app/dg-tech/issue/ENG-19) | BAU-25: Plant schedule generation spike | ENG-17 (BAU-23) |
+| 28 | [ENG-20](https://linear.app/dg-tech/issue/ENG-20) | BAU-26: SVG/DXF export spike | ENG-17 (BAU-23) |
 
 ---
 
@@ -89,38 +154,38 @@ BAU-3, BAU-4, BAU-7, BAU-9, BAU-10, BAU-11, BAU-13, BAU-15, BAU-19, BAU-20, BAU-
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
-| BAU-19 | Tree/shrub plants not visible on canvas | critical | `open` |
+| BAU-19 | Tree/shrub plants not visible on canvas | critical | `planned` — [ENG-35](https://linear.app/dg-tech/issue/ENG-35) |
 | BAU-20 | API yard_photo validation rejects data-URL format | critical | `planned` — [ENG-14](https://linear.app/dg-tech/issue/ENG-14) |
-| BAU-22 | Structure sprite texture includes extrusion (double south-face) | medium | `open` |
-| BAU-27 | Plant sprites rendered at fixed 64px regardless of real-world size | high | `open` |
-| BAU-28 | Structure bounding box doesn't rotate with shape | medium | `open` |
+| BAU-22 | Structure sprite texture includes extrusion (double south-face) | medium | `planned` — [ENG-49](https://linear.app/dg-tech/issue/ENG-49) |
+| BAU-27 | Plant sprites rendered at fixed 64px regardless of real-world size | high | `planned` — [ENG-43](https://linear.app/dg-tech/issue/ENG-43) |
+| BAU-28 | Structure bounding box doesn't rotate with shape | medium | `planned` — [ENG-50](https://linear.app/dg-tech/issue/ENG-50) |
 
 ### Error Handling & Resilience
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
-| BAU-2 | Error boundary for lazy imports | critical | `open` |
-| BAU-3 | File size validation on import | critical | `open` |
-| BAU-4 | Centralized error logging with user-facing toasts | high | `open` |
-| BAU-9 | API retry with exponential backoff | high | `open` |
-| BAU-10 | PNG export error feedback | medium | `open` |
+| BAU-2 | Error boundary for lazy imports | critical | `planned` — [ENG-41](https://linear.app/dg-tech/issue/ENG-41) |
+| BAU-3 | File size validation on import | critical | `planned` — [ENG-42](https://linear.app/dg-tech/issue/ENG-42) |
+| BAU-4 | Centralized error logging with user-facing toasts | high | `planned` — [ENG-36](https://linear.app/dg-tech/issue/ENG-36) |
+| BAU-9 | API retry with exponential backoff | high | `planned` — [ENG-44](https://linear.app/dg-tech/issue/ENG-44) |
+| BAU-10 | PNG export error feedback | medium | `planned` — [ENG-51](https://linear.app/dg-tech/issue/ENG-51) |
 
 ### UX & Accessibility
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
-| BAU-7 | Canvas keyboard accessibility | high | `open` |
-| BAU-21 | No visual feedback on plant placement failure | high | `open` |
-| BAU-13 | Bold/italic keyboard shortcuts for labels | medium | `open` |
-| BAU-14 | Multi-select plant batch editing | medium | `open` |
-| BAU-29 | Angle snapping for structure rotation | medium | `open` |
+| BAU-7 | Canvas keyboard accessibility | high | `planned` — [ENG-45](https://linear.app/dg-tech/issue/ENG-45) |
+| BAU-21 | No visual feedback on plant placement failure | high | `planned` — [ENG-46](https://linear.app/dg-tech/issue/ENG-46) |
+| BAU-13 | Bold/italic keyboard shortcuts for labels | medium | `planned` — [ENG-52](https://linear.app/dg-tech/issue/ENG-52) |
+| BAU-14 | Multi-select plant batch editing | medium | `planned` — [ENG-53](https://linear.app/dg-tech/issue/ENG-53) |
+| BAU-29 | Angle snapping for structure rotation | medium | `planned` — [ENG-54](https://linear.app/dg-tech/issue/ENG-54) |
 
 ### Refactoring & Code Quality
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
-| BAU-5 | Break down large components (JournalView, InspectorPanel) | high | `open` |
-| BAU-6 | Consolidate inspectors to shadcn/ui | high | `open` |
+| BAU-5 | Break down large components (JournalView, InspectorPanel) | high | `planned` — [ENG-47](https://linear.app/dg-tech/issue/ENG-47) |
+| BAU-6 | Consolidate inspectors to shadcn/ui | high | `planned` — [ENG-48](https://linear.app/dg-tech/issue/ENG-48) |
 | BAU-12 | ~~Type-safe error handling (remove `as unknown` casts)~~ | ~~medium~~ | `dropped` — only 14 casts, mostly PixiJS interop; fix opportunistically |
 
 ### Infrastructure & Backend
@@ -136,7 +201,7 @@ BAU-3, BAU-4, BAU-7, BAU-9, BAU-10, BAU-11, BAU-13, BAU-15, BAU-19, BAU-20, BAU-
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
-| BAU-11 | Remove generate store stubs or implement features | medium | `open` |
+| BAU-11 | Remove generate store stubs or implement features | medium | `planned` — [ENG-55](https://linear.app/dg-tech/issue/ENG-55) |
 | BAU-17 | ~~Store method JSDoc documentation~~ | ~~low~~ | `dropped` — TypeScript types already document signatures; JSDoc decays fast |
 | BAU-18 | ~~ESLint rule compliance (remove disables)~~ | ~~low~~ | `dropped` — only 5 disables; fix inline when touching those files |
 
