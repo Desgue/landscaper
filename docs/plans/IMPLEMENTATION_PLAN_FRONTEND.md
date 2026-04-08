@@ -44,13 +44,15 @@ PLAN-F: Image Generation UI
 
 | Plan | File | Owns | Status |
 |------|------|------|--------|
-| A | `docs/plans/frontend/PLAN-A.md` | App scaffold · data schema · canvas/viewport · persistence · snap system | `todo` |
-| B | `docs/plans/frontend/PLAN-B.md` | Yard setup · terrain · plants · structures · paths · labels | `todo` |
-| C | `docs/plans/frontend/PLAN-C.md` | Select · move/copy/paste · inspector · eraser · layers · groups | `todo` |
-| D | `docs/plans/frontend/PLAN-D.md` | Measurement · dimensions · journal · cost tracking | `todo` |
-| E | `docs/plans/frontend/PLAN-E.md` | PNG export · minimap · visual polish · shortcut audit | `todo` |
-| F | `docs/plans/frontend/PLAN-F.md` | Image generation UI · API client · options panel · result modal | `todo` |
-| H | `docs/plans/frontend/PLAN-H.md` | Image-based sprite loading · asset loader · TextureAtlas integration · renderer migration · built-in PNG sprites | `todo` |
+| A | _(removed)_ | App scaffold · data schema · canvas/viewport · persistence · snap system | `done` |
+| B | _(removed)_ | Yard setup · terrain · plants · structures · paths · labels | `done` |
+| C | _(removed)_ | Select · move/copy/paste · inspector · eraser · layers · groups | `done` |
+| D | _(removed)_ | Measurement · dimensions · journal · cost tracking | `done` |
+| E | _(removed)_ | PNG export · minimap · visual polish · shortcut audit | `done` |
+| F | _(removed)_ | Image generation UI · API client · options panel · result modal | `done` |
+| G | _(removed)_ | 2.5D textured rendering engine · illustrated sprites · structure textures | `done` |
+| H | `docs/plans/PLAN_sprite-loading.md` | Image-based sprite loading · asset loader · TextureAtlas integration · renderer migration · built-in PNG sprites | `todo` |
+| LP | `docs/plans/PLAN_landingpage.md` | Landing page redesign — performance, SEO, visual identity | `in-progress` |
 
 ---
 

@@ -38,11 +38,12 @@ PLAN-E: Local CI Pipeline (standalone — no code dependencies)
 
 | Plan | File | Owns | Status |
 |------|------|------|--------|
-| A | `docs/plans/backend/PLAN-A.md` | Go module init, request types, HTTP server & routing, request validation, structured logging | `done` |
-| B | `docs/plans/backend/PLAN-B.md` | Element filtering (Stage 1), segmentation render (Stage 2), prompt construction (Stage 3), Gemini client (Stage 4) | `done` |
-| C | `docs/plans/backend/PLAN-C.md` | Pipeline orchestration, contract test fixtures, build pipeline, dev proxy verification | `done` |
-| D | `docs/plans/backend/PLAN-D.md` | Multi-photo yard input (1–4 photos), validation, pipeline, tests | `done` |
-| E | `docs/plans/backend/PLAN-E.md` | Local CI pipeline: Makefile caching, golangci-lint, lefthook, `make ci` | `in-progress` |
+| A | _(removed)_ | Go module init, request types, HTTP server & routing, request validation, structured logging | `done` |
+| B | _(removed)_ | Element filtering (Stage 1), segmentation render (Stage 2), prompt construction (Stage 3), Gemini client (Stage 4) | `done` |
+| C | _(removed)_ | Pipeline orchestration, contract test fixtures, build pipeline, dev proxy verification | `done` |
+| D | _(removed)_ | Multi-photo yard input (1–4 photos), validation, pipeline, tests | `done` |
+| E | _(removed)_ | Local CI pipeline: Makefile caching, golangci-lint, lefthook, `make ci` | `done` |
+| F | _(removed)_ | Generation quality & consistency: SDK config, prompt restructure, multi-candidate, compliance | `done` |
 
 ---
 
