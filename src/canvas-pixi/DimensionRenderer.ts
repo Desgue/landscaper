@@ -19,6 +19,8 @@ import { setupWorldObject, clearGraphics } from './BaseRenderer'
 import type { RendererHandle } from './BaseRenderer'
 import type { RenderScheduler } from './RenderScheduler'
 import type { DimensionElement, CanvasElement, Layer } from '../types/schema'
+import type { CanvasTokens } from '../tokens/canvasTokens'
+import { pixiIntToHex } from '../tokens/canvasTokens'
 import { computeDimensionGeometry, formatDistance } from '../canvas/geometry'
 
 // ---------------------------------------------------------------------------
@@ -28,8 +30,11 @@ import { computeDimensionGeometry, formatDistance } from '../canvas/geometry'
 /** Max rendered dimensions. */
 const MAX_DIMENSIONS = 200
 
-/** Dimension line color. */
-const DIM_COLOR = 0x1976d2
+/** Dimension line color — overridden by setTokens(). */
+let DIM_COLOR = 0x1976d2
+
+/** Dimension label text fill — overridden by setTokens(). */
+let DIM_FILL_HEX = '#1976d2'
 
 /** Arrowhead length in screen pixels (scaled by 1/zoom). */
 const ARROW_SIZE_PX = 12
@@ -175,6 +180,7 @@ export function createDimensionRenderer(
 
     // --- Distance label ---
     label.text = text
+    label.style.fill = DIM_FILL_HEX
     label.style.fontSize = fontSize
     label.position.set(geo.textPosition.x, geo.textPosition.y)
     label.rotation = geo.textAngle
@@ -206,7 +212,7 @@ export function createDimensionRenderer(
       text: '',
       style: {
         fontSize: FONT_SIZE_PX,
-        fill: '#1976d2',
+        fill: DIM_FILL_HEX,
         fontFamily: 'sans-serif',
         fontWeight: 'bold',
         align: 'center',
@@ -338,6 +344,11 @@ export function createDimensionRenderer(
 
   return {
     update: rebuildFromStore,
+    setTokens(tokens: CanvasTokens) {
+      DIM_COLOR = tokens.colorInteractive
+      DIM_FILL_HEX = pixiIntToHex(tokens.colorInteractive)
+      rebuildFromStore()
+    },
     destroy(): void {
       for (const unsub of unsubs) unsub()
       unsubs.length = 0

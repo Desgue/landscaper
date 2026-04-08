@@ -21,12 +21,14 @@ import { drawDashedLine } from './utils/dashedLine'
 import type { RendererHandle } from './BaseRenderer'
 import type { RenderScheduler } from './RenderScheduler'
 import type { Vec2, YardBoundary } from '../types/schema'
+import type { CanvasTokens } from '../tokens/canvasTokens'
+import { pixiIntToHex } from '../tokens/canvasTokens'
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const BOUNDARY_COLOR = 0x1971c2  // blue
+let BOUNDARY_COLOR = 0x1971c2  // blue — overridden by setTokens()
 const BOUNDARY_STROKE_BASE = 2   // px at zoom=1
 const VERTEX_RADIUS_BASE = 5     // px at zoom=1
 const ARC_HANDLE_RADIUS_BASE = 4 // px at zoom=1
@@ -34,7 +36,7 @@ const DASH_PATTERN = [6, 4]
 const OVERFLOW_DIM_COLOR = 0x64748b // slate-500
 const OVERFLOW_DIM_ALPHA = 0.45
 const LABEL_FONT_SIZE = 12 // constant px — scale via sprite scale, not re-rasterization
-const LABEL_COLOR = '#1971c2'
+let LABEL_COLOR = '#1971c2' // overridden by setTokens()
 const ARC_SAMPLE_STEPS = 32
 /** Hard cap on boundary vertices to prevent resource exhaustion. */
 const MAX_VERTICES = 500
@@ -461,6 +463,11 @@ export function createBoundaryRenderer(
   return {
     update() {
       // Reactivity handled by store subscriptions
+    },
+    setTokens(tokens: CanvasTokens) {
+      BOUNDARY_COLOR = tokens.colorInteractive
+      LABEL_COLOR = pixiIntToHex(tokens.colorInteractive)
+      render()
     },
     destroy() {
       for (const unsub of unsubs) unsub()

@@ -44,6 +44,11 @@ function cssColorToPixi(cssVarName: string): number {
   return result;
 }
 
+/** Convert a PixiJS integer color (0xRRGGBB) back to a CSS hex string (#rrggbb). */
+export function pixiIntToHex(color: number): string {
+  return '#' + (color & 0xFFFFFF).toString(16).padStart(6, '0')
+}
+
 export function buildCanvasTokens(): CanvasTokens {
   return {
     // Read palette tokens directly — getPropertyValue does not resolve var() aliases,

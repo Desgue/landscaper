@@ -43,6 +43,7 @@ import { createPathDrawingHandler } from './PathDrawingHandler'
 import { createBoundaryHandler } from './BoundaryHandler'
 import { useBoundaryUIStore } from '../store/useBoundaryUIStore'
 import { setPixiApp } from './exportPNG'
+import { buildCanvasTokens } from '../tokens/canvasTokens'
 
 interface CanvasHostProps {
   width: number
@@ -116,7 +117,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
 
     const initApp = async () => {
       await app.init({
-        background: '#f5f5f0',
+        background: 0x000000, // overridden by tokens below
         width,
         height,
         antialias: true,
@@ -131,6 +132,13 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         app.destroy(true)
         return
       }
+
+      // Build canvas tokens once (reads CSS custom properties via getComputedStyle).
+      // Cached here — never called per-frame.
+      const tokens = buildCanvasTokens()
+
+      // Apply token-derived background color
+      app.renderer.background.color = tokens.surfaceCanvasOverflow
 
       // Stop built-in ticker — we use render-on-demand
       app.ticker.stop()
@@ -438,6 +446,11 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       // Dimension renderer (Phase 3) — labels sub-container
       // ------------------------------------------------------------------
       const dimensionRenderer = createDimensionRenderer(labelsContainer, scheduler)
+
+      // Apply canvas tokens to renderers
+      boundaryRenderer.setTokens?.(tokens)
+      dimensionRenderer.setTokens?.(tokens)
+      labelRenderer.setTokens?.(tokens)
 
       // Register Text-bearing renderers for context restore (v8 bug #11685)
       rendererUpdaters.push(

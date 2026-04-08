@@ -21,6 +21,8 @@ import { setupWorldObject } from './BaseRenderer'
 import type { RendererHandle } from './BaseRenderer'
 import type { RenderScheduler } from './RenderScheduler'
 import type { LabelElement, Layer } from '../types/schema'
+import type { CanvasTokens } from '../tokens/canvasTokens'
+import { pixiIntToHex } from '../tokens/canvasTokens'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -29,8 +31,8 @@ import type { LabelElement, Layer } from '../types/schema'
 /** Max rendered labels. */
 const MAX_LABELS = 300
 
-/** Default font color fallback. */
-const DEFAULT_FONT_COLOR = '#333333'
+/** Default font color fallback — overridden by setTokens(). */
+let DEFAULT_FONT_COLOR = '#333333'
 
 /** Default font family fallback. */
 const DEFAULT_FONT_FAMILY = 'sans-serif'
@@ -240,6 +242,10 @@ export function createLabelRenderer(
 
   return {
     update: rebuildFromStore,
+    setTokens(tokens: CanvasTokens) {
+      DEFAULT_FONT_COLOR = pixiIntToHex(tokens.textPrimary)
+      rebuildFromStore()
+    },
     destroy(): void {
       for (const unsub of unsubs) unsub()
       unsubs.length = 0
