@@ -18,8 +18,9 @@ import { useProjectStore } from '../../store/useProjectStore'
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Max cached plant sprites before eviction (prevents unbounded VRAM growth). */
-const MAX_PLANT_CACHE = 256
+/** Max cached plant sprites before eviction (must be >= MAX_PLANTS to avoid
+ *  destroying textures still referenced by active Sprites). */
+const MAX_PLANT_CACHE = 512
 /** Max cached structure sprites before eviction. */
 const MAX_STRUCTURE_CACHE = 256
 
@@ -113,16 +114,14 @@ export function createTextureAtlas(): TextureAtlas {
   const DEFAULT_STRUCTURE_H = 48
   const DEFAULT_PLANT_SIZE = 64
 
-  // Plant category lookup — resolve from project store at call time
-  function resolvePlantCategory(plantTypeId: string): string {
+  // Plant type lookup — resolve from project store at call time
+  function resolvePlantTypeObject(plantTypeId: string) {
     try {
       const { registries } = useProjectStore.getState()
-      const plantType = registries.plants.find((p) => p.id === plantTypeId)
-      if (plantType?.category) return plantType.category
+      return registries.plants.find((p) => p.id === plantTypeId)
     } catch {
-      // Store not available — use default
+      return undefined
     }
-    return 'vegetable' // safe default
   }
 
   const atlas: TextureAtlas = {
@@ -142,8 +141,9 @@ export function createTextureAtlas(): TextureAtlas {
       const cached = plantTextureCache.get(plantTypeId)
       if (cached) return cached
 
-      const category = resolvePlantCategory(plantTypeId)
-      const canvas = generatePlantSprite(category, DEFAULT_PLANT_SIZE)
+      const pt = resolvePlantTypeObject(plantTypeId)
+      const category = pt?.category ?? 'vegetable'
+      const canvas = generatePlantSprite(category, DEFAULT_PLANT_SIZE, plantTypeId, pt)
       const texture = Texture.from(canvas)
       plantTextureCache.set(plantTypeId, texture)
       evictOldest(plantTextureCache, MAX_PLANT_CACHE)

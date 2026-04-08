@@ -12,13 +12,12 @@
  * Pattern: createPlantRenderer(container, scheduler, atlas) => RendererHandle
  */
 
-import { Container, Sprite, Graphics, Text } from 'pixi.js'
+import { Container, Sprite, Text } from 'pixi.js'
 import { connectStore } from './connectStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { useViewportStore } from '../store/useViewportStore'
 import {
   setupWorldObject,
-  clearGraphics,
 } from './BaseRenderer'
 import type { RendererHandle } from './BaseRenderer'
 import type { RenderScheduler } from './RenderScheduler'
@@ -67,7 +66,6 @@ const STATUS_COLORS: Record<PlantStatus, string> = {
 
 interface PlantEntry {
   sprite: Sprite
-  shadow: Graphics
   statusText: Text
   elementId: string
 }
@@ -113,39 +111,11 @@ export function createPlantRenderer(
     }
   }
 
-  /**
-   * Draw a foreshortened ellipse drop shadow.
-   * Spec: radial gradient from rgba(0,0,0,0.33) to rgba(0,0,0,0).
-   * PixiJS v8 Graphics does not support radial gradient fills natively.
-   * Approximation: concentric ellipses with decreasing alpha (3 rings).
-   * Full gradient is pre-baked into PlantSprites.ts textures at atlas time.
-   */
-  function drawShadow(g: Graphics, radius: number): void {
-    clearGraphics(g)
-    const rx = radius * 0.5
-    const ry = radius * 0.2
-    const offsetY = radius * 0.3
-
-    // 3-ring gradient approximation: outer→inner with increasing alpha
-    const rings = 3
-    for (let i = rings; i >= 1; i--) {
-      const t = i / rings
-      const alpha = 0.33 * (1 - t) * 1.5 // fade from ~0.33 at center to 0 at edge
-      g.ellipse(0, offsetY, rx * t, ry * t).fill({ color: 0x000000, alpha: Math.min(alpha, 0.33) })
-    }
-  }
-
   function createPlantEntry(el: PlantElement, pt: PlantType): PlantEntry {
     const radius = effectiveRadius(el, pt)
     const diameter = radius * 2
 
-    // Shadow (drawn underneath sprite)
-    const shadow = new Graphics()
-    setupWorldObject(shadow)
-    drawShadow(shadow, radius)
-    shadow.position.set(el.x, el.y)
-
-    // Plant sprite
+    // Plant sprite (shadow is baked into the sprite texture by PlantSprites.ts)
     const texture = atlas.getPlantSprite(el.plantTypeId)
     const sprite = new Sprite(texture)
     setupWorldObject(sprite)
@@ -167,19 +137,17 @@ export function createPlantRenderer(
     })
     setupWorldObject(statusText)
     statusText.anchor.set(0.5, 0.5)
-    // Position at bottom-right of plant
     statusText.position.set(el.x + radius * 0.6, el.y + radius * 0.6)
 
     // Y-sort key: use visual bottom edge (el.y + radius) for correct overlap
     const TYPE_PLANT = 3
     const sortKey = TYPE_PLANT * 1e10 + (el.y + radius)
-    shadow.zIndex = sortKey - 1 // shadow just below plant
     sprite.zIndex = sortKey
-    statusText.zIndex = sortKey + 1 // status on top
+    statusText.zIndex = sortKey + 1
 
-    container.addChild(shadow, sprite, statusText)
+    container.addChild(sprite, statusText)
 
-    return { sprite, shadow, statusText, elementId: el.id }
+    return { sprite, statusText, elementId: el.id }
   }
 
   function updatePlantEntry(entry: PlantEntry, el: PlantElement, pt: PlantType): void {
@@ -195,10 +163,6 @@ export function createPlantRenderer(
     entry.sprite.width = diameter
     entry.sprite.height = diameter
 
-    // Update shadow
-    drawShadow(entry.shadow, radius)
-    entry.shadow.position.set(el.x, el.y)
-
     // Update status indicator
     const iconSize = Math.max(radius * STATUS_ICON_SCALE, STATUS_ICON_MIN_SIZE)
     entry.statusText.text = STATUS_SYMBOLS[el.status] ?? ''
@@ -209,14 +173,12 @@ export function createPlantRenderer(
     // Update sort keys: use visual bottom edge for correct overlap
     const TYPE_PLANT = 3
     const sortKey = TYPE_PLANT * 1e10 + (el.y + radius)
-    entry.shadow.zIndex = sortKey - 1
     entry.sprite.zIndex = sortKey
     entry.statusText.zIndex = sortKey + 1
   }
 
   function removeEntry(entry: PlantEntry): void {
-    container.removeChild(entry.shadow, entry.sprite, entry.statusText)
-    entry.shadow.destroy()
+    container.removeChild(entry.sprite, entry.statusText)
     entry.sprite.destroy()
     entry.statusText.destroy()
   }
@@ -270,7 +232,6 @@ export function createPlantRenderer(
         el.y - margin <= worldBottom
 
       entry.sprite.visible = inViewport
-      entry.shadow.visible = inViewport
       entry.statusText.visible = inViewport
     }
 
@@ -335,8 +296,6 @@ export function createPlantRenderer(
         const alpha = layer?.locked ? 0.5 : 1.0
         entry.sprite.visible = visible
         entry.sprite.alpha = alpha
-        entry.shadow.visible = visible
-        entry.shadow.alpha = alpha
         entry.statusText.visible = visible
       }
     }
