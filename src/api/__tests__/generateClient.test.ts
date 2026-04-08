@@ -53,13 +53,7 @@ describe('buildRequestBody', () => {
     expect('yard_photo' in body).toBe(false);
   });
 
-  it('omits season field when season is auto', () => {
-    const opts: GenerateOptions = { ...DEFAULT_OPTIONS, season: 'auto' };
-    const body = buildRequestBody(baseProject, baseRegistries, opts, null);
-    expect('season' in body.options).toBe(false);
-  });
-
-  it('includes season field when season is not auto', () => {
+  it('includes season field when season is set', () => {
     const opts: GenerateOptions = { ...DEFAULT_OPTIONS, season: 'summer' };
     const body = buildRequestBody(baseProject, baseRegistries, opts, null);
     expect(body.options.season).toBe('summer');
