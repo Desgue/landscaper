@@ -90,7 +90,7 @@ BAU-3, BAU-4, BAU-7, BAU-9, BAU-10, BAU-11, BAU-13, BAU-15, BAU-19, BAU-20, BAU-
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
 | BAU-19 | Tree/shrub plants not visible on canvas | critical | `open` |
-| BAU-20 | API yard_photo validation rejects data-URL format | critical | `open` |
+| BAU-20 | API yard_photo validation rejects data-URL format | critical | `planned` — [ENG-14](https://linear.app/dg-tech/issue/ENG-14) |
 | BAU-22 | Structure sprite texture includes extrusion (double south-face) | medium | `open` |
 | BAU-27 | Plant sprites rendered at fixed 64px regardless of real-world size | high | `open` |
 | BAU-28 | Structure bounding box doesn't rotate with shape | medium | `open` |
@@ -128,7 +128,7 @@ BAU-3, BAU-4, BAU-7, BAU-9, BAU-10, BAU-11, BAU-13, BAU-15, BAU-19, BAU-20, BAU-
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
 | BAU-8 | ~~IndexedDB migration system~~ | ~~high~~ | `dropped` — over-engineered; schema evolution handled by validation on load |
-| BAU-15 | Go server graceful shutdown | medium | `open` |
+| BAU-15 | Go server graceful shutdown | medium | `planned` — [ENG-15](https://linear.app/dg-tech/issue/ENG-15) |
 | BAU-16 | ~~Anonymous error tracking (Sentry or similar)~~ | ~~low~~ | `dropped` — premature for personal project; BAU-4 toasts cover user-facing errors |
 
 ### Cleanup & Documentation
@@ -149,11 +149,11 @@ BAU-3, BAU-4, BAU-7, BAU-9, BAU-10, BAU-11, BAU-13, BAU-15, BAU-19, BAU-20, BAU-
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
-| BAU-30 | Spike: UI identity rethink — move away from Excalidraw toward professional design tool | critical | `open` |
-| BAU-23 | Spike: Professional design tool parity | high | `open` |
-| BAU-24 | Spike: Construction lines and reference guides | high | `open` |
-| BAU-25 | Spike: Plant schedule generation | medium | `open` |
-| BAU-26 | Spike: SVG/DXF export | medium | `open` |
+| BAU-30 | Spike: UI identity rethink — move away from Excalidraw toward professional design tool | critical | `planned` — [ENG-16](https://linear.app/dg-tech/issue/ENG-16) |
+| BAU-23 | Spike: Professional design tool parity | high | `planned` — [ENG-17](https://linear.app/dg-tech/issue/ENG-17) |
+| BAU-24 | Spike: Construction lines and reference guides | high | `planned` — [ENG-18](https://linear.app/dg-tech/issue/ENG-18) |
+| BAU-25 | Spike: Plant schedule generation | medium | `planned` — [ENG-19](https://linear.app/dg-tech/issue/ENG-19) |
+| BAU-26 | Spike: SVG/DXF export | medium | `planned` — [ENG-20](https://linear.app/dg-tech/issue/ENG-20) |
 
 ---
 
