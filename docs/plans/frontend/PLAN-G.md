@@ -632,6 +632,7 @@ _None yet._
 | 2026-04-07 | BoundaryHandler exposes propagateEdge and hasSelfIntersection as exports | These pure functions are needed by both the handler and the HTML overlay components |
 | 2026-04-07 | Boundary HTML overlays (Done button, edge-length input) remain in existing React component | Porting HTML overlays to PixiJS would regress accessibility and text input UX |
 | 2026-04-07 | Created `YardBoundaryHTMLOverlays.tsx` + `useBoundaryUIStore` bridge | Component was referenced but never built during migration; blocks Generate workflow |
+| 2026-04-08 | Wired vertex/arc drag in InteractionManager with closure-based drag state | Boundary handle drags bypass SSM entirely; hit-tested before element selection for correct priority |
 
 ---
 

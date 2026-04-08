@@ -14,7 +14,7 @@ The adjustment uses fixed-pivot edge propagation: the start vertex of the edited
 
 ## Corrections
 
-After the polygon is complete, the user can click any edge to retype its dimension. The polygon adjusts using the same propagation algorithm. Multiple corrections are applied sequentially.
+After the polygon is complete, the user can click any edge to retype its dimension. The polygon adjusts using the same propagation algorithm. Multiple corrections are applied sequentially. Additionally, vertices can be dragged directly to reshape the boundary — the `InteractionManager` hit-tests vertex handles (6/zoom threshold) and dispatches to `BoundaryHandler.onVertexDrag` which applies snap.
 
 Edge constraints: minimum edge length is 10cm. Self-intersecting polygons trigger a warning but are allowed (the yard may have complex shapes). See [spatial-math-specification.md "### Edge Cases"].
 
@@ -24,7 +24,7 @@ When the user confirms the setup, the canvas opens with the yard boundary drawn.
 
 ## Curved Edges
 
-After the polygon is complete, any straight edge can be converted to an arc using the same drag-to-curve interaction as the Arc Tool [structures.md "## Arc Tool (A)"]: click an edge, then drag perpendicular to set curvature. Arc edges are stored via the `edgeTypes` array in the yard boundary schema [data-schema.md "### Yard Boundary Storage"]. Arc math: [spatial-math-specification.md "## 5. Arc Geometry"].
+After the polygon is complete, any straight edge can be converted to an arc by dragging the ghost handle at the edge midpoint perpendicular to the chord. Ghost handles are rendered at half-opacity on all straight edges. The `InteractionManager` hit-tests these handles and dispatches to `BoundaryHandler.onArcHandleDrag`, which computes the sagitta. Arc edges are stored via the `edgeTypes` array in the yard boundary schema [data-schema.md "### Yard Boundary Storage"]. Arc math: [spatial-math-specification.md "## 5. Arc Geometry"].
 
 ## Boundary as Element
 

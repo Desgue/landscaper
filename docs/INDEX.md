@@ -73,6 +73,7 @@ Workflows, UI, and non-element features.
 | [landingpage-plan.md](plans/frontend/landingpage-plan.md) | PLAN-G: Landing page redesign — performance infrastructure, SEO, Blueprint Garden visual identity, section-by-section rebuild |
 | [PLAN-H.md](plans/frontend/PLAN-H.md) | PLAN-H: Image-based sprite loading — async asset loader, TextureAtlas integration, renderer migration, built-in PNG sprites for plants and structures |
 | [PLAN_illustrated-tile-rendering.md](plans/PLAN_illustrated-tile-rendering.md) | PLAN-ITR: Illustrated tile rendering — richer plant sprites, structure texture patterns, per-type differentiation, improved shading/depth |
+| [BAU.md](plans/BAU.md) | BAU backlog — AI-first backlog of improvements, bug fixes, and technical debt for agentic teams to plan and implement |
 
 ---
 
