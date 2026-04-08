@@ -15,7 +15,7 @@
  * Pattern: createStructureRenderer(container, scheduler, atlas) => RendererHandle
  */
 
-import { Container, Graphics, Text } from 'pixi.js'
+import { Container, Graphics, Sprite, Text } from 'pixi.js'
 import { connectStore } from './connectStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { useViewportStore } from '../store/useViewportStore'
@@ -93,7 +93,8 @@ function darkenColor(color: number, factor: number): number {
 
 interface StructureEntry {
   group: Container
-  topFace: Graphics
+  topFace: Graphics | Sprite
+  topHighlight: Graphics | null
   southFace: Graphics | null
   aoGradient: Graphics | null
   outline: Graphics | null
@@ -113,8 +114,6 @@ export function createStructureRenderer(
   atlas: TextureAtlas,
   getCanvasSize: () => { width: number; height: number },
 ): RendererHandle {
-  // atlas reserved for future textured structure sprites (Phase 5 polish)
-  void atlas
   const entries = new Map<string, StructureEntry>()
   const unsubs: Array<() => void> = []
 
@@ -194,7 +193,7 @@ export function createStructureRenderer(
     const aoY = h + extHeight
 
     // Gradient approximation: multiple thin strips with decreasing alpha
-    const strips = 5
+    const strips = 6
     const stripHeight = AO_HEIGHT / strips
     for (let i = 0; i < strips; i++) {
       const alpha = AO_ALPHA * (1 - i / strips)
@@ -296,11 +295,33 @@ export function createStructureRenderer(
       group.addChild(overheadShadow)
     }
 
-    // Top face
-    const topFace = new Graphics()
-    drawTopFace(topFace, el, color, category)
+    // Top face — rectangular structures use Sprite; curved keep Graphics
+    const isCurved = el.shape === 'curved' && el.arcSagitta
+    let topFace: Graphics | Sprite
+    let topHighlight: Graphics | null = null
+
+    if (isCurved) {
+      // Curved structures: Graphics top face (arc polygon can't be a Sprite)
+      const gfx = new Graphics()
+      drawTopFace(gfx, el, color, category)
+      topFace = gfx
+    } else {
+      // Rectangular structures: Sprite top face from textured atlas
+      const { w, h } = safeDims(el)
+      const texture = atlas.getStructureSprite(el.structureTypeId, Math.round(w), Math.round(h))
+      const sprite = new Sprite(texture)
+      sprite.width = w
+      sprite.height = h
+      topFace = sprite
+
+      // 1px highlight stroke along top edge of top-face (rectangular only)
+      topHighlight = new Graphics()
+      clearGraphics(topHighlight)
+      topHighlight.moveTo(0, 0.5).lineTo(w, 0.5).stroke({ color: 0xffffff, width: 1, alpha: 0.25 })
+    }
 
     group.addChild(topFace)
+    if (topHighlight) group.addChild(topHighlight)
 
     // South face (extruded categories only)
     let southFace: Graphics | null = null
@@ -353,7 +374,7 @@ export function createStructureRenderer(
 
     container.addChild(group)
 
-    return { group, topFace, southFace, aoGradient, outline, castShadow, overheadShadow, label, elementId: el.id }
+    return { group, topFace, topHighlight, southFace, aoGradient, outline, castShadow, overheadShadow, label, elementId: el.id }
   }
 
   function updateStructureEntry(
@@ -371,9 +392,15 @@ export function createStructureRenderer(
     const needsOverheadShadow = category === 'overhead'
     const hasOverheadShadow = entry.overheadShadow !== null
 
-    // If structural composition changed (extruded↔flat, overhead↔non),
+    // Check if top-face type changed (curved↔rectangular)
+    const isCurved = el.shape === 'curved' && el.arcSagitta
+    const topIsSprite = entry.topFace instanceof Sprite
+    const needsSprite = !isCurved
+    const topTypeChanged = topIsSprite !== needsSprite
+
+    // If structural composition changed (extruded↔flat, overhead↔non, curved↔rect),
     // destroy and recreate to avoid leaking Graphics objects
-    if (needsExtrusion !== hasExtrusion || needsOutline !== hasOutline ||
+    if (topTypeChanged || needsExtrusion !== hasExtrusion || needsOutline !== hasOutline ||
         needsCastShadow !== hasCastShadow || needsOverheadShadow !== hasOverheadShadow) {
       removeEntry(entry)
       entries.delete(entry.elementId)
@@ -390,7 +417,23 @@ export function createStructureRenderer(
     entry.group.position.set(el.x, el.y)
     entry.group.rotation = (safeRotation * Math.PI) / 180
 
-    drawTopFace(entry.topFace, el, color, category)
+    // Update top face — Sprite path updates texture/dimensions; Graphics path redraws
+    if (entry.topFace instanceof Sprite) {
+      const texture = atlas.getStructureSprite(el.structureTypeId, Math.round(safeW), Math.round(safeH))
+      if (entry.topFace.texture !== texture) {
+        entry.topFace.texture = texture
+      }
+      entry.topFace.width = safeW
+      entry.topFace.height = safeH
+
+      // Update highlight stroke
+      if (entry.topHighlight) {
+        clearGraphics(entry.topHighlight)
+        entry.topHighlight.moveTo(0, 0.5).lineTo(safeW, 0.5).stroke({ color: 0xffffff, width: 1, alpha: 0.25 })
+      }
+    } else {
+      drawTopFace(entry.topFace, el, color, category)
+    }
 
     if (needsCastShadow && entry.castShadow) {
       drawCastShadow(entry.castShadow, el)

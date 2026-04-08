@@ -11,7 +11,7 @@ import { Texture } from 'pixi.js'
 import { generateTerrainTexture, getKnownTerrainTypes } from './ProceduralTextures'
 import { generatePlantSprite } from './PlantSprites'
 import { generateStructureSprite } from './StructureSprites'
-import { TILE_SIZE, FALLBACK_COLOR } from './constants'
+import { TILE_SIZE, FALLBACK_COLOR, MAX_STRUCTURE_TEX_DIM } from './constants'
 import { useProjectStore } from '../../store/useProjectStore'
 
 // ---------------------------------------------------------------------------
@@ -21,8 +21,8 @@ import { useProjectStore } from '../../store/useProjectStore'
 /** Max cached plant sprites before eviction (must be >= MAX_PLANTS to avoid
  *  destroying textures still referenced by active Sprites). */
 const MAX_PLANT_CACHE = 512
-/** Max cached structure sprites before eviction. */
-const MAX_STRUCTURE_CACHE = 256
+/** Max cached structure sprites before eviction (FIFO, not true LRU). */
+const MAX_STRUCTURE_CACHE = 512
 
 // ---------------------------------------------------------------------------
 // Public interface
@@ -35,8 +35,8 @@ export interface TextureAtlas {
   /** Get a plant sprite texture for a given plant type ID. Category is resolved internally. */
   getPlantSprite(plantTypeId: string): Texture
 
-  /** Get a structure sprite texture for a given structure type ID. */
-  getStructureSprite(structureTypeId: string): Texture
+  /** Get a structure sprite texture for a given structure type ID and dimensions. */
+  getStructureSprite(structureTypeId: string, widthPx?: number, heightPx?: number): Texture
 
   /** Get the magenta/checkerboard fallback texture. */
   getFallbackTexture(): Texture
@@ -67,9 +67,26 @@ function createFallbackCanvas(size: number): HTMLCanvasElement {
 }
 
 // ---------------------------------------------------------------------------
-// LRU cache helper
+// Category hex color map (converts StructureRenderer numeric colors to hex for Canvas2D)
 // ---------------------------------------------------------------------------
 
+const CATEGORY_HEX_COLORS: Record<string, string> = {
+  boundary: '#6b7280',
+  container: '#92400e',
+  surface: '#d97706',
+  overhead: '#7c3aed',
+  feature: '#0891b2',
+  furniture: '#1d4ed8',
+}
+
+const DEFAULT_CATEGORY_HEX = '#6b7280'
+
+// ---------------------------------------------------------------------------
+// FIFO cache eviction helper
+// ---------------------------------------------------------------------------
+
+/** Evict the oldest entry (by insertion order) when cache exceeds maxSize.
+ *  Note: this is FIFO eviction — entries are not re-ordered on access. */
 function evictOldest(cache: Map<string, Texture>, maxSize: number): void {
   if (cache.size <= maxSize) return
   // Map iterates in insertion order — delete the first entry
@@ -79,6 +96,14 @@ function evictOldest(cache: Map<string, Texture>, maxSize: number): void {
     tex?.destroy(true)
     cache.delete(firstKey)
   }
+}
+
+/** Quantize a dimension to the nearest power-of-2 bucket (32, 64, 128, 256). */
+function bucketDim(px: number): number {
+  if (px <= 32) return 32
+  if (px <= 64) return 64
+  if (px <= 128) return 128
+  return 256
 }
 
 // ---------------------------------------------------------------------------
@@ -108,17 +133,26 @@ export function createTextureAtlas(): TextureAtlas {
   const plantTextureCache = new Map<string, Texture>()
   const structureTextureCache = new Map<string, Texture>()
 
-  // Default sizes for placeholder generation
-  const DEFAULT_STRUCTURE_COLOR = '#888888'
+  // Default sizes for generation
+  const DEFAULT_PLANT_SIZE = 64
   const DEFAULT_STRUCTURE_W = 64
   const DEFAULT_STRUCTURE_H = 48
-  const DEFAULT_PLANT_SIZE = 64
 
   // Plant type lookup — resolve from project store at call time
   function resolvePlantTypeObject(plantTypeId: string) {
     try {
       const { registries } = useProjectStore.getState()
       return registries.plants.find((p) => p.id === plantTypeId)
+    } catch {
+      return undefined
+    }
+  }
+
+  // Structure type lookup — resolve from project store at call time
+  function resolveStructureType(structureTypeId: string) {
+    try {
+      const { registries } = useProjectStore.getState()
+      return registries.structures.find((s) => s.id === structureTypeId)
     } catch {
       return undefined
     }
@@ -150,17 +184,25 @@ export function createTextureAtlas(): TextureAtlas {
       return texture
     },
 
-    getStructureSprite(structureTypeId: string): Texture {
-      const cached = structureTextureCache.get(structureTypeId)
+    getStructureSprite(structureTypeId: string, widthPx?: number, heightPx?: number): Texture {
+      // Clamp and bucket dimensions for cache key
+      const w = Math.min(widthPx ?? DEFAULT_STRUCTURE_W, MAX_STRUCTURE_TEX_DIM)
+      const h = Math.min(heightPx ?? DEFAULT_STRUCTURE_H, MAX_STRUCTURE_TEX_DIM)
+      const wBucket = bucketDim(w)
+      const hBucket = bucketDim(h)
+      const cacheKey = `${structureTypeId}:${wBucket}x${hBucket}`
+
+      const cached = structureTextureCache.get(cacheKey)
       if (cached) return cached
 
+      const st = resolveStructureType(structureTypeId)
+      const category = st?.category ?? ''
+      const color = CATEGORY_HEX_COLORS[category] ?? DEFAULT_CATEGORY_HEX
       const canvas = generateStructureSprite(
-        DEFAULT_STRUCTURE_COLOR,
-        DEFAULT_STRUCTURE_W,
-        DEFAULT_STRUCTURE_H,
+        color, wBucket, hBucket, category, structureTypeId, st?.material ?? undefined,
       )
       const texture = Texture.from(canvas)
-      structureTextureCache.set(structureTypeId, texture)
+      structureTextureCache.set(cacheKey, texture)
       evictOldest(structureTextureCache, MAX_STRUCTURE_CACHE)
       return texture
     },
