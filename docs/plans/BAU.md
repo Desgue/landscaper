@@ -10,8 +10,8 @@
 
 ### How to use this backlog
 
-1. **Scan the table below** — find items with status `open` in priority order (critical → high → medium → low).
-2. **Pick one item or a related cluster** — items sharing a `Group` tag can be planned together.
+1. **Scan the tables below** — find items with status `open` in priority order (critical → high → medium → low).
+2. **Pick one item or a related cluster** — items within the same category can be planned together.
 3. **Create a plan** — copy `docs/plans/PLAN_TEMPLATE.md` to `docs/plans/PLAN_BAU-<ID>.md` and fill it using the context hints provided in each item.
 4. **Implement the plan** — follow the plan's agent protocol.
 5. **Update this file** — mark the item `done` with the date and link the plan file.
@@ -20,7 +20,7 @@
 
 Each item includes:
 - **ID** — stable reference (`BAU-<number>`)
-- **Group** — cluster tag for related items that could share a plan
+- **Category** — thematic grouping (Bugs & Rendering, Error Handling, UX & Accessibility, Refactoring, Infrastructure, Cleanup, Testing, Spikes)
 - **Priority** — `critical` | `high` | `medium` | `low`
 - **Context hints** — files, grep patterns, and doc references an agent needs to scope the work
 - **Acceptance criteria** — what "done" looks like, testable by another agent
@@ -36,51 +36,237 @@ Each item includes:
 
 ---
 
+## Dependency Graph
+
+Items are grouped into parallel tracks. Within a track, arrows indicate "must complete before". Items across tracks are independent unless noted.
+
+### Critical paths
+
+```
+Chain 1 — Rendering → Spikes (longest path, 5 steps):
+  BAU-19 → BAU-27 → BAU-8 → BAU-23 → BAU-25
+                                    → BAU-26
+
+Chain 2 — Error UX (fan-out from toast system):
+  BAU-4 → BAU-21, BAU-10, BAU-9, BAU-16
+
+Chain 3 — Refactor → Features:
+  BAU-5 → BAU-6 → BAU-13
+       → BAU-14
+       ~→ BAU-1 (soft: smaller components are easier to test)
+```
+
+### Parallel execution tracks
+
+| Track | Sequence | Notes |
+|-------|----------|-------|
+| **A — Rendering** | BAU-19 → BAU-27 → BAU-22 | Fix visibility first, then scale, then structure distortion |
+| **B — Errors** | BAU-2 + BAU-3 (parallel) → BAU-4 → BAU-21 + BAU-10 + BAU-9 (parallel) | BAU-4 toast system unlocks 3 downstream items |
+| **C — Refactor** | BAU-5 → BAU-6 → BAU-13 + BAU-14 (parallel) | Split components before restyling or adding features |
+| **D — Infra** | BAU-8 | Unblocks all spikes (schema changes need migrations) |
+| **E — Spikes** | BAU-23 → BAU-25 + BAU-26 (parallel), BAU-24 (independent) | Start after tracks A + D complete |
+
+Tracks A–D can run in parallel. Track E starts after A and D are done.
+
+### Cross-category dependencies
+
+| Upstream | Downstream | Reason |
+|----------|------------|--------|
+| BAU-19 (rendering) | BAU-27 (rendering) | Must fix tree visibility before sprite scaling matters |
+| BAU-8 (infra) | BAU-23, BAU-24 (spikes) | New element types / schema fields need migration system |
+| BAU-4 (errors) | BAU-21 (UX), BAU-10 (errors), BAU-9 (errors), BAU-16 (infra) | All need the centralized toast system |
+| BAU-5 (refactor) | BAU-6 (refactor), BAU-14 (UX), BAU-1 (testing) | Split InspectorPanel before restyling or testing it |
+| BAU-23 (spike) | BAU-25 (spike), BAU-26 (spike) | Plant schedule embeds in PDF; SVG/DXF shares export arch |
+
+### No dependencies (start anytime)
+
+BAU-2, BAU-3, BAU-7, BAU-12, BAU-15, BAU-11, BAU-17, BAU-18
+
+---
+
 ## Status Summary
 
-| ID | Title | Group | Priority | Status |
-|----|-------|-------|----------|--------|
-| BAU-1 | Component test coverage | testing | critical | `open` |
-| BAU-2 | Error boundary for lazy imports | error-handling | critical | `open` |
-| BAU-3 | File size validation on import | error-handling | critical | `open` |
-| BAU-4 | Centralized error logging with user-facing toasts | error-handling | high | `open` |
-| BAU-5 | Break down large components (JournalView, InspectorPanel) | refactor | high | `open` |
-| BAU-6 | Consolidate inspectors to shadcn/ui | refactor | high | `open` |
-| BAU-7 | Canvas keyboard accessibility | accessibility | high | `open` |
-| BAU-8 | IndexedDB migration system | data | high | `open` |
-| BAU-9 | API retry with exponential backoff | error-handling | high | `open` |
-| BAU-10 | PNG export error feedback | error-handling | medium | `open` |
-| BAU-11 | Remove generate store stubs or implement features | cleanup | medium | `open` |
-| BAU-12 | Type-safe error handling (remove `as unknown` casts) | type-safety | medium | `open` |
-| BAU-13 | Bold/italic keyboard shortcuts for labels | feature | medium | `open` |
-| BAU-14 | Multi-select plant batch editing | feature | medium | `open` |
-| BAU-15 | Go server graceful shutdown | backend | medium | `open` |
-| BAU-16 | Anonymous error tracking (Sentry or similar) | observability | low | `open` |
-| BAU-17 | Store method JSDoc documentation | docs | low | `open` |
-| BAU-18 | ESLint rule compliance (remove disables) | cleanup | low | `open` |
+### Bugs & Rendering
+
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| BAU-19 | Tree/shrub plants not visible on canvas | critical | `open` |
+| BAU-20 | API yard_photo validation rejects data-URL format | critical | `open` |
+| BAU-22 | Structure sprite texture includes extrusion (double south-face) | medium | `open` |
+| BAU-27 | Plant sprites rendered at fixed 64px regardless of real-world size | high | `open` |
+
+### Error Handling & Resilience
+
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| BAU-2 | Error boundary for lazy imports | critical | `open` |
+| BAU-3 | File size validation on import | critical | `open` |
+| BAU-4 | Centralized error logging with user-facing toasts | high | `open` |
+| BAU-9 | API retry with exponential backoff | high | `open` |
+| BAU-10 | PNG export error feedback | medium | `open` |
+
+### UX & Accessibility
+
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| BAU-7 | Canvas keyboard accessibility | high | `open` |
+| BAU-21 | No visual feedback on plant placement failure | high | `open` |
+| BAU-13 | Bold/italic keyboard shortcuts for labels | medium | `open` |
+| BAU-14 | Multi-select plant batch editing | medium | `open` |
+
+### Refactoring & Code Quality
+
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| BAU-5 | Break down large components (JournalView, InspectorPanel) | high | `open` |
+| BAU-6 | Consolidate inspectors to shadcn/ui | high | `open` |
+| BAU-12 | Type-safe error handling (remove `as unknown` casts) | medium | `open` |
+
+### Infrastructure & Backend
+
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| BAU-8 | IndexedDB migration system | high | `open` |
+| BAU-15 | Go server graceful shutdown | medium | `open` |
+| BAU-16 | Anonymous error tracking (Sentry or similar) | low | `open` |
+
+### Cleanup & Documentation
+
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| BAU-11 | Remove generate store stubs or implement features | medium | `open` |
+| BAU-17 | Store method JSDoc documentation | low | `open` |
+| BAU-18 | ESLint rule compliance (remove disables) | low | `open` |
+
+### Testing
+
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| BAU-1 | Component test coverage | critical | `open` |
+
+### Spikes
+
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| BAU-23 | Spike: Professional design tool parity | high | `open` |
+| BAU-24 | Spike: Construction lines and reference guides | high | `open` |
+| BAU-25 | Spike: Plant schedule generation | medium | `open` |
+| BAU-26 | Spike: SVG/DXF export | medium | `open` |
 
 ---
 
 ## Items
 
-### BAU-1: Component test coverage `critical` `testing`
+### Bugs & Rendering
 
-**Problem:** 43+ React components under `src/components/` have zero unit tests. Regressions go undetected until manual QA.
+#### BAU-19: Tree/shrub plants not visible on canvas `critical`
+
+**Problem:** Plants with category `tree` (oak, maple, birch, fruit-tree, ornamental-pear, japanese-maple) do not appear on the canvas after placement. They are confirmed in the store (`plantCount` increments) and sprites are created (`entries` increments), but they are not visually rendered.
+
+**Investigation so far:**
+- Pipeline confirmed working: InteractionManager dispatches → PlantPlacement handler adds element → PlantRenderer rebuilds → entries created → container children increase
+- Trees use `growthForm: 'tree'`, so `effectiveRadius = canopyWidthCm / 2` (e.g., Oak = 400cm, diameter = 800cm)
+- Tree spacing values are very large (300–800cm), causing many placements to silently fail via `hasSpacingCollision`
+- Tree base color is brown (`#795548`), drawn by `drawTree()` in PlantSprites.ts — could blend with soil terrain
 
 **Context hints:**
-- `ls src/components/*.tsx` — list all components
-- `grep -rn "describe\|it(" src/ --include="*.test.*"` — find existing test files
-- Test runner: vitest (check `vite.config.ts` or `vitest.config.ts`)
+- `src/canvas-pixi/PlantRenderer.ts` — `effectiveRadius()` line 96, `createPlantEntry()` line 114
+- `src/canvas-pixi/textures/PlantSprites.ts` — `drawTree()` line 100, `CATEGORY_COLORS` line 22
+- `src/data/builtinRegistries.ts` — tree entries (lines 97–136, canopyWidthCm 300–800)
+- `src/canvas-pixi/PlacementHandlers.ts` — `hasSpacingCollision()` line 54
+
+**Possible causes (investigate in order):**
+1. Sprites are in scene graph but `visible = false` — check `updateElementVisibility()` culling logic for large-radius plants
+2. Large sprites (800cm) may have z-ordering issues or be behind terrain/boundary layers
+3. Overflow dim (45% alpha slate overlay) may obscure plants placed outside boundary
+4. Tree color (#795548 brown) blends with soil terrain, making them invisible at low zoom
 
 **Acceptance criteria:**
-- [ ] Tests exist for critical-path components: `AppLayout`, `TopToolbar`, `SidePalette`, `InspectorPanel`, `WelcomeScreen`, `GeneratePage`
-- [ ] Each tested component covers: render without crash, key user interactions, conditional rendering branches
-- [ ] `npm test` / `vitest` passes with no failures
-- [ ] Coverage report shows >60% line coverage for tested components
+- [ ] All tree-category plants render visibly when placed on the canvas
+- [ ] Trees are visually distinguishable from terrain at all zoom levels
+- [ ] Placement failure (spacing collision) shows user feedback
 
 ---
 
-### BAU-2: Error boundary for lazy imports `critical` `error-handling`
+#### BAU-20: API yard_photo validation rejects data-URL format `critical`
+
+**Problem:** All `/api/generate` requests with a yard photo fail with `400 "invalid yard_photo"`. The frontend sends photos as data URLs (`data:image/jpeg;base64,/9j/...`) but the backend expects raw base64 without the data-URL prefix.
+
+**Root cause:** The frontend's `useGenerateStore.setYardPhoto()` stores the photo as a data URL (line 126). `buildRequestBody()` sends it verbatim as `yard_photo` (line 74). The backend's `decodePhoto()` calls `base64.StdEncoding.DecodeString()` on the full string including `data:image/jpeg;base64,` prefix, which is invalid base64.
+
+**Context hints:**
+- `src/store/useGenerateStore.ts` line 126 — stores `dataUrl` directly
+- `src/api/generateClient.ts` line 73–75 — sends `yardPhoto` as-is
+- `internal/handler/validate.go` line 220 — `base64.StdEncoding.DecodeString(b64)` fails on data-URL prefix
+- Server logs: `"error":"invalid yard_photo"` on every request with a photo
+
+**Fix options (choose one):**
+- **Frontend fix:** Strip data-URL prefix in `buildRequestBody()` before sending: `yardPhoto.replace(/^data:image\/\w+;base64,/, '')`
+- **Backend fix:** In `decodePhoto()`, detect and strip `data:` prefix before base64 decode
+
+**Acceptance criteria:**
+- [ ] Photos uploaded via the Generate page are accepted by the backend
+- [ ] Both JPEG and PNG photos work
+- [ ] Photos without data-URL prefix still work (backward compat)
+- [ ] Existing tests pass with the fix
+
+---
+
+#### BAU-22: Structure sprite texture includes extrusion strip (double south-face) `medium`
+
+**Problem:** `generateStructureSprite()` renders a canvas of height `heightPx + extrusionHeight` that includes the south-face extrusion strip. But `StructureRenderer` sets the sprite to only `w × h` (squashing the extrusion into the top face), then draws a SEPARATE south-face `Graphics` object. Result: distorted top face and doubled south face.
+
+**Context hints:**
+- `src/canvas-pixi/textures/StructureSprites.ts` lines 403–408 — canvas is `widthPx × totalHeight`
+- `src/canvas-pixi/StructureRenderer.ts` lines 309–312 — sprite forced to `w × h`
+- `src/canvas-pixi/StructureRenderer.ts` lines 327–336 — separate southFace Graphics drawn
+
+**Fix:** Remove the extrusion strip from `generateStructureSprite()` — only generate the top face texture at `widthPx × heightPx`. The `StructureRenderer` already handles the south face as a separate Graphics object.
+
+**Acceptance criteria:**
+- [ ] Structure top face renders without vertical distortion
+- [ ] South face appears once (Graphics only, not baked into texture)
+- [ ] All structure categories render correctly
+
+---
+
+#### BAU-27: Plant sprites rendered at fixed 64px regardless of real-world size `high`
+
+**Problem:** All plant sprites are generated at a fixed 64×64px canvas size (`DEFAULT_PLANT_SIZE = 64` in `TextureAtlas.ts`), then stretched to their world-space dimensions at render time. Small plants (herbs at 20-60cm) look acceptable, but trees with large canopies (300-800cm) get upscaled 5-12x from a tiny 64px texture, causing visible blurriness and making proportions feel "off" compared to correctly-scaled structures and terrain.
+
+Structures don't have this problem because `getStructureSprite()` receives actual width/height and generates appropriately-sized textures (bucketed to power-of-2 up to 256px).
+
+**Root cause:** `TextureAtlas.getPlantSprite()` passes a hardcoded `DEFAULT_PLANT_SIZE = 64` to `generatePlantSprite()`. The plant's actual `spacingCm` or `canopyWidthCm` is never used for texture generation — only for setting the PixiJS sprite's `width`/`height` at render time.
+
+**Affected plants (upscale factor from 64px):**
+- Oak: canopyWidthCm=800 → 12.5x upscale
+- Maple: canopyWidthCm=700 → 10.9x
+- Birch: canopyWidthCm=500 → 7.8x
+- Fruit-tree: canopyWidthCm=400 → 6.2x
+- Ornamental-pear: canopyWidthCm=350 → 5.5x
+- Japanese-maple: canopyWidthCm=300 → 4.7x
+
+**Context hints:**
+- `src/canvas-pixi/textures/TextureAtlas.ts` line 136 — `DEFAULT_PLANT_SIZE = 64`
+- `src/canvas-pixi/textures/TextureAtlas.ts` lines 168-184 — `getPlantSprite()` ignores plant dimensions
+- `src/canvas-pixi/textures/PlantSprites.ts` line 420 — `generatePlantSprite()` uses passed `sizePx` for canvas
+- `src/canvas-pixi/PlantRenderer.ts` lines 114-125 — `effectiveRadius()` and sprite sizing at world scale
+- `src/canvas-pixi/textures/StructureSprites.ts` — reference for correct approach (size-aware generation)
+
+**Fix approach:** Follow the structure sprite pattern — pass the plant's effective diameter (in cm, bucketed to power-of-2 pixel sizes) to `generatePlantSprite()` so that larger plants get higher-resolution textures. Cap at a reasonable max (e.g., 256 or 512px). Update the FIFO cache key to include the size bucket.
+
+**Acceptance criteria:**
+- [ ] Plant sprite texture size scales with the plant's effective diameter (spacingCm or canopyWidthCm)
+- [ ] Large trees (300-800cm) render with crisp, detailed textures — not blurry upscaled 64px sprites
+- [ ] Small plants (20-60cm) are unaffected (still render at 64px or appropriate size)
+- [ ] Texture cache key includes size bucket to avoid cache collisions
+- [ ] No visible regression for existing plant types at any zoom level
+
+---
+
+### Error Handling & Resilience
+
+#### BAU-2: Error boundary for lazy imports `critical`
 
 **Problem:** `React.lazy()` in `src/App.tsx` (lines 13-15) chains two dynamic imports with no error boundary. If either import fails (network issue, deploy race), the app white-screens.
 
@@ -95,7 +281,7 @@ Each item includes:
 
 ---
 
-### BAU-3: File size validation on import `critical` `error-handling`
+#### BAU-3: File size validation on import `critical`
 
 **Problem:** `WelcomeScreen.tsx` accepts JSON file imports and passes them to `schemaValidation.ts` without checking file size. A multi-GB file could exhaust browser memory before validation even starts.
 
@@ -111,7 +297,7 @@ Each item includes:
 
 ---
 
-### BAU-4: Centralized error logging with user-facing toasts `high` `error-handling`
+#### BAU-4: Centralized error logging with user-facing toasts `high`
 
 **Problem:** Errors are logged to `console.error` across multiple files but users never see them. Auto-save failures (`useProjectStore.ts:55`), DB errors (`projectsDb.ts`), WebGL context loss (`CanvasHost.tsx:289`) — all silent in production.
 
@@ -127,7 +313,106 @@ Each item includes:
 
 ---
 
-### BAU-5: Break down large components `high` `refactor`
+#### BAU-9: API retry with exponential backoff `high`
+
+**Problem:** Image generation API calls in `useGenerateStore.ts` (lines 192-213) fail permanently on transient errors (5xx, network timeouts). No retry mechanism exists.
+
+**Context hints:**
+- `src/store/useGenerateStore.ts` — API call and error handling
+- `grep -n "fetch\|AbortController\|timeout" src/store/useGenerateStore.ts`
+
+**Acceptance criteria:**
+- [ ] Transient failures (HTTP 5xx, network errors) retry up to 3 times with exponential backoff
+- [ ] Non-retryable errors (4xx) fail immediately
+- [ ] User sees "Retrying..." status during retry attempts
+- [ ] AbortController cancellation still works during retries
+
+---
+
+#### BAU-10: PNG export error feedback `medium`
+
+**Problem:** `src/canvas-pixi/exportPNG.ts` (lines 59, 62, 67) logs errors to console but gives no feedback to the user when export fails.
+
+**Context hints:**
+- `src/canvas-pixi/exportPNG.ts` — export logic and error paths
+- `grep -n "console.error\|console.warn" src/canvas-pixi/exportPNG.ts`
+
+**Acceptance criteria:**
+- [ ] Export errors surface as user-facing toast notifications
+- [ ] Error messages describe what went wrong in plain language
+- [ ] Successful export shows a brief success toast
+
+---
+
+### UX & Accessibility
+
+#### BAU-7: Canvas keyboard accessibility `high`
+
+**Problem:** Canvas-based tools (terrain brush, plant placement, structure drawing) require mouse interaction with no keyboard alternatives. Screen readers cannot access interactive canvas elements.
+
+**Context hints:**
+- `src/canvas-pixi/InteractionManager.ts` — all pointer event handling
+- `docs/frontend/keyboard-shortcuts.md` — existing shortcuts
+- `src/components/TopToolbar.tsx` — toolbar buttons (check for aria-labels)
+- WCAG 2.1 AA: all interactive content must be keyboard operable
+
+**Acceptance criteria:**
+- [ ] All toolbar buttons have `aria-label` attributes
+- [ ] Canvas has `role="application"` with descriptive `aria-label`
+- [ ] Tool activation announces to screen readers via `aria-live` region
+- [ ] Keyboard users can tab to and activate all toolbar tools
+
+---
+
+#### BAU-21: No visual feedback on plant placement failure `high`
+
+**Problem:** When a plant placement fails due to spacing collision or structure collision, nothing happens — no error message, no visual indicator. Users click repeatedly with no feedback, thinking the tool is broken.
+
+**Context hints:**
+- `src/canvas-pixi/PlacementHandlers.ts` lines 329–331 — collision checks return silently
+- Spacing collision is especially common for trees (spacingCm: 300–800cm) and densely planted areas
+
+**Acceptance criteria:**
+- [ ] Failed placement shows a brief visual indicator (e.g., red flash, shake, or toast)
+- [ ] Indicator distinguishes between spacing collision and structure collision
+- [ ] Feedback disappears after ~1 second without blocking further interaction
+
+---
+
+#### BAU-13: Bold/italic keyboard shortcuts for labels `medium`
+
+**Problem:** Bold and italic toggles for label elements are only available as checkboxes in the inspector. No `Ctrl+B` / `Ctrl+I` shortcuts exist.
+
+**Context hints:**
+- `docs/frontend/keyboard-shortcuts.md` — existing shortcut registry
+- `src/components/InspectorPanel.tsx` — label inspector section
+
+**Acceptance criteria:**
+- [ ] `Ctrl+B` toggles bold when a label is selected
+- [ ] `Ctrl+I` toggles italic when a label is selected
+- [ ] Shortcuts are inactive when no label is selected (no conflict with other tools)
+- [ ] Shortcuts registered in `keyboard-shortcuts.md`
+
+---
+
+#### BAU-14: Multi-select plant batch editing `medium`
+
+**Problem:** Selecting multiple plants requires editing each individually.
+
+**Context hints:**
+- `src/components/InspectorPanel.tsx` — plant inspector section
+- `docs/frontend/selection-manipulation.md` — multi-select behavior
+
+**Acceptance criteria:**
+- [ ] Multi-select inspector shows editable fields for batch-applicable properties (status, notes, layer)
+- [ ] Per-element-only properties (position X/Y) are hidden in multi-select mode
+- [ ] Changes apply to all selected plants atomically (single undo step)
+
+---
+
+### Refactoring & Code Quality
+
+#### BAU-5: Break down large components `high`
 
 **Problem:** Several components exceed 700+ lines, making them hard to test, review, and modify:
 - `src/components/JournalView.tsx` — 920 lines
@@ -147,7 +432,7 @@ Each item includes:
 
 ---
 
-### BAU-6: Consolidate inspectors to shadcn/ui `high` `refactor`
+#### BAU-6: Consolidate inspectors to shadcn/ui `high`
 
 **Problem:** Inspector panels use inconsistent UI patterns — raw HTML inputs, plain checkboxes, varying layouts.
 
@@ -164,25 +449,25 @@ Each item includes:
 
 ---
 
-### BAU-7: Canvas keyboard accessibility `high` `accessibility`
+#### BAU-12: Type-safe error handling `medium`
 
-**Problem:** Canvas-based tools (terrain brush, plant placement, structure drawing) require mouse interaction with no keyboard alternatives. Screen readers cannot access interactive canvas elements.
+**Problem:** Multiple `as unknown as` type assertions exist in error handling paths and PixiJS interop, masking potential type errors.
 
 **Context hints:**
-- `src/canvas-pixi/InteractionManager.ts` — all pointer event handling
-- `docs/frontend/keyboard-shortcuts.md` — existing shortcuts
-- `src/components/TopToolbar.tsx` — toolbar buttons (check for aria-labels)
-- WCAG 2.1 AA: all interactive content must be keyboard operable
+- `grep -rn "as unknown" src/` — find all unsafe casts
+- `src/store/useGenerateStore.ts:198` — error property mutation via cast
+- `src/canvas-pixi/TerrainRenderer.ts` — PixiJS internal cache casts
 
 **Acceptance criteria:**
-- [ ] All toolbar buttons have `aria-label` attributes
-- [ ] Canvas has `role="application"` with descriptive `aria-label`
-- [ ] Tool activation announces to screen readers via `aria-live` region
-- [ ] Keyboard users can tab to and activate all toolbar tools
+- [ ] Each `as unknown` cast is either: (a) replaced with a type guard, or (b) documented with a `// SAFETY:` comment explaining why it's necessary
+- [ ] Error objects use proper type narrowing (`instanceof`, discriminated unions) instead of casts
+- [ ] No new `as unknown` casts introduced
 
 ---
 
-### BAU-8: IndexedDB migration system `high` `data`
+### Infrastructure & Backend
+
+#### BAU-8: IndexedDB migration system `high`
 
 **Problem:** `DB_VERSION` is hardcoded as `1` in `src/db/db.ts` with no migration path. Any schema change to the IndexedDB stores will require users to lose data or manually export/reimport.
 
@@ -199,100 +484,7 @@ Each item includes:
 
 ---
 
-### BAU-9: API retry with exponential backoff `high` `error-handling`
-
-**Problem:** Image generation API calls in `useGenerateStore.ts` (lines 192-213) fail permanently on transient errors (5xx, network timeouts). No retry mechanism exists.
-
-**Context hints:**
-- `src/store/useGenerateStore.ts` — API call and error handling
-- `grep -n "fetch\|AbortController\|timeout" src/store/useGenerateStore.ts`
-
-**Acceptance criteria:**
-- [ ] Transient failures (HTTP 5xx, network errors) retry up to 3 times with exponential backoff
-- [ ] Non-retryable errors (4xx) fail immediately
-- [ ] User sees "Retrying..." status during retry attempts
-- [ ] AbortController cancellation still works during retries
-
----
-
-### BAU-10: PNG export error feedback `medium` `error-handling`
-
-**Problem:** `src/canvas-pixi/exportPNG.ts` (lines 59, 62, 67) logs errors to console but gives no feedback to the user when export fails.
-
-**Context hints:**
-- `src/canvas-pixi/exportPNG.ts` — export logic and error paths
-- `grep -n "console.error\|console.warn" src/canvas-pixi/exportPNG.ts`
-
-**Acceptance criteria:**
-- [ ] Export errors surface as user-facing toast notifications
-- [ ] Error messages describe what went wrong in plain language
-- [ ] Successful export shows a brief success toast
-
----
-
-### BAU-11: Remove or implement generate store stubs `medium` `cleanup`
-
-**Problem:** `useGenerateStore.ts` (lines 237-257) contains stub implementations returning mock data: `sendChatMessage()`, `generateDrafts()`, `upscaleSelected()`, `applyStyle()`, `acceptStyle()`. These could confuse agents or users.
-
-**Context hints:**
-- `src/store/useGenerateStore.ts` — search for `// stub` or `setTimeout`
-- `grep -n "stub\|mock\|TODO\|placeholder" src/store/useGenerateStore.ts`
-
-**Acceptance criteria:**
-- [ ] Each stub is either: (a) removed if not on the roadmap, or (b) clearly marked with `@stub` JSDoc tag and a linked plan/issue
-- [ ] No stub returns fake data that could be mistaken for real functionality
-- [ ] If stubs are kept, calling them throws a descriptive `NotImplementedError`
-
----
-
-### BAU-12: Type-safe error handling `medium` `type-safety`
-
-**Problem:** Multiple `as unknown as` type assertions exist in error handling paths and PixiJS interop, masking potential type errors.
-
-**Context hints:**
-- `grep -rn "as unknown" src/` — find all unsafe casts
-- `src/store/useGenerateStore.ts:198` — error property mutation via cast
-- `src/canvas-pixi/TerrainRenderer.ts` — PixiJS internal cache casts
-
-**Acceptance criteria:**
-- [ ] Each `as unknown` cast is either: (a) replaced with a type guard, or (b) documented with a `// SAFETY:` comment explaining why it's necessary
-- [ ] Error objects use proper type narrowing (`instanceof`, discriminated unions) instead of casts
-- [ ] No new `as unknown` casts introduced
-
----
-
-### BAU-13: Bold/italic keyboard shortcuts for labels `medium` `feature`
-
-**Problem:** Bold and italic toggles for label elements are only available as checkboxes in the inspector. No `Ctrl+B` / `Ctrl+I` shortcuts exist.
-
-**Context hints:**
-- `docs/frontend/keyboard-shortcuts.md` — existing shortcut registry
-- `src/components/InspectorPanel.tsx` — label inspector section
-
-**Acceptance criteria:**
-- [ ] `Ctrl+B` toggles bold when a label is selected
-- [ ] `Ctrl+I` toggles italic when a label is selected
-- [ ] Shortcuts are inactive when no label is selected (no conflict with other tools)
-- [ ] Shortcuts registered in `keyboard-shortcuts.md`
-
----
-
-### BAU-14: Multi-select plant batch editing `medium` `feature`
-
-**Problem:** Selecting multiple plants requires editing each individually.
-
-**Context hints:**
-- `src/components/InspectorPanel.tsx` — plant inspector section
-- `docs/frontend/selection-manipulation.md` — multi-select behavior
-
-**Acceptance criteria:**
-- [ ] Multi-select inspector shows editable fields for batch-applicable properties (status, notes, layer)
-- [ ] Per-element-only properties (position X/Y) are hidden in multi-select mode
-- [ ] Changes apply to all selected plants atomically (single undo step)
-
----
-
-### BAU-15: Go server graceful shutdown `medium` `backend`
+#### BAU-15: Go server graceful shutdown `medium`
 
 **Problem:** `cmd/server/main.go` (line 90) uses `log.Fatal()` on startup errors, and the server lacks signal-based graceful shutdown for in-flight requests.
 
@@ -307,7 +499,7 @@ Each item includes:
 
 ---
 
-### BAU-16: Anonymous error tracking `low` `observability`
+#### BAU-16: Anonymous error tracking `low`
 
 **Problem:** No production error tracking exists. Bugs are only discovered through manual QA.
 
@@ -323,7 +515,24 @@ Each item includes:
 
 ---
 
-### BAU-17: Store method JSDoc documentation `low` `docs`
+### Cleanup & Documentation
+
+#### BAU-11: Remove or implement generate store stubs `medium`
+
+**Problem:** `useGenerateStore.ts` (lines 237-257) contains stub implementations returning mock data: `sendChatMessage()`, `generateDrafts()`, `upscaleSelected()`, `applyStyle()`, `acceptStyle()`. These could confuse agents or users.
+
+**Context hints:**
+- `src/store/useGenerateStore.ts` — search for `// stub` or `setTimeout`
+- `grep -n "stub\|mock\|TODO\|placeholder" src/store/useGenerateStore.ts`
+
+**Acceptance criteria:**
+- [ ] Each stub is either: (a) removed if not on the roadmap, or (b) clearly marked with `@stub` JSDoc tag and a linked plan/issue
+- [ ] No stub returns fake data that could be mistaken for real functionality
+- [ ] If stubs are kept, calling them throws a descriptive `NotImplementedError`
+
+---
+
+#### BAU-17: Store method JSDoc documentation `low`
 
 **Problem:** Zustand stores (`useProjectStore`, `useGenerateStore`, `useViewportStore`) lack JSDoc for public methods, making it harder for agents to understand side effects and async behavior.
 
@@ -338,7 +547,7 @@ Each item includes:
 
 ---
 
-### BAU-18: ESLint rule compliance `low` `cleanup`
+#### BAU-18: ESLint rule compliance `low`
 
 **Problem:** Some files disable ESLint rules inline instead of fixing the underlying issue.
 
@@ -350,6 +559,124 @@ Each item includes:
 - [ ] Each `eslint-disable` comment is either: (a) removed by fixing the code, or (b) justified with a `-- reason` comment
 - [ ] No new blanket `eslint-disable` lines introduced
 - [ ] `npm run lint` passes cleanly
+
+---
+
+### Testing
+
+#### BAU-1: Component test coverage `critical`
+
+**Problem:** 43+ React components under `src/components/` have zero unit tests. Regressions go undetected until manual QA.
+
+**Context hints:**
+- `ls src/components/*.tsx` — list all components
+- `grep -rn "describe\|it(" src/ --include="*.test.*"` — find existing test files
+- Test runner: vitest (check `vite.config.ts` or `vitest.config.ts`)
+
+**Acceptance criteria:**
+- [ ] Tests exist for critical-path components: `AppLayout`, `TopToolbar`, `SidePalette`, `InspectorPanel`, `WelcomeScreen`, `GeneratePage`
+- [ ] Each tested component covers: render without crash, key user interactions, conditional rendering branches
+- [ ] `npm test` / `vitest` passes with no failures
+- [ ] Coverage report shows >60% line coverage for tested components
+
+---
+
+### Spikes
+
+#### BAU-23: Spike — Professional design tool parity `high`
+
+**Problem:** The app targets professional interior/exterior designers and garden planners but lacks five foundational CAD-like capabilities that together determine whether the tool can replace existing professional software. This spike investigates all five as a cohesive unit since they share schema, interaction, and export concerns.
+
+**Sub-areas to investigate:**
+
+1. **Freeform polygon/region drawing** — Designers need to draw irregular garden beds, curved patios, and organic shapes. Currently every element is a rectangle or predefined type. The terrain system uses 1m grid cells which produces blocky shapes. Investigate: new `RegionElement` type with arbitrary polygon vertices + arc segments, fill rendering, area calculation, interaction with snap system.
+
+2. **Precise numeric coordinate and dimension input** — Position fields in InspectorPanel are read-only (see BUG-6 history). Users cannot type exact coordinates or dimensions during placement. Investigate: editable position/dimension fields with collision re-validation, on-canvas dimension input during drag (type "3.5" + Enter for exact length), arrow-key nudge with configurable step size.
+
+3. **PDF export with scale and legend** — Only PNG and JSON export exist. Professionals need print-ready output with drawing scale (1:50, 1:100), title block, plant schedule legend, and standard paper sizes (A3, A4, ANSI B). Investigate: PDF generation library (jsPDF, pdf-lib), vector rendering from PixiJS scene graph, multi-page layout, print-to-scale math.
+
+4. **Angle snapping (15/45/90 degrees)** — Rotation handle is completely freehand. No ortho mode for constraining drawing to horizontal/vertical. Investigate: Shift-held angle constraint during rotation and path drawing, configurable snap angles, visual angle indicator overlay.
+
+5. **Alignment and distribution tools** — No align-left, align-center, distribute-horizontally, etc. Investigate: alignment commands on multi-selection (toolbar or context menu), distribute-with-equal-spacing, align-to-grid, keyboard shortcuts.
+
+**Context hints:**
+- `src/types/schema.ts` — element type union, would need new `RegionElement`
+- `src/components/InspectorPanel.tsx` lines 228, 355 — read-only position fields (BUG-6)
+- `src/canvas-pixi/SelectionStateMachine.ts` — rotation handling (no angle snap)
+- `src/canvas-pixi/exportPNG.ts` — current export pipeline
+- `src/canvas/arcGeometry.ts` — existing arc math (reusable for freeform arcs)
+- `src/snap/snapSystem.ts` — current snap infrastructure
+- `docs/frontend/selection-manipulation.md` — selection behavior spec
+
+**Spike deliverable:**
+- [ ] A plan document (`docs/plans/PLAN-BAU-23.md`) covering all five sub-areas
+- [ ] Schema changes required (new element types, new fields)
+- [ ] Interaction design for each sub-area (tool flows, keyboard modifiers)
+- [ ] Library/dependency recommendations (PDF generation, vector export)
+- [ ] Implementation phases with dependency ordering
+- [ ] Risk assessment: which sub-areas conflict with existing architecture
+
+---
+
+#### BAU-24: Spike — Construction lines and reference guides `high`
+
+**Problem:** Professional designers use construction lines (infinite guide lines) for layout alignment — setback lines, center lines, property boundaries, and reference axes. The app has no concept of non-element reference geometry.
+
+**Context hints:**
+- `src/canvas-pixi/GridRenderer.ts` — existing grid rendering (guide lines would render in a similar layer)
+- `src/snap/snapSystem.ts` — guide lines should participate as snap targets
+- `src/types/schema.ts` — may need a new `GuideLine` type or a dedicated `guides` array on `Project`
+- CAD reference: AutoCAD "XLINE" and "RAY" commands, SketchUp guide lines
+
+**Spike deliverable:**
+- [ ] A plan document (`docs/plans/PLAN-BAU-24.md`)
+- [ ] Data model: how guides are stored (project-level array vs element type)
+- [ ] Rendering approach: infinite lines clipped to viewport, distinct visual style (dashed, colored)
+- [ ] Interaction: placement tool (horizontal, vertical, angled, through-point), drag to reposition, delete
+- [ ] Snap integration: guides as first-class snap targets in `snapSystem.ts`
+- [ ] Intersection points: auto-detected guide-guide intersections as snap candidates
+
+---
+
+#### BAU-25: Spike — Plant schedule generation `medium`
+
+**Problem:** Professional landscape plans include a plant schedule — a table listing all plant species, quantities, sizes, spacing, and notes. This is a standard deliverable alongside the visual plan. The app has all the data (plant registry + placed elements) but no way to generate or export this schedule.
+
+**Context hints:**
+- `src/types/schema.ts` — `PlantElement` and `PlantType` have all needed fields (name, category, spacingCm, sunRequirement, waterNeed, season, costPerUnit)
+- `src/data/builtinRegistries.ts` — plant registry with full metadata
+- `src/components/GeometryPanel.tsx` — existing per-element summary (could extend pattern)
+- Professional reference: landscape architecture plant schedules typically include: symbol/key, botanical name, common name, quantity, size/caliper, spacing, remarks
+
+**Spike deliverable:**
+- [ ] A plan document (`docs/plans/PLAN-BAU-25.md`)
+- [ ] Schedule data model: aggregation logic (group by plant type, count, compute totals)
+- [ ] UI design: panel/modal/export format for the schedule table
+- [ ] Export integration: embed in PDF export (BAU-23), standalone CSV/Excel export
+- [ ] Cost summary integration: tie into existing `currency` and `costPerUnit` fields
+- [ ] Symbol key: map plant type → canvas visual representation for legend
+
+---
+
+#### BAU-26: Spike — SVG/DXF export `medium`
+
+**Problem:** Professional designers need vector export formats for CAD interoperability and print production. PNG is raster-only and lossy at scale. SVG preserves vector precision for web/print. DXF is the industry standard for exchanging drawings with AutoCAD, SketchUp, and other CAD tools.
+
+**Context hints:**
+- `src/canvas-pixi/exportPNG.ts` — current export pipeline (rasterizes PixiJS scene)
+- `src/types/schema.ts` — all element geometry is stored as coordinates in cm (clean source for vector export)
+- `src/canvas/arcGeometry.ts` — arc math (needed for SVG arc path commands)
+- `src/canvas-pixi/textures/` — procedural textures would need SVG pattern equivalents
+- Library candidates: SVG — direct DOM/string generation; DXF — `dxf-writer` or `makerjs` npm packages
+
+**Spike deliverable:**
+- [ ] A plan document (`docs/plans/PLAN-BAU-26.md`)
+- [ ] SVG export: mapping from each element type to SVG primitives (rect, circle, path, text, pattern)
+- [ ] DXF export: mapping from element types to DXF entities (LINE, ARC, CIRCLE, TEXT, HATCH)
+- [ ] Layer mapping: canvas layers → SVG groups / DXF layers
+- [ ] Scale and units: how cm-based coordinates map to SVG viewBox and DXF units
+- [ ] Texture/fill handling: procedural textures → SVG patterns / DXF hatch patterns
+- [ ] Library recommendation with bundle size impact
 
 ---
 
