@@ -36,8 +36,8 @@ export default function StatusBar({ onOpenCostSummary }: StatusBarProps = {}) {
 
   return (
     <div
-      className="flex items-center gap-6 px-4 bg-white border-t border-gray-200 text-xs text-gray-600 flex-shrink-0"
-      style={{ height: 32 }}
+      className="flex items-center gap-6 px-4 border-t border-gray-200 text-xs flex-shrink-0"
+      style={{ height: 32, background: 'var(--ls-surface-statusbar)', color: 'var(--ls-text-on-dark-secondary)', fontFamily: 'var(--ls-font-mono)' }}
     >
       <span className="flex items-center gap-1">
         <button

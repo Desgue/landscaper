@@ -94,8 +94,8 @@ export default function SidePalette() {
 
   return (
     <div
-      className="flex flex-col bg-white border-r border-gray-200 flex-shrink-0 transition-all overflow-hidden"
-      style={{ width: collapsed ? 0 : 240 }}
+      className="flex flex-col border-r border-gray-200 flex-shrink-0 transition-all overflow-hidden"
+      style={{ width: collapsed ? 0 : 240, background: 'var(--ls-surface-panel)' }}
     >
       {!collapsed && (
         <>
@@ -107,8 +107,8 @@ export default function SidePalette() {
                 onClick={() => setActiveTab(tab)}
                 className="flex-1 text-xs py-2 font-medium transition-colors"
                 style={{
-                  color: activeTab === tab ? '#1971c2' : '#6b7280',
-                  borderBottom: activeTab === tab ? '2px solid #1971c2' : '2px solid transparent',
+                  color: activeTab === tab ? 'var(--ls-color-interactive)' : 'var(--ls-text-tertiary)',
+                  borderBottom: activeTab === tab ? '2px solid var(--ls-color-interactive)' : '2px solid transparent',
                   background: 'transparent',
                 }}
               >
@@ -145,14 +145,14 @@ export default function SidePalette() {
                         background: tt.color,
                         boxSizing: 'border-box',
                         border: selectedTerrainTypeId === tt.id
-                          ? '2.5px solid #1971c2'
+                          ? '2.5px solid var(--ls-color-interactive)'
                           : '2px solid rgba(0,0,0,0.12)',
                       }}
                     />
                     <span
                       style={{
                         fontSize: 10,
-                        color: '#374151',
+                        color: 'var(--ls-text-primary)',
                         maxWidth: 40,
                         textAlign: 'center',
                         lineHeight: '1.2',
@@ -167,7 +167,7 @@ export default function SidePalette() {
 
               {/* Brush size selector (FIX 7) */}
               <div style={{ marginTop: 12 }}>
-                <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 500 }}>Brush size</span>
+                <span style={{ fontSize: 11, color: 'var(--ls-text-tertiary)', fontWeight: 500 }}>Brush size</span>
                 <div className="flex gap-1" style={{ marginTop: 4 }}>
                   {([1, 2, 3] as const).map((size) => (
                     <button
@@ -179,9 +179,9 @@ export default function SidePalette() {
                         borderRadius: 5,
                         fontSize: 12,
                         fontWeight: brushSize === size ? 600 : 400,
-                        background: brushSize === size ? '#e8f0fb' : '#f3f4f6',
-                        color: brushSize === size ? '#1971c2' : '#374151',
-                        border: brushSize === size ? '1.5px solid #1971c2' : '1px solid #d1d5db',
+                        background: brushSize === size ? 'var(--ls-color-interactive-subtle)' : 'var(--ls-surface-panel-header)',
+                        color: brushSize === size ? 'var(--ls-color-interactive)' : 'var(--ls-text-secondary)',
+                        border: brushSize === size ? '1.5px solid var(--ls-color-interactive)' : '1px solid var(--ls-border-default)',
                         cursor: 'pointer',
                       }}
                     >
@@ -196,13 +196,13 @@ export default function SidePalette() {
               <div className="flex flex-wrap gap-2">
                 {plantTypes.map((pt) => {
                   const PLANT_COLORS: Record<string, string> = {
-                    vegetable: '#4CAF50',
-                    herb: '#66BB6A',
-                    fruit: '#FF9800',
-                    flower: '#E91E63',
-                    tree: '#795548',
-                    shrub: '#8BC34A',
-                    other: '#9E9E9E',
+                    vegetable: 'var(--ls-plant-vegetable)',
+                    herb: 'var(--ls-plant-herb)',
+                    fruit: 'var(--ls-plant-fruit)',
+                    flower: 'var(--ls-plant-flower)',
+                    tree: 'var(--ls-plant-tree)',
+                    shrub: 'var(--ls-plant-shrub)',
+                    other: 'var(--ls-text-tertiary)',
                   }
                   const color = PLANT_COLORS[pt.category] ?? PLANT_COLORS['other']
                   return (
@@ -229,14 +229,14 @@ export default function SidePalette() {
                           background: color,
                           boxSizing: 'border-box',
                           border: selectedPlantTypeId === pt.id
-                            ? '2.5px solid #1971c2'
+                            ? '2.5px solid var(--ls-color-interactive)'
                             : '2px solid rgba(0,0,0,0.12)',
                         }}
                       />
                       <span
                         style={{
                           fontSize: 10,
-                          color: '#374151',
+                          color: 'var(--ls-text-primary)',
                           maxWidth: 40,
                           textAlign: 'center',
                           lineHeight: '1.2',
@@ -254,7 +254,7 @@ export default function SidePalette() {
             <div className="flex-1 overflow-y-auto p-3">
               <div className="flex flex-wrap gap-2">
                 {structureTypes.map((st) => {
-                  const color = STRUCTURE_CATEGORY_COLORS[st.category] ?? '#6b7280'
+                  const color = STRUCTURE_CATEGORY_COLORS[st.category] ?? 'var(--ls-text-tertiary)'
                   return (
                     <button
                       key={st.id}
@@ -279,14 +279,14 @@ export default function SidePalette() {
                           background: color,
                           boxSizing: 'border-box',
                           border: selectedStructureTypeId === st.id
-                            ? '2.5px solid #1971c2'
+                            ? '2.5px solid var(--ls-color-interactive)'
                             : '2px solid rgba(0,0,0,0.12)',
                         }}
                       />
                       <span
                         style={{
                           fontSize: 10,
-                          color: '#374151',
+                          color: 'var(--ls-text-primary)',
                           maxWidth: 40,
                           textAlign: 'center',
                           lineHeight: '1.2',
@@ -327,14 +327,14 @@ export default function SidePalette() {
                         background: pt.color,
                         boxSizing: 'border-box',
                         border: selectedPathTypeId === pt.id
-                          ? '2.5px solid #1971c2'
+                          ? '2.5px solid var(--ls-color-interactive)'
                           : '2px solid rgba(0,0,0,0.12)',
                       }}
                     />
                     <span
                       style={{
                         fontSize: 10,
-                        color: '#374151',
+                        color: 'var(--ls-text-primary)',
                         maxWidth: 48,
                         textAlign: 'center',
                         lineHeight: '1.2',

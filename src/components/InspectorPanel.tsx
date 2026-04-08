@@ -27,10 +27,10 @@ function useInspectorSlots() {
 
 // ─── Shared UI helpers ──────────────────────────────────────────────────────
 
-const labelCls = 'text-xs text-gray-500 font-medium mb-0.5'
-const inputCls = 'rounded border border-gray-200 px-2 py-1 text-sm w-full'
-const readonlyCls = 'rounded border border-gray-100 bg-gray-50 px-2 py-1 text-sm w-full text-gray-600'
-const dividerCls = 'border-t border-gray-100 my-3'
+const labelCls = 'text-xs text-[var(--ls-text-tertiary)] font-medium mb-0.5'
+const inputCls = 'rounded border border-[var(--ls-border-subtle)] px-2 py-1 text-sm w-full'
+const readonlyCls = 'rounded border border-[var(--ls-border-subtle)] bg-[var(--ls-surface-panel)] px-2 py-1 text-sm w-full text-[var(--ls-text-secondary)]'
+const dividerCls = 'border-t border-[var(--ls-border-subtle)] my-3'
 
 function ReadonlyField({ label, value }: { label: string; value: string }) {
   return (
@@ -122,7 +122,7 @@ function LockedToggle({ element }: { element: CanvasElement }) {
         type="checkbox"
         checked={element.locked}
         onChange={handleChange}
-        className="rounded border-gray-300"
+        className="rounded border-[var(--ls-border-default)]"
       />
       <span className={labelCls + ' mb-0'}>Locked</span>
     </div>
@@ -395,13 +395,13 @@ function StructureInspector({ element }: { element: StructureElement }) {
         <div className={labelCls}>Shape</div>
         <div className="flex gap-1">
           <button
-            className={`flex-1 px-2 py-1 text-xs rounded border ${element.shape === 'straight' ? 'bg-blue-50 border-blue-300 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            className={`flex-1 px-2 py-1 text-xs rounded border ${element.shape === 'straight' ? 'bg-[var(--ls-color-interactive-subtle)] border-[var(--ls-color-interactive-border)] text-[var(--ls-color-interactive)]' : 'border-[var(--ls-border-subtle)] text-[var(--ls-text-secondary)] hover:bg-[var(--ls-surface-panel)]'}`}
             onClick={() => update((el) => { el.shape = 'straight' as StructureShape })}
           >
             Straight
           </button>
           <button
-            className={`flex-1 px-2 py-1 text-xs rounded border ${element.shape === 'curved' ? 'bg-blue-50 border-blue-300 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            className={`flex-1 px-2 py-1 text-xs rounded border ${element.shape === 'curved' ? 'bg-[var(--ls-color-interactive-subtle)] border-[var(--ls-color-interactive-border)] text-[var(--ls-color-interactive)]' : 'border-[var(--ls-border-subtle)] text-[var(--ls-text-secondary)] hover:bg-[var(--ls-surface-panel)]'}`}
             onClick={() => update((el) => { el.shape = 'curved' as StructureShape })}
           >
             Curved
@@ -524,7 +524,7 @@ function PathInspector({ element }: { element: PathElement }) {
           type="checkbox"
           checked={element.closed}
           onChange={(e) => update((el) => { el.closed = e.target.checked })}
-          className="rounded border-gray-300"
+          className="rounded border-[var(--ls-border-default)]"
         />
         <span className={labelCls + ' mb-0'}>Closed</span>
       </div>
@@ -625,7 +625,7 @@ function LabelInspector({ element }: { element: LabelElement }) {
         <div className={labelCls}>Font Color</div>
         <input
           type="color"
-          className="w-full h-8 rounded border border-gray-200 cursor-pointer"
+          className="w-full h-8 rounded border border-[var(--ls-border-subtle)] cursor-pointer"
           value={element.fontColor}
           onChange={(e) => update((el) => { el.fontColor = e.target.value })}
         />
@@ -640,7 +640,7 @@ function LabelInspector({ element }: { element: LabelElement }) {
           {(['left', 'center', 'right'] as TextAlign[]).map((align) => (
             <button
               key={align}
-              className={`flex-1 px-2 py-1 text-xs rounded border ${element.textAlign === align ? 'bg-blue-50 border-blue-300 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              className={`flex-1 px-2 py-1 text-xs rounded border ${element.textAlign === align ? 'bg-[var(--ls-color-interactive-subtle)] border-[var(--ls-color-interactive-border)] text-[var(--ls-color-interactive)]' : 'border-[var(--ls-border-subtle)] text-[var(--ls-text-secondary)] hover:bg-[var(--ls-surface-panel)]'}`}
               onClick={() => update((el) => { el.textAlign = align })}
             >
               {align.charAt(0).toUpperCase() + align.slice(1)}
@@ -657,7 +657,7 @@ function LabelInspector({ element }: { element: LabelElement }) {
           type="checkbox"
           checked={element.bold}
           onChange={(e) => update((el) => { el.bold = e.target.checked })}
-          className="rounded border-gray-300"
+          className="rounded border-[var(--ls-border-default)]"
         />
         <span className={labelCls + ' mb-0'}>Bold</span>
       </div>
@@ -668,7 +668,7 @@ function LabelInspector({ element }: { element: LabelElement }) {
           type="checkbox"
           checked={element.italic}
           onChange={(e) => update((el) => { el.italic = e.target.checked })}
-          className="rounded border-gray-300"
+          className="rounded border-[var(--ls-border-default)]"
         />
         <span className={labelCls + ' mb-0'}>Italic</span>
       </div>
@@ -806,13 +806,13 @@ function MultiSelectInspector({
 }) {
   return (
     <div>
-      <div className="mb-3 px-2 py-1.5 rounded bg-blue-50 text-xs font-semibold text-blue-700">
+      <div className="mb-3 px-2 py-1.5 rounded bg-[var(--ls-color-interactive-subtle)] text-xs font-semibold text-[var(--ls-color-interactive)]">
         {selectedCount} elements selected
       </div>
 
       {/* Show primary element type badge */}
       <div className="mb-3">
-        <span className="inline-block px-2 py-0.5 rounded bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+        <span className="inline-block px-2 py-0.5 rounded bg-[var(--ls-surface-panel-header)] text-xs font-semibold text-[var(--ls-text-secondary)] uppercase tracking-wide">
           Primary: {elementTypeLabel(primaryElement)}
         </span>
       </div>
@@ -838,19 +838,19 @@ export default function InspectorPanel() {
   return (
     <InspectorSlotsContext.Provider value={inspectorSlotRegistry}>
       <div
-        className="flex flex-col bg-white border-l border-gray-200 flex-shrink-0 overflow-hidden transition-all"
-        style={{ width: collapsed ? 0 : 280 }}
+        className="flex flex-col border-l flex-shrink-0 overflow-hidden transition-all"
+        style={{ width: collapsed ? 0 : 280, background: 'var(--ls-surface-panel)', borderColor: 'var(--ls-border-subtle)' }}
       >
         {!collapsed && (
           <>
             {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 flex-shrink-0">
-              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--ls-border-subtle)] flex-shrink-0">
+              <span className="text-xs font-semibold text-[var(--ls-text-primary)] uppercase tracking-wide">
                 Inspector
               </span>
               <button
                 onClick={() => setCollapsed(true)}
-                className="text-gray-400 hover:text-gray-600 text-sm"
+                className="text-[var(--ls-text-disabled)] hover:text-[var(--ls-text-secondary)] text-sm"
                 title="Collapse inspector"
               >
                 ›
@@ -869,14 +869,14 @@ export default function InspectorPanel() {
               <div className="flex-1 overflow-y-auto px-3 py-3">
                 {/* Element type badge */}
                 <div className="mb-3">
-                  <span className="inline-block px-2 py-0.5 rounded bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  <span className="inline-block px-2 py-0.5 rounded bg-[var(--ls-surface-panel-header)] text-xs font-semibold text-[var(--ls-text-secondary)] uppercase tracking-wide">
                     {elementTypeLabel(element)}
                   </span>
                 </div>
                 <ElementInspector element={element} />
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-sm text-gray-400">
+              <div className="flex-1 flex items-center justify-center text-sm text-[var(--ls-text-disabled)]">
                 Nothing selected.
               </div>
             )}
@@ -886,8 +886,8 @@ export default function InspectorPanel() {
         {collapsed && (
           <button
             onClick={() => setCollapsed(false)}
-            className="flex items-center justify-center w-full bg-white border-l border-gray-200 text-gray-500 hover:bg-gray-50"
-            style={{ height: '100%', width: 16 }}
+            className="flex items-center justify-center w-full border-l border-[var(--ls-border-subtle)] text-[var(--ls-text-tertiary)] hover:bg-[var(--ls-surface-panel-header)]"
+            style={{ height: '100%', width: 16, background: 'var(--ls-surface-panel)' }}
             title="Expand inspector"
           >
             ‹

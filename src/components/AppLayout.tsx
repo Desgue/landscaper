@@ -81,7 +81,7 @@ export default function AppLayout() {
             <div
               ref={containerRef}
               className="flex-1 relative overflow-hidden"
-              style={{ background: '#f5f5f5' }}
+              style={{ background: 'var(--ls-surface-canvas-overflow)' }}
             >
               <Suspense fallback={null}>
                 <Canvas width={canvasSize.width} height={canvasSize.height} />
