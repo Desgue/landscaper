@@ -68,9 +68,9 @@ export function buildRequestBody(
     options: mappedOptions,
   };
 
-  // Extract yardPhoto to top-level yard_photo
+  // Extract yardPhoto to top-level yard_photo, stripping data-URL prefix if present
   if (yardPhoto) {
-    body.yard_photo = yardPhoto;
+    body.yard_photo = yardPhoto.replace(/^data:[^;]+;base64,/, '');
   }
 
   return body;
