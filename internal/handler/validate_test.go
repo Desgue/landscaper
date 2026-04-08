@@ -286,6 +286,30 @@ func TestValidYardPhoto_PNG(t *testing.T) {
 	}
 }
 
+func TestValidYardPhoto_DataURL_JPEG(t *testing.T) {
+	dataURL := "data:image/jpeg;base64," + fakeJPEG()
+	body, _ := json.Marshal(map[string]any{
+		"project":    minimalProject(),
+		"yard_photo": dataURL,
+	})
+	rec, ok := doValidate(body, summerDate)
+	if !ok {
+		t.Fatalf("expected ok for JPEG data-URL; got error: %s", rec.Body.String())
+	}
+}
+
+func TestValidYardPhoto_DataURL_PNG(t *testing.T) {
+	dataURL := "data:image/png;base64," + fakePNG()
+	body, _ := json.Marshal(map[string]any{
+		"project":    minimalProject(),
+		"yard_photo": dataURL,
+	})
+	rec, ok := doValidate(body, summerDate)
+	if !ok {
+		t.Fatalf("expected ok for PNG data-URL; got error: %s", rec.Body.String())
+	}
+}
+
 func TestBodyTooLarge(t *testing.T) {
 	// Create a body just over 10 MB
 	huge := strings.Repeat("x", maxBodySize+1)
