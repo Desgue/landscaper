@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Sparkles, Upload, X, ChevronDown } from 'lucide-react';
+import { SlidersHorizontal, Sparkles, Upload, X } from 'lucide-react';
 import { useGenerateStore } from '../../../store/useGenerateStore';
 import { useProjectStore } from '../../../store/useProjectStore';
 import {
@@ -7,7 +7,6 @@ import {
   SEASONS,
   TIMES_OF_DAY,
   VIEWPOINTS,
-  IMAGE_SIZES,
   ASPECT_RATIOS,
 } from '../../../types/generate';
 
@@ -29,12 +28,10 @@ export function InitialGeneration() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate type
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
       alert('Please upload a JPEG or PNG image.');
       return;
     }
-    // Validate size (3MB — matches backend per-photo decoded limit)
     if (file.size > 3 * 1024 * 1024) {
       alert('Photo too large. Maximum size is 3 MB.');
       return;
@@ -48,10 +45,12 @@ export function InitialGeneration() {
   };
 
   return (
-    <div className="p-5 space-y-5">
+    <div className="p-6 space-y-5">
       {/* Photo upload */}
       <section>
-        <SectionLabel>Reference Photo (optional)</SectionLabel>
+        <div className="text-xs font-medium tracking-wider text-text-secondary mb-3">
+          REFERENCE PHOTO (OPTIONAL)
+        </div>
         {yardPhoto ? (
           <div className="relative rounded-lg border border-border overflow-hidden h-24 bg-bg-elevated">
             <img
@@ -87,73 +86,52 @@ export function InitialGeneration() {
         )}
       </section>
 
-      {/* Options grid — 3 columns */}
-      <section>
-        <SectionLabel>Generation Options</SectionLabel>
-        <div className="grid grid-cols-3 gap-3">
-          <SelectField
-            label="Garden Style"
-            value={options.gardenStyle}
+      {/* Generation Options card */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-8">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-1">
+          <SlidersHorizontal size={22} className="text-text-secondary" />
+          <h2 className="text-xl font-semibold text-text">Generation Options</h2>
+        </div>
+        <hr className="border-gray-200 mt-4 mb-6" />
+
+        <div className="space-y-6">
+          <PillGroup
+            label="STYLE"
             options={GARDEN_STYLES}
+            value={options.gardenStyle}
             onChange={(v) => setOption('gardenStyle', v as typeof options.gardenStyle)}
           />
-          <SelectField
-            label="Season"
-            value={options.season}
+
+          <PillGroup
+            label="SEASON"
             options={SEASONS}
+            value={options.season}
             onChange={(v) => setOption('season', v as typeof options.season)}
           />
-          <SelectField
-            label="Time of Day"
-            value={options.timeOfDay}
+
+          <PillGroup
+            label="TIME OF DAY"
             options={TIMES_OF_DAY}
+            value={options.timeOfDay}
             onChange={(v) => setOption('timeOfDay', v as typeof options.timeOfDay)}
           />
-          <SelectField
-            label="Viewpoint"
-            value={options.viewpoint}
+
+          <PillGroup
+            label="VIEW"
             options={VIEWPOINTS}
+            value={options.viewpoint}
             onChange={(v) => setOption('viewpoint', v as typeof options.viewpoint)}
           />
+
+          <PillGroup
+            label="ASPECT RATIO"
+            options={ASPECT_RATIOS}
+            value={options.aspectRatio}
+            onChange={(v) => setOption('aspectRatio', v as typeof options.aspectRatio)}
+          />
         </div>
-      </section>
-
-      {/* Segment buttons */}
-      <section>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <SectionLabel>Image Size</SectionLabel>
-            <SegmentGroup
-              options={IMAGE_SIZES}
-              value={options.imageSize}
-              onChange={(v) => setOption('imageSize', v as typeof options.imageSize)}
-            />
-          </div>
-          <div>
-            <SectionLabel>Aspect Ratio</SectionLabel>
-            <SegmentGroup
-              options={ASPECT_RATIOS}
-              value={options.aspectRatio}
-              onChange={(v) => setOption('aspectRatio', v as typeof options.aspectRatio)}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Toggles */}
-      <section className="flex items-center gap-6">
-        <ToggleField
-          label="Include planned elements"
-          checked={options.includePlanned}
-          onChange={(v) => setOption('includePlanned', v)}
-        />
-      </section>
-
-      {/* Advanced (collapsible) */}
-      <AdvancedSection
-        seed={options.seed}
-        onSeedChange={(v) => setOption('seed', v)}
-      />
+      </div>
 
       {/* Yard boundary warning */}
       {!hasYardBoundary && !isLoading && (
@@ -187,144 +165,39 @@ export function InitialGeneration() {
   );
 }
 
-// ── Shared sub-components ────────────────────────────────────────────────────
+// ── Pill group sub-component ────────────────────────────────────────────────
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary mb-2">
-      {children}
-    </div>
-  );
-}
-
-function SelectField({
+function PillGroup({
   label,
-  value,
   options,
+  value,
   onChange,
 }: {
   label: string;
-  value: string;
   options: readonly { value: string; label: string }[];
+  value: string;
   onChange: (value: string) => void;
 }) {
   return (
     <div>
-      <label className="block text-xs text-text-muted mb-1">{label}</label>
-      <div className="relative">
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full appearance-none bg-bg-card border border-border rounded-md px-3 py-1.5 pr-8 text-sm text-text cursor-pointer hover:border-primary-light focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-colors"
-        >
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown
-          size={14}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
-        />
+      <div className="text-xs font-medium tracking-wider text-text-secondary mb-3">
+        {label}
       </div>
-    </div>
-  );
-}
-
-function SegmentGroup({
-  options,
-  value,
-  onChange,
-}: {
-  options: readonly { value: string; label: string }[];
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="flex rounded-lg bg-bg-elevated p-0.5">
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          onClick={() => onChange(opt.value)}
-          className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-            value === opt.value
-              ? 'bg-primary text-white shadow-sm'
-              : 'text-text-secondary hover:text-text'
-          }`}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function ToggleField({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <label className="flex items-center gap-2 cursor-pointer">
-      <div
-        onClick={() => onChange(!checked)}
-        className={`relative w-9 h-5 rounded-full transition-colors ${
-          checked ? 'bg-primary' : 'bg-bg-elevated border border-border'
-        }`}
-      >
-        <div
-          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
-            checked ? 'translate-x-4' : 'translate-x-0.5'
-          }`}
-        />
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => onChange(opt.value)}
+            className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              value === opt.value
+                ? 'bg-primary text-white'
+                : 'bg-white text-text border border-gray-300 hover:border-primary-light'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
-      <span className="text-xs text-text-secondary">{label}</span>
-    </label>
-  );
-}
-
-function AdvancedSection({
-  seed,
-  onSeedChange,
-}: {
-  seed: number | null;
-  onSeedChange: (value: number | null) => void;
-}) {
-  const [open, setOpen] = React.useState(false);
-
-  return (
-    <div className="border-t border-border pt-3">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 text-xs font-medium text-text-muted hover:text-text transition-colors"
-      >
-        <ChevronDown
-          size={14}
-          className={`transition-transform ${open ? 'rotate-0' : '-rotate-90'}`}
-        />
-        Advanced
-      </button>
-      {open && (
-        <div className="mt-3 pl-5">
-          <label className="block text-xs text-text-muted mb-1">
-            Seed (empty = random)
-          </label>
-          <input
-            type="number"
-            value={seed ?? ''}
-            onChange={(e) =>
-              onSeedChange(e.target.value === '' ? null : parseInt(e.target.value, 10))
-            }
-            placeholder="Random"
-            className="w-40 bg-bg-card border border-border rounded-md px-3 py-1.5 text-sm text-text placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
-          />
-        </div>
-      )}
     </div>
   );
 }
