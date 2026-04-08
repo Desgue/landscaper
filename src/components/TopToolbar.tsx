@@ -22,8 +22,8 @@ import { useRouter } from '@tanstack/react-router'
 
 
 // Design tokens
-const ACCENT = '#1971c2'
-const ACCENT_BG = '#e8f0fb'
+const ACCENT = 'var(--ls-color-interactive)'
+const ACCENT_BG = 'var(--ls-color-interactive-subtle)'
 
 interface ToolButton {
   key: string
@@ -118,8 +118,8 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
 
   return (
     <div
-      className="flex items-center gap-1 px-3 bg-white border-b border-gray-200 flex-shrink-0"
-      style={{ height: 48 }}
+      className="flex items-center gap-1 px-3 border-b border-gray-200 flex-shrink-0"
+      style={{ height: 48, background: 'var(--ls-surface-toolbar)', color: 'var(--ls-text-on-dark)' }}
     >
       {/* Logo */}
       <span className="font-bold text-base mr-3" style={{ color: ACCENT }}>
@@ -144,7 +144,7 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
                   minWidth: 40,
                   height: 36,
                   background: isActive ? ACCENT_BG : 'transparent',
-                  color: isActive ? ACCENT : '#374151',
+                  color: isActive ? ACCENT : 'var(--ls-text-on-dark-secondary)',
                   border: isActive ? `1px solid ${ACCENT}` : '1px solid transparent',
                 }}
               >
@@ -172,12 +172,12 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
                     height: 0,
                     borderLeft: '4px solid transparent',
                     borderRight: '4px solid transparent',
-                    borderBottom: '4px solid #1f2937',
+                    borderBottom: '4px solid var(--ls-surface-tooltip)',
                   }}
                 />
                 <div
                   className="rounded px-2 py-1 text-white whitespace-nowrap shadow-md"
-                  style={{ background: '#1f2937', fontSize: 11 }}
+                  style={{ background: 'var(--ls-surface-tooltip)', fontSize: 11 }}
                 >
                   {tool.label}
                   <span className="ml-1.5 opacity-60">{tool.key.toUpperCase()}</span>
@@ -205,8 +205,8 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
           className="pointer-events-none absolute top-full left-1/2 mt-1.5 hidden group-hover:flex flex-col items-center"
           style={{ transform: 'translateX(-50%)', zIndex: 9999 }}
         >
-          <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderBottom: '4px solid #1f2937' }} />
-          <div className="rounded px-2 py-1 text-white whitespace-nowrap shadow-md" style={{ background: '#1f2937', fontSize: 11 }}>
+          <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderBottom: '4px solid var(--ls-surface-tooltip)' }} />
+          <div className="rounded px-2 py-1 text-white whitespace-nowrap shadow-md" style={{ background: 'var(--ls-surface-tooltip)', fontSize: 11 }}>
             Undo <span className="opacity-60">Ctrl+Z</span>
           </div>
         </div>
@@ -225,8 +225,8 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
           className="pointer-events-none absolute top-full left-1/2 mt-1.5 hidden group-hover:flex flex-col items-center"
           style={{ transform: 'translateX(-50%)', zIndex: 9999 }}
         >
-          <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderBottom: '4px solid #1f2937' }} />
-          <div className="rounded px-2 py-1 text-white whitespace-nowrap shadow-md" style={{ background: '#1f2937', fontSize: 11 }}>
+          <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderBottom: '4px solid var(--ls-surface-tooltip)' }} />
+          <div className="rounded px-2 py-1 text-white whitespace-nowrap shadow-md" style={{ background: 'var(--ls-surface-tooltip)', fontSize: 11 }}>
             Redo <span className="opacity-60">Ctrl+Shift+Z</span>
           </div>
         </div>
@@ -242,8 +242,8 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
         disabled={!currentProject?.yardBoundary}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors"
         style={{
-          background: '#E8A838',
-          color: '#1A1D1A',
+          background: 'var(--ls-color-cta)',
+          color: 'var(--ls-color-cta-text)',
           opacity: currentProject?.yardBoundary ? 1 : 0.5,
           cursor: currentProject?.yardBoundary ? 'pointer' : 'not-allowed',
         }}
