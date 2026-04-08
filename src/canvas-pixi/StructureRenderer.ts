@@ -30,6 +30,9 @@ import type { RendererHandle } from './BaseRenderer'
 import type { RenderScheduler } from './RenderScheduler'
 import type { TextureAtlas } from './textures/TextureAtlas'
 import type { StructureElement, StructureType, Layer } from '../types/schema'
+import type { CanvasTokens } from '../tokens/canvasTokens'
+import { pixiIntToHex } from '../tokens/canvasTokens'
+import { updateStructureColors } from './textures/StructureSprites'
 import { sampleArc } from '../canvas/arcGeometry'
 
 // ---------------------------------------------------------------------------
@@ -639,6 +642,17 @@ export function createStructureRenderer(
 
   return {
     update: rebuildFromStore,
+    setTokens(tokens: CanvasTokens) {
+      // Update structure colors in StructureSprites (integer → hex for Canvas2D)
+      updateStructureColors({
+        soil: pixiIntToHex(tokens.structureColors.soil),
+        texture: pixiIntToHex(tokens.structureColors.texture),
+      })
+
+      // Invalidate cached textures (colors are baked in) and rebuild
+      atlas.invalidateStructureCache()
+      rebuildFromStore()
+    },
     destroy(): void {
       for (const unsub of unsubs) unsub()
       unsubs.length = 0
