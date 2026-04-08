@@ -24,6 +24,10 @@ const MAX_PLANT_CACHE = 512
 /** Max cached structure sprites before eviction (FIFO, not true LRU). */
 const MAX_STRUCTURE_CACHE = 512
 
+/** Texture size for tree/shrub categories (reduces extreme upscaling). */
+const LARGE_PLANT_SIZE = 128
+const LARGE_PLANT_CATEGORIES = new Set(['tree', 'shrub'])
+
 // ---------------------------------------------------------------------------
 // Public interface
 // ---------------------------------------------------------------------------
@@ -141,8 +145,6 @@ export function createTextureAtlas(): TextureAtlas {
 
   // Default sizes for generation
   const DEFAULT_PLANT_SIZE = 64
-  const LARGE_PLANT_SIZE = 128
-  const LARGE_PLANT_CATEGORIES = new Set(['tree', 'shrub'])
   const DEFAULT_STRUCTURE_W = 64
   const DEFAULT_STRUCTURE_H = 48
 

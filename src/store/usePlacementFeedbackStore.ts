@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 interface PlacementFeedbackStore {
   message: string | null
+  /** Monotonic stamp so repeated identical messages re-trigger the dismiss timer. */
   timestamp: number
   showFeedback(msg: string): void
   clearFeedback(): void
