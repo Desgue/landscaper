@@ -79,7 +79,7 @@ Tracks A and B can run now in parallel. Track C starts after BAU-30 spike comple
 
 ### No dependencies (safe to start now)
 
-BAU-3, BAU-4, BAU-7, BAU-9, BAU-10, BAU-11, BAU-13, BAU-15, BAU-19, BAU-20, BAU-22, BAU-27, BAU-28, BAU-29
+BAU-3, BAU-4, BAU-7, BAU-9, BAU-10, BAU-11, BAU-13, BAU-15, BAU-19, BAU-20, BAU-22, BAU-27, BAU-28, BAU-29, BAU-31
 
 ---
 
@@ -130,6 +130,7 @@ BAU-3, BAU-4, BAU-7, BAU-9, BAU-10, BAU-11, BAU-13, BAU-15, BAU-19, BAU-20, BAU-
 | BAU-8 | ~~IndexedDB migration system~~ | ~~high~~ | `dropped` — over-engineered; schema evolution handled by validation on load |
 | BAU-15 | Go server graceful shutdown | medium | `planned` — [ENG-15](https://linear.app/dg-tech/issue/ENG-15) |
 | BAU-16 | ~~Anonymous error tracking (Sentry or similar)~~ | ~~low~~ | `dropped` — premature for personal project; BAU-4 toasts cover user-facing errors |
+| BAU-31 | Deploy to Railway | high | `open` |
 
 ### Cleanup & Documentation
 
@@ -577,6 +578,36 @@ Option 1 is recommended — it matches professional design tool behavior.
 - [ ] Server handles `SIGINT` and `SIGTERM` signals
 - [ ] In-flight HTTP requests complete before shutdown (with a timeout)
 - [ ] Shutdown logs a clean exit message
+
+---
+
+#### BAU-31: Deploy to Railway `high`
+
+**Problem:** The app has no production deployment. Both the Go backend (serves embedded SPA + `/api/generate`) and the Vite frontend exist only as local dev builds. Deploy plans already exist at `docs/backend/deploy-plan.md` and `docs/frontend/deploy-plan.md` but have zero tasks completed.
+
+**Architecture:** The Go server embeds the Vite build output via `//go:embed` and serves everything as a single binary. This means a single Railway service can serve both the SPA and the API. The separate frontend deploy plan (`PLAN-DEPLOY-FE`) exists as a fallback for deploying the SPA independently with Caddy, but the single-binary approach is simpler and should be attempted first.
+
+**What needs to happen:**
+1. Create `railway.toml` with build command (`npm ci && npm run build && go build -o server ./cmd/server`) and start command (`./server`)
+2. Set env vars on Railway: `GEMINI_API_KEY`, `GEMINI_MODEL`, `PORT`
+3. Verify Go version compatibility (repo uses `go 1.26.1` in `go.mod` — may need to check Railway/Railpack support)
+4. Verify the health endpoint (`GET /api/health`) and SPA routing work in production
+5. Optionally set up a custom domain
+
+**Context hints:**
+- `docs/backend/deploy-plan.md` — full backend deploy plan (3 phases, all `todo`)
+- `docs/frontend/deploy-plan.md` — frontend deploy plan (fallback, `todo`)
+- `cmd/server/main.go` — server entry, reads `PORT`, `GEMINI_API_KEY`, `GEMINI_MODEL`
+- `Makefile` — existing build pipeline (`make ci`)
+- `docs/backend/server.md` — server architecture, routes, env vars
+- BAU-15 (graceful shutdown) is a nice-to-have before deploy but not a hard blocker
+
+**Acceptance criteria:**
+- [ ] App is accessible at a Railway-provided URL (or custom domain)
+- [ ] `GET /api/health` returns `{"ok": true}`
+- [ ] SPA routes (`/`, `/app`, `/app/canvas`) serve correctly (no 404 on refresh)
+- [ ] `POST /api/generate` works with a real Gemini API key
+- [ ] Env vars are configured securely (not committed to repo)
 
 ---
 

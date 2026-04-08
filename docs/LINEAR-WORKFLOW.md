@@ -80,7 +80,7 @@ Create under "Status" group for visibility:
 
 ### Branch Naming
 
-Linear creates branches automatically. If agent creates manually, follow this format:
+Linear generates a branch name per issue (visible in the issue as `gitBranchName`) but does **not** push the branch automatically — the agent creates it. Format:
 
 ```
 {ISSUE_ID}-{slug}
