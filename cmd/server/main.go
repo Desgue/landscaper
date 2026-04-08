@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/fs"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -18,13 +22,24 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		slog.Error("fatal", "error", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	// Load .env file if present (silently ignored in production)
 	_ = godotenv.Load() //nolint:errcheck // intentionally ignoring: .env is optional
+
+	// Set up structured logging early so all slog calls use JSON
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
 
 	// Read env vars
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	if apiKey == "" {
-		log.Fatal("GEMINI_API_KEY is required")
+		return fmt.Errorf("GEMINI_API_KEY is required")
 	}
 
 	model := os.Getenv("GEMINI_MODEL")
@@ -37,9 +52,9 @@ func main() {
 		port = "8080"
 	}
 
-	// Set up structured logging
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
+	// Listen for SIGINT and SIGTERM for graceful shutdown
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	mux := http.NewServeMux()
 
@@ -53,7 +68,7 @@ func main() {
 	// Embedded SPA with index.html fallback
 	distFS, err := fs.Sub(greenprint.StaticFiles, "frontend/dist")
 	if err != nil {
-		log.Fatal("failed to create sub filesystem: ", err)
+		return fmt.Errorf("failed to create sub filesystem: %w", err)
 	}
 	fileServer := http.FileServer(http.FS(distFS))
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
@@ -86,8 +101,39 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	slog.Info("server starting", "port", port, "model", model) //nolint:gosec // G706: port and model are from env vars, not user input
-	if err := srv.ListenAndServe(); err != nil {
-		log.Fatal("server failed: ", err)
+	// Start server in a goroutine
+	errCh := make(chan error, 1)
+	go func() {
+		slog.Info("server starting", "port", port, "model", model) //nolint:gosec // G706: port and model are from env vars, not user input
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errCh <- err
+		}
+		close(errCh)
+	}()
+
+	// Wait for shutdown signal or server error
+	select {
+	case err := <-errCh:
+		if err != nil {
+			return fmt.Errorf("server failed: %w", err)
+		}
+	case <-ctx.Done():
+		// Re-register default signal behavior so a second signal terminates immediately
+		stop()
+		slog.Info("shutdown signal received, draining connections...")
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			return fmt.Errorf("server forced to shutdown: %w", err)
+		}
+
+		// Wait for the ListenAndServe goroutine to finish
+		<-errCh
+
+		slog.Info("server shutdown complete")
 	}
+
+	return nil
 }

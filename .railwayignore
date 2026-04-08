@@ -1,0 +1,14 @@
+.env
+.env.*
+.env.local
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+.npmrc
+.claude/
+node_modules/
+lefthook-local.yml
+id_rsa
+id_ed25519
