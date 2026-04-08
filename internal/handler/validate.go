@@ -22,16 +22,16 @@ var validGardenStyles = map[string]bool{
 }
 
 var validSeasons = map[string]bool{
-	"early spring": true, "late spring": true, "summer": true,
+	"spring": true, "early spring": true, "late spring": true, "summer": true,
 	"late summer": true, "autumn": true, "winter": true,
 }
 
 var validTimesOfDay = map[string]bool{
-	"morning": true, "midday": true, "golden hour": true, "overcast": true,
+	"morning": true, "midday": true, "afternoon": true, "golden hour": true, "overcast": true,
 }
 
 var validViewpoints = map[string]bool{
-	"eye-level": true, "elevated": true, "isometric": true,
+	"eye-level": true, "elevated": true, "overhead": true, "isometric": true,
 }
 
 var validAspectRatios = map[string]bool{
@@ -243,9 +243,9 @@ func decodePhoto(b64 string) (model.PhotoEntry, error) {
 func resolveOptions(opts *model.GenerateOptions, loc *model.Location, now time.Time) model.EffectiveOptions {
 	eff := model.EffectiveOptions{
 		IncludePlanned: true,
-		GardenStyle:    "garden",
+		GardenStyle:    "contemporary",
 		Season:         "summer",
-		TimeOfDay:      "golden hour",
+		TimeOfDay:      "afternoon",
 		Viewpoint:      "eye-level",
 		AspectRatio:    "square",
 		ImageSize:      "1K",
@@ -305,33 +305,17 @@ func deriveSeason(loc *model.Location, now time.Time) string {
 //
 // Date ranges:
 //
-//	Mar 1  – Apr 14  → "early spring"
-//	Apr 15 – May 31  → "late spring"
+//	Mar 1  – May 31  → "spring"
 //	Jun 1  – Aug 31  → "summer"
-//	Sep 1  – Oct 14  → "late summer"
-//	Oct 15 – Nov 30  → "autumn"
+//	Sep 1  – Nov 30  → "autumn"
 //	Dec 1  – Feb 28/29 → "winter"
 func deriveNorthernSeason(month time.Month, day int) string {
 	switch month {
-	case time.March:
-		return "early spring"
-	case time.April:
-		if day <= 14 {
-			return "early spring"
-		}
-		return "late spring"
-	case time.May:
-		return "late spring"
+	case time.March, time.April, time.May:
+		return "spring"
 	case time.June, time.July, time.August:
 		return "summer"
-	case time.September:
-		return "late summer"
-	case time.October:
-		if day <= 14 {
-			return "late summer"
-		}
-		return "autumn"
-	case time.November:
+	case time.September, time.October, time.November:
 		return "autumn"
 	case time.December, time.January, time.February:
 		return "winter"
@@ -343,33 +327,17 @@ func deriveNorthernSeason(month time.Month, day int) string {
 //
 // Date ranges:
 //
-//	Sep 1  – Oct 14  → "early spring"
-//	Oct 15 – Nov 30  → "late spring"
+//	Sep 1  – Nov 30  → "spring"
 //	Dec 1  – Feb 28/29 → "summer"
-//	Mar 1  – Apr 14  → "late summer"
-//	Apr 15 – May 31  → "autumn"
+//	Mar 1  – May 31  → "autumn"
 //	Jun 1  – Aug 31  → "winter"
 func deriveSouthernSeason(month time.Month, day int) string {
 	switch month {
-	case time.September:
-		return "early spring"
-	case time.October:
-		if day <= 14 {
-			return "early spring"
-		}
-		return "late spring"
-	case time.November:
-		return "late spring"
+	case time.September, time.October, time.November:
+		return "spring"
 	case time.December, time.January, time.February:
 		return "summer"
-	case time.March:
-		return "late summer"
-	case time.April:
-		if day <= 14 {
-			return "late summer"
-		}
-		return "autumn"
-	case time.May:
+	case time.March, time.April, time.May:
 		return "autumn"
 	case time.June, time.July, time.August:
 		return "winter"
