@@ -70,7 +70,7 @@ export function buildRequestBody(
 
   // Extract yardPhoto to top-level yard_photo, stripping data-URL prefix if present
   if (yardPhoto) {
-    body.yard_photo = yardPhoto.replace(/^data:image\/\w+;base64,/, '');
+    body.yard_photo = yardPhoto.replace(/^data:[^;]+;base64,/, '');
   }
 
   return body;

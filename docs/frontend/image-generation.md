@@ -98,7 +98,7 @@ const requestBody = {
     ...project,           // spread the full project object
     registries,           // merge registries inside project (see api-contract.md "## Project Field Shape")
   },
-  yard_photo: generateStore.yardPhoto ?? undefined,  // top-level field, read from generate store
+  yard_photo: generateStore.yardPhoto?.replace(/^data:[^;]+;base64,/, '') ?? undefined,  // strip data-URL prefix; backend also strips for defense-in-depth
   options: {
     garden_style:     options.gardenStyle  ?? undefined,
     season:           options.season       ?? undefined,  // null → omit → backend derives
@@ -252,8 +252,8 @@ Scenario: Uploading an invalid file type shows inline error
   And an inline error reads "Please upload a JPEG or PNG image."
 
 Scenario: yardPhoto included as top-level field in request
-  Given useGenerateStore.yardPhoto is a non-null base64 string
+  Given useGenerateStore.yardPhoto is a non-null string (raw base64 or data-URL)
   When the request body is constructed
-  Then the top-level "yard_photo" field equals the store's yardPhoto
+  Then the top-level "yard_photo" field equals the store's yardPhoto with any data-URL prefix stripped
   And the "project" field does not contain a "yardPhoto" key
 ```

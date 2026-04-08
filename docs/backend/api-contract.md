@@ -19,7 +19,7 @@ Accept: image/png
 ```json
 {
   "project":    { "...full JSON export per data-schema.md ## Export Format..." },
-  "yard_photo": "string | string[] (1–4 base64-encoded JPEG or PNG photos) | omit for segmentation-only generation",
+  "yard_photo": "string | string[] (1–4 JPEG or PNG photos as raw base64 or data-URL) | omit for segmentation-only generation",
   "options": {
     "include_planned": "boolean (default: true)",
     "garden_style":    "cottage | formal | tropical | mediterranean | japanese | kitchen | native | contemporary | garden",
@@ -161,7 +161,7 @@ Validated before any rendering begins. All invalid requests return HTTP 400 imme
 | `options.image_size` | One of 3 allowed values (`1K`, `2K`, `4K`) if present | `"invalid image_size"` |
 | `options.seed` | Integer or omitted; `-1` means random | `"invalid seed"` |
 | `options.include_planned` | Boolean or omitted | `"invalid include_planned"` |
-| `yard_photo` | Each photo: valid base64 decoding to JPEG or PNG magic bytes; max 3 MB decoded per photo | `"invalid yard_photo"` |
+| `yard_photo` | Each photo: raw base64 or data-URL (`data:image/...;base64,...`); decodes to JPEG or PNG magic bytes; max 3 MB decoded | `"invalid yard_photo"` |
 | `yard_photo` (array length) | 1–4 entries when array; empty array treated as omitted | `"too many yard photos (max 4)"` |
 | `yard_photo` (per-photo size) | Each decoded photo <= 3 MB | `"yard photo too large"` |
 
