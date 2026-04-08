@@ -10,5 +10,9 @@ export const EXTRUSION_ANGLE_DEG = 30
 /** Maximum atlas page dimension in pixels. */
 export const MAX_ATLAS_SIZE = 2048
 
+/** Max structure texture generation dimension per axis (px).
+ *  Prevents GPU memory blowout on large elements; PixiJS Sprite scales up. */
+export const MAX_STRUCTURE_TEX_DIM = 256
+
 /** Fallback color for missing/unknown textures. */
 export const FALLBACK_COLOR = '#FF00FF'
