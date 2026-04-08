@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   MousePointer2,
   Hand,
@@ -19,7 +19,19 @@ import { useHistoryStore } from '../store/useHistoryStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { exportProjectAsJSON } from '../db/projectsDb'
 import { useRouter } from '@tanstack/react-router'
-
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 // Design tokens
 const ACCENT = 'var(--ls-color-interactive)'
@@ -71,8 +83,7 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
   const closeProject = useProjectStore((s) => s.closeProject)
   const router = useRouter()
 
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const [activeMode, setActiveMode] = useState('blueprint')
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -104,18 +115,6 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
     }
   }, [setTool, pushTemporaryTool, popTemporaryTool])
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    if (!menuOpen) return
-    const onClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onClickOutside)
-    return () => document.removeEventListener('mousedown', onClickOutside)
-  }, [menuOpen])
-
   return (
     <div
       className="flex items-center gap-1 px-3 border-b border-gray-200 flex-shrink-0"
@@ -134,56 +133,41 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
         {TOOLS.map(tool => {
           const isActive = activeTool === tool.id
           return (
-            <div key={tool.id} className="relative group">
-              <button
-                onClick={() => setTool(tool.id)}
-                aria-label={`${tool.label} (${tool.key.toUpperCase()})`}
-                aria-pressed={isActive}
-                className="flex flex-col items-center justify-center rounded px-2 py-0.5 gap-0.5 transition-colors"
-                style={{
-                  minWidth: 40,
-                  height: 36,
-                  background: isActive ? ACCENT_BG : 'transparent',
-                  color: isActive ? ACCENT : 'var(--ls-text-on-dark-secondary)',
-                  border: isActive ? `1px solid ${ACCENT}` : '1px solid transparent',
-                }}
-              >
-                <tool.Icon
-                  size={14}
-                  strokeWidth={isActive ? 2.5 : 2}
-                />
-                <span
-                  className="leading-none select-none"
-                  style={{ fontSize: 10, fontWeight: isActive ? 600 : 400 }}
-                >
-                  {tool.label}
-                </span>
-              </button>
-
-              {/* Tooltip */}
-              <div
-                className="pointer-events-none absolute top-full left-1/2 mt-1.5 hidden group-hover:flex flex-col items-center"
-                style={{ transform: 'translateX(-50%)', zIndex: 9999 }}
-              >
-                {/* Arrow */}
-                <div
+            <Tooltip key={tool.id}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setTool(tool.id)}
+                  aria-label={`${tool.label} (${tool.key.toUpperCase()})`}
+                  aria-pressed={isActive}
+                  className="flex flex-col items-center justify-center rounded px-2 py-0.5 gap-0.5 transition-colors"
                   style={{
-                    width: 0,
-                    height: 0,
-                    borderLeft: '4px solid transparent',
-                    borderRight: '4px solid transparent',
-                    borderBottom: '4px solid var(--ls-surface-tooltip)',
+                    minWidth: 40,
+                    height: 36,
+                    background: isActive ? ACCENT_BG : 'transparent',
+                    color: isActive ? ACCENT : 'var(--ls-text-on-dark-secondary)',
+                    border: isActive ? `1px solid ${ACCENT}` : '1px solid transparent',
                   }}
-                />
-                <div
-                  className="rounded px-2 py-1 text-white whitespace-nowrap shadow-md"
-                  style={{ background: 'var(--ls-surface-tooltip)', fontSize: 11 }}
                 >
-                  {tool.label}
-                  <span className="ml-1.5 opacity-60">{tool.key.toUpperCase()}</span>
-                </div>
-              </div>
-            </div>
+                  <tool.Icon
+                    size={14}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                  <span
+                    className="leading-none select-none"
+                    style={{ fontSize: 10, fontWeight: isActive ? 600 : 400 }}
+                  >
+                    {tool.label}
+                  </span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                style={{ background: 'var(--ls-surface-tooltip)', color: 'white', fontSize: 11 }}
+                sideOffset={6}
+              >
+                {tool.label}
+                <span className="ml-1.5 opacity-60">{tool.key.toUpperCase()}</span>
+              </TooltipContent>
+            </Tooltip>
           )
         })}
       </div>
@@ -192,145 +176,156 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
       <div className="w-px bg-gray-200 self-stretch my-2 mx-2" />
 
       {/* Undo / Redo */}
-      <div className="relative group">
-        <button
-          className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-600 hover:bg-gray-100 border border-transparent transition-colors"
-          aria-label="Undo (Ctrl+Z)"
-          onClick={undo}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-white/10 border border-transparent transition-colors"
+            style={{ color: 'var(--ls-text-on-dark-secondary)' }}
+            aria-label="Undo (Ctrl+Z)"
+            onClick={undo}
+          >
+            <Undo2 size={13} />
+            <span>Undo</span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent
+          style={{ background: 'var(--ls-surface-tooltip)', color: 'white', fontSize: 11 }}
+          sideOffset={6}
         >
-          <Undo2 size={13} />
-          <span>Undo</span>
-        </button>
-        <div
-          className="pointer-events-none absolute top-full left-1/2 mt-1.5 hidden group-hover:flex flex-col items-center"
-          style={{ transform: 'translateX(-50%)', zIndex: 9999 }}
-        >
-          <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderBottom: '4px solid var(--ls-surface-tooltip)' }} />
-          <div className="rounded px-2 py-1 text-white whitespace-nowrap shadow-md" style={{ background: 'var(--ls-surface-tooltip)', fontSize: 11 }}>
-            Undo <span className="opacity-60">Ctrl+Z</span>
-          </div>
-        </div>
-      </div>
+          Undo <span className="opacity-60">Ctrl+Z</span>
+        </TooltipContent>
+      </Tooltip>
 
-      <div className="relative group">
-        <button
-          className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-600 hover:bg-gray-100 border border-transparent transition-colors"
-          aria-label="Redo (Ctrl+Shift+Z)"
-          onClick={redo}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-white/10 border border-transparent transition-colors"
+            style={{ color: 'var(--ls-text-on-dark-secondary)' }}
+            aria-label="Redo (Ctrl+Shift+Z)"
+            onClick={redo}
+          >
+            <Redo2 size={13} />
+            <span>Redo</span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent
+          style={{ background: 'var(--ls-surface-tooltip)', color: 'white', fontSize: 11 }}
+          sideOffset={6}
         >
-          <Redo2 size={13} />
-          <span>Redo</span>
-        </button>
-        <div
-          className="pointer-events-none absolute top-full left-1/2 mt-1.5 hidden group-hover:flex flex-col items-center"
-          style={{ transform: 'translateX(-50%)', zIndex: 9999 }}
+          Redo <span className="opacity-60">Ctrl+Shift+Z</span>
+        </TooltipContent>
+      </Tooltip>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Mode switcher (UI only — wired to store in Phase 5) */}
+      <Tabs value={activeMode} onValueChange={setActiveMode}>
+        <TabsList
+          className="h-7"
+          style={{ background: 'var(--ls-surface-toolbar-active)' }}
         >
-          <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderBottom: '4px solid var(--ls-surface-tooltip)' }} />
-          <div className="rounded px-2 py-1 text-white whitespace-nowrap shadow-md" style={{ background: 'var(--ls-surface-tooltip)', fontSize: 11 }}>
-            Redo <span className="opacity-60">Ctrl+Shift+Z</span>
-          </div>
-        </div>
-      </div>
+          <TabsTrigger value="blueprint" className="text-xs px-2.5 h-5 data-[state=active]:bg-white/15 data-[state=active]:text-white" style={{ color: 'var(--ls-text-on-dark-secondary)' }}>
+            Blueprint
+          </TabsTrigger>
+          <TabsTrigger value="generate" className="text-xs px-2.5 h-5 data-[state=active]:bg-white/15 data-[state=active]:text-white" style={{ color: 'var(--ls-text-on-dark-secondary)' }}>
+            Generate
+          </TabsTrigger>
+          <TabsTrigger value="garden" className="text-xs px-2.5 h-5 data-[state=active]:bg-white/15 data-[state=active]:text-white" style={{ color: 'var(--ls-text-on-dark-secondary)' }}>
+            Garden
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Spacer */}
       <div className="flex-1" />
 
       {/* Generate button */}
-      <div className="relative group">
-      <button
-        onClick={() => router.navigate({ to: '/app/generate' })}
-        disabled={!currentProject?.yardBoundary}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors"
-        style={{
-          background: 'var(--ls-color-cta)',
-          color: 'var(--ls-color-cta-text)',
-          opacity: currentProject?.yardBoundary ? 1 : 0.5,
-          cursor: currentProject?.yardBoundary ? 'pointer' : 'not-allowed',
-        }}
-        title={currentProject?.yardBoundary ? 'Open AI generation view' : 'Set up a yard boundary before generating.'}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-        </svg>
-        Generate
-      </button>
-      </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => router.navigate({ to: '/app/generate' })}
+            disabled={!currentProject?.yardBoundary}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors"
+            style={{
+              background: 'var(--ls-color-cta)',
+              color: 'var(--ls-color-cta-text)',
+              opacity: currentProject?.yardBoundary ? 1 : 0.5,
+              cursor: currentProject?.yardBoundary ? 'pointer' : 'not-allowed',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+            </svg>
+            Generate
+          </button>
+        </TooltipTrigger>
+        <TooltipContent
+          style={{ background: 'var(--ls-surface-tooltip)', color: 'white', fontSize: 11 }}
+          sideOffset={6}
+        >
+          {currentProject?.yardBoundary ? 'Open AI generation view' : 'Set up a yard boundary first'}
+        </TooltipContent>
+      </Tooltip>
 
       <div className="w-px bg-gray-200 self-stretch my-2 mx-1" />
 
       {/* Project menu */}
-      <div className="relative" ref={menuRef}>
-        <button
-          className="flex items-center gap-1 px-3 py-1.5 rounded text-sm text-gray-700 hover:bg-gray-100 border border-gray-200"
-          title="Project menu"
-          onClick={() => setMenuOpen((v) => !v)}
-        >
-          Project ▾
-        </button>
-        {menuOpen && (
-          <div
-            className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded shadow-lg py-1 z-50"
-            style={{ minWidth: 180 }}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="flex items-center gap-1 px-3 py-1.5 rounded text-sm hover:bg-white/10 border border-transparent transition-colors"
+            style={{ color: 'var(--ls-text-on-dark-secondary)' }}
           >
-            <button
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              onClick={() => {
-                onOpenJournal?.()
-                setMenuOpen(false)
-              }}
-              disabled={!currentProject}
-            >
-              Journal
-            </button>
-            <button
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              onClick={() => {
-                onOpenCostSummary?.()
-                setMenuOpen(false)
-              }}
-              disabled={!currentProject}
-            >
-              Cost Summary
-            </button>
-            <div className="border-t border-gray-100 my-1" />
-            <button
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              onClick={() => {
-                if (currentProject) {
-                  exportProjectAsJSON(currentProject, registries)
-                }
-                setMenuOpen(false)
-              }}
-              disabled={!currentProject}
-            >
-              Export JSON
-            </button>
-            <button
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              onClick={async () => {
-                if (currentProject) {
-                  const { exportToPNG } = await import('../canvas-pixi/exportPNG')
-                  await exportToPNG(currentProject)
-                }
-                setMenuOpen(false)
-              }}
-              disabled={!currentProject}
-            >
-              Export PNG
-            </button>
-            <button
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              onClick={() => {
-                closeProject()
-                router.navigate({ to: '/' })
-                setMenuOpen(false)
-              }}
-            >
-              Back to Projects
-            </button>
-          </div>
-        )}
-      </div>
+            Project ▾
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" style={{ minWidth: 180 }}>
+          <DropdownMenuItem
+            onClick={() => onOpenJournal?.()}
+            disabled={!currentProject}
+          >
+            Journal
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onOpenCostSummary?.()}
+            disabled={!currentProject}
+          >
+            Cost Summary
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => {
+              if (currentProject) {
+                exportProjectAsJSON(currentProject, registries)
+              }
+            }}
+            disabled={!currentProject}
+          >
+            Export JSON
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={async () => {
+              if (currentProject) {
+                const { exportToPNG } = await import('../canvas-pixi/exportPNG')
+                await exportToPNG(currentProject)
+              }
+            }}
+            disabled={!currentProject}
+          >
+            Export PNG
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => {
+              closeProject()
+              router.navigate({ to: '/' })
+            }}
+          >
+            Back to Projects
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }
