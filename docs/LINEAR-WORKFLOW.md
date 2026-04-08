@@ -26,7 +26,7 @@ All Engineering team issues move through a linear lifecycle. States are sequenti
 | State | Meaning | Entry rules | Exit rules | Agent actions |
 |-------|---------|-------------|-----------|----------------|
 | **Backlog** | Issue created, waiting for prioritization. Parent BAU items start here. | Issue created in Linear. | Assign priority + priority label. | Scan and filter by priority. Pick up if Todo. |
-| **Todo** | Issue is ready to work on. No blockers. Assigned agent can start immediately. | Priority assigned. No `blocker` label. | Agent picks up and moves to In Progress. | Read full description. Check blockedBy. Post comment: "Taking this" before moving. |
+| **Todo** | Issue is ready to work on. No blockers. Assigned agent can start immediately. | Priority assigned. No `blockedBy` relationships unresolved. | Agent picks up and moves to In Progress. | Read full description. Check blockedBy. Post comment: "Taking this" before moving. |
 | **In Progress** | Agent is actively developing. | Agent transitions from Todo. Creates branch (format: `team-key/issue-id-slug`). | Agent creates PR (linked via branch name). Move to In Review. | Implement per description. Push commits. Create draft PR → ready when tests pass. Post progress comment if blocked >1 hour. |
 | **In Review** | Code complete. Awaiting reviewer agent approval. | Agent creates PR and transitions issue. | Reviewer approves (→ Done) or requests changes (→ Revise). | Reviewer checks code quality, tests, types, regressions. Post review comment per template. |
 | **Revise** | Reviewer requested changes. Agent fixes and re-submits. | Reviewer posts "REVISE" comment and transitions issue. | Agent fixes → pushes to same branch → moves back to In Review. | Read revise comments carefully. Fix in place. Post comment: "Ready for re-review" before transitioning. |
@@ -35,10 +35,12 @@ All Engineering team issues move through a linear lifecycle. States are sequenti
 
 ### Transition Rules
 
-- **Only forward:** Backlog → Todo → In Progress → In Review → {Done | Revise → In Review → Done}
-- **No skipping:** Must pass through In Review before Done (even for trivial fixes).
-- **Blocking:** If issue has `blocker` label or is in blockedBy relationship, it stays in Backlog until unblocked.
+- **Forward flow:** Backlog → Todo → In Progress → In Review → {Done | Revise → In Progress → In Review → Done}
+- **Backward exceptions:** In Progress → Backlog (only when blocked by external dependency). In Progress → Todo (agent can no longer work on it, not blocked).
+- **No skipping In Review:** Must pass through In Review before Done. Exception: issues labeled `Cleanup` with estimate 1 may self-review (agent posts Approve template on itself and moves to Done).
+- **Blocking:** If issue has a `blockedBy` relationship, it stays in Backlog until the blocking issue is Done.
 - **Parent → Done:** Only when all sub-issues are Done AND parent acceptance criteria pass review.
+- **Parent Revise:** If parent is sent to Revise after final review, agent creates new sub-issues for the fixes (do NOT reopen Done sub-issues). Parent returns to In Progress while new sub-issues flow through the lifecycle. When new sub-issues are Done, parent returns to In Review.
 
 ---
 
@@ -65,7 +67,6 @@ Create under "Status" group for visibility:
 
 | Label | When to use |
 |-------|------------|
-| `blocker` | Issue is blocked by another issue. Stays in Backlog until unblocked. Transitions out when dependency is Done. |
 | `urgent-review` | Issue awaiting review is high-priority. Reviewer agent scans for this and prioritizes. |
 
 ### Do NOT use
@@ -82,16 +83,15 @@ Create under "Status" group for visibility:
 Linear creates branches automatically. If agent creates manually, follow this format:
 
 ```
-{TEAM-KEY}/{ISSUE_ID}-{slug}
+{ISSUE_ID}-{slug}
 ```
 
 | Component | Value | Example |
 |-----------|-------|---------|
-| TEAM-KEY | `ENG` for Engineering | `ENG` |
 | ISSUE_ID | Linear issue ID (e.g., `ENG-42`) | `ENG-42` |
 | slug | Kebab-case title, 3–5 words max | `fix-tree-visibility` |
 
-**Full example:** `ENG/ENG-42-fix-tree-visibility`
+**Full example:** `ENG-42-fix-tree-visibility`
 
 ### PR Requirements
 
@@ -117,7 +117,7 @@ When PR merges:
 1. **Scan Todo items** by priority (Urgent → High → Medium → Low).
 2. **Check dependencies:** Read `blockedBy` relationships in the issue. If blockedBy issue is not Done, skip this item.
 3. **Check estimate:** If no estimate, add one before starting (1 pt for small, 3 for medium, 5 for large).
-4. **Confirm capacity:** Do not pick up work if you have >2 active (In Progress) issues.
+4. **Confirm capacity:** Do not have more than 2 issues actively being coded simultaneously. Issues in In Review, Revise, or blocked do not count against this limit.
 5. **Transition:** Move issue from Todo → In Progress. Post comment: "Taking this."
 6. **Create branch:** Use naming rules above. Push first commit within 1 hour of starting.
 
@@ -130,6 +130,18 @@ When PR merges:
 | **Found a problem** | Post comment describing the issue (not a fix attempt in comments). If major, escalate to human (see Escalation below). |
 | **Updating acceptance criteria** | Update issue description directly. Do NOT re-negotiate scope — if scope expands, create a new sub-issue. |
 | **Test failures** | Fix in the same PR. Do not merge until all tests pass. |
+
+### Pre-Review Gate
+
+Before moving ANY issue to In Review, the implementing agent must run a pre-review with 3 parallel checks:
+
+1. **Code Review** — code quality, unnecessary complexity, project style consistency
+2. **Security Review** — injection, XSS, unsafe patterns, secrets exposure, OWASP top 10
+3. **Doc Sync Review** — changes are consistent with docs in `docs/`, no spec drift, new features documented
+
+Fix all issues found. Re-run `npm run type-check && npm test && npm run lint` after fixes. Only then move to In Review.
+
+This gate prevents obvious issues from reaching the reviewer agent, keeping the review cycle fast.
 
 ### Creating Sub-Issues
 
@@ -149,7 +161,7 @@ Post comments for visibility and handoff clarity:
 |----------|------|-------------|
 | Picking up work | Immediately upon Todo → In Progress | "Taking this." |
 | Blocked | After 1 hour of blocking | Problem, context, blocker type (missing info, external API down, etc.) |
-| Ready for review | When pushing final commit | "Code ready. All tests pass. Ready for review." |
+| Ready for review | When pushing final commit | "Code ready. All checks pass. Ready for review." |
 | Ready for re-review | After revising per feedback | "Fixed per comments. Ready for re-review." |
 | Completing parent | All sub-issues Done | "All sub-issues done. Parent acceptance criteria met. Ready for final review." |
 
@@ -223,10 +235,10 @@ Both templates are in `docs/plans/PLAN_TEMPLATE.md` under "Review Comments" sect
 ```
 **APPROVED**
 
-- [ ] Code quality — no unnecessary complexity
-- [ ] Tests cover happy path + error case
-- [ ] No regressions (spot-checked)
-- [ ] Types pass strict mode
+- [x] Code meets project standards
+- [x] Tests cover path + error cases
+- [x] No regressions detected
+- [x] Types pass strict mode
 
 Moving to Done.
 ```
@@ -235,8 +247,8 @@ Moving to Done.
 ```
 **REVISE**
 
-1. **[What]:** [Problem and fix] — `src/path/file.ts` line X
-2. **[What]:** [Problem and fix]
+1. **[Issue]:** [Problem and fix] — `src/path/file.ts` line X
+2. **[Issue]:** [Problem and fix]
 
 Fix and move back to In Review.
 ```
@@ -259,7 +271,7 @@ After posting Approve comment:
 |-------|-------|-----|--------|
 | 1. Creation | Backlog | Human or agent | Create parent issue with brief problem. |
 | 2. Planning | Backlog | Agent | Read problem. Explore codebase. Write detailed plan into description (use PLAN_TEMPLATE.md). |
-| 3. Planning | Todo | Agent | Create sub-issues (one per atomic task). Link to parent via "relates to" + `blockedBy`. Set parent state to Todo. |
+| 3. Planning | In Progress | Agent | Write plan into description. Create sub-issues (one per atomic task, state: Todo). Link via `blockedBy`. Move parent to In Progress — planning is work. |
 | 4. Execution | In Progress | Agent(s) | Pick up sub-issues sequentially or in parallel per dependency graph. Implement per sub-issue plan. |
 | 5. Review | In Review (sub-issues) | Reviewer agent | Review and approve/revise each sub-issue. Move sub-issues to Done. |
 | 6. Final review | In Review (parent) | Reviewer agent | All sub-issues Done. Check parent acceptance criteria. Approve parent. |

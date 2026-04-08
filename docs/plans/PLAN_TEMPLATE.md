@@ -83,10 +83,10 @@ Use for single focused changes, typically one PR. Linked to a parent issue.
 ```markdown
 **APPROVED**
 
-- [ ] Code meets project standards
-- [ ] Tests cover path + error cases
-- [ ] No regressions detected
-- [ ] Types pass strict mode
+- [x] Code meets project standards
+- [x] Tests cover path + error cases
+- [x] No regressions detected
+- [x] Types pass strict mode
 
 Moving to Done.
 ```
@@ -98,8 +98,8 @@ Moving to Done.
 ```markdown
 **REVISE**
 
-1. **[Issue title]:** [Specific problem and fix] — `path/file.ts` line X
-2. **[Issue title]:** [Specific problem and fix]
+1. **[Issue]:** [Specific problem and fix] — `path/file.ts` line X
+2. **[Issue]:** [Specific problem and fix]
 
 Fix and move back to In Review.
 ```

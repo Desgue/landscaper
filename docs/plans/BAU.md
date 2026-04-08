@@ -43,16 +43,17 @@ Items are grouped into parallel tracks. Within a track, arrows indicate "must co
 ### Critical paths
 
 ```
-Chain 1 — Rendering → Spikes (longest path, 5 steps):
-  BAU-19 → BAU-27 → BAU-8 → BAU-23 → BAU-25
-                                    → BAU-26
+Chain 1 — UI Rethink (longest path, gates most UI work):
+  BAU-30 → BAU-5 → BAU-6 → BAU-13 + BAU-14 (parallel)
+       └→ BAU-23 → BAU-25 + BAU-26 (parallel)
+       └→ BAU-24
+       └→ Landing page plan (pause until BAU-30 done)
 
-Chain 2 — Error UX (fan-out from toast system):
+Chain 2 — Rendering (safe to run now, no UI chrome):
+  BAU-19 → BAU-27 → BAU-22
+
+Chain 3 — Error UX (safe to run now):
   BAU-4 → BAU-21, BAU-10, BAU-9
-
-Chain 3 — Refactor → Features:
-  BAU-5 → BAU-6 → BAU-13
-       → BAU-14
 ```
 
 ### Parallel execution tracks
@@ -61,25 +62,24 @@ Chain 3 — Refactor → Features:
 |-------|----------|-------|
 | **A — Rendering** | BAU-19 → BAU-27 → BAU-22 | Fix visibility first, then scale, then structure distortion |
 | **B — Errors** | BAU-2 + BAU-3 (parallel) → BAU-4 → BAU-21 + BAU-10 + BAU-9 (parallel) | BAU-4 toast system unlocks 3 items |
-| **C — Refactor** | BAU-5 → BAU-6 → BAU-13 + BAU-14 (parallel) | Split components before restyling or adding features |
-| **D — Infra** | BAU-8 | Unblocks all spikes (schema changes need migrations) |
-| **E — Spikes** | BAU-23 → BAU-25 + BAU-26 (parallel), BAU-24 (independent) | Start after tracks A + D complete |
+| **C — UI Rethink** | BAU-30 → BAU-5 + BAU-6 + BAU-14 + BAU-23 + BAU-24 + BAU-25 + BAU-26 + LP | All UI-heavy work gates on new identity |
 
-Tracks A–D can run in parallel. Track E starts after A and D are done.
+Tracks A and B can run now in parallel. Track C starts after BAU-30 spike completes.
 
 ### Cross-category dependencies
 
 | Upstream | Downstream | Reason |
 |----------|------------|--------|
+| BAU-30 (spike) | BAU-5, BAU-6, BAU-14, BAU-23, BAU-24, BAU-25, BAU-26, Landing page | All involve significant UI; design direction must be decided first |
+| BAU-30 (spike) | BAU-2, BAU-21 (partial) | Core logic is safe now; fallback page design and visual feedback style wait for BAU-30 |
 | BAU-19 (rendering) | BAU-27 (rendering) | Must fix tree visibility before sprite scaling matters |
-| ~~BAU-8 (infra)~~ | ~~BAU-23, BAU-24 (spikes)~~ | ~~Dropped — schema evolution handled by validation on load~~ |
 | BAU-4 (errors) | BAU-21 (UX), BAU-10 (errors), BAU-9 (errors) | All need the centralized toast system |
 | BAU-5 (refactor) | BAU-6 (refactor), BAU-14 (UX) | Split InspectorPanel before restyling or batch editing |
 | BAU-23 (spike) | BAU-25 (spike), BAU-26 (spike) | Plant schedule embeds in PDF; SVG/DXF shares export arch |
 
-### No dependencies (start anytime)
+### No dependencies (safe to start now)
 
-BAU-2, BAU-3, BAU-7, BAU-12, BAU-15, BAU-11, BAU-17, BAU-18, BAU-28, BAU-29
+BAU-3, BAU-4, BAU-7, BAU-9, BAU-10, BAU-11, BAU-13, BAU-15, BAU-19, BAU-20, BAU-22, BAU-27, BAU-28, BAU-29
 
 ---
 
@@ -149,6 +149,7 @@ BAU-2, BAU-3, BAU-7, BAU-12, BAU-15, BAU-11, BAU-17, BAU-18, BAU-28, BAU-29
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
+| BAU-30 | Spike: UI identity rethink — move away from Excalidraw toward professional design tool | critical | `open` |
 | BAU-23 | Spike: Professional design tool parity | high | `open` |
 | BAU-24 | Spike: Construction lines and reference guides | high | `open` |
 | BAU-25 | Spike: Plant schedule generation | medium | `open` |
@@ -662,6 +663,53 @@ Option 1 is recommended — it matches professional design tool behavior.
 ---
 
 ### Spikes
+
+#### BAU-30: Spike — UI identity rethink `critical`
+
+**Problem:** The current UI follows an Excalidraw-inspired canvas-first, whiteboard-style approach: minimal chrome, white backgrounds, system fonts, outlined toolbar icons, sketch-adjacent aesthetics. This works for quick diagramming but creates a mismatch with the target audience — professional landscapers, interior/exterior designers, and garden planners — who expect a tool that looks and feels like a design application, not a whiteboard.
+
+The app serves three distinct user needs that each pull the UI in different directions:
+1. **2D blueprint creation** — precise, scaled plans with measurements, snap, and export (CAD-adjacent)
+2. **AI-powered visualization** — generate photorealistic renders from the blueprint (creative/visual)
+3. **Garden management** — plant schedules, journal, cost tracking, seasonal planning (data/productivity)
+
+The Excalidraw aesthetic undersells all three. A blueprint tool needs to feel precise and trustworthy. A visualization tool needs to feel polished and creative. A garden manager needs to feel organized and informative. The current "generic canvas app" identity doesn't commit to any of these.
+
+**Key questions to investigate:**
+
+1. **Visual identity** — What does the UI of a professional landscape/interior design tool look like? Research competitors (SketchUp, SmartDraw, PRO Landscape, iScape, Planner 5D, RoomSketcher). What visual language communicates "professional design tool" vs "whiteboard"?
+
+2. **Layout rethink** — Is the current 3-panel layout (side palette / canvas / inspector) the right structure? Should the blueprint view and the AI generation view share the same layout or have distinct modes? How do garden management features (journal, cost, schedule) fit without cluttering the design workspace?
+
+3. **Component library** — The current UI is raw Tailwind. BAU-6 proposes shadcn/ui, but is that the right fit? Should we adopt a more opinionated design system that carries the professional identity (e.g., Radix + custom theme, or a purpose-built component set)?
+
+4. **Color and typography** — System font stack feels generic. The blue accent (#1971c2) is functional but has no brand personality. What palette and type choices signal "professional design tool for outdoor/indoor spaces"?
+
+5. **Dark mode** — Currently deferred. Most professional design tools offer dark mode. Is it essential for the target audience or still deferrable?
+
+6. **Mobile/tablet story** — Current spec says "desktop-first, tablet collapses panels, mobile is limited." Garden management (journal, photo capture) is inherently mobile. Should the garden management features have a mobile-first companion experience?
+
+**Context hints:**
+- `docs/frontend/visual-design.md` — current design spec (layout, colors, typography, icons, rationale)
+- `docs/frontend/image-generation.md` — generate page UI spec
+- `docs/frontend/journal.md` — journal/garden management UI spec
+- `src/components/TopToolbar.tsx` — current toolbar implementation
+- `src/components/SidePalette.tsx` — current palette implementation
+- `src/components/InspectorPanel.tsx` — current inspector implementation
+- `src/pages/GeneratePage.tsx` — AI generation page
+- Competitors to study: SketchUp (free web), SmartDraw, PRO Landscape, iScape, Planner 5D, RoomSketcher, Yardzen, Garden Planner (smallblueprinter.com)
+
+**Spike deliverable:**
+- [ ] Competitor UI audit — screenshots and patterns from 4-5 professional landscape/design tools
+- [ ] Proposed visual identity: palette, typography, icon style, overall aesthetic direction
+- [ ] Layout wireframes for the three modes (blueprint, generate, garden management)
+- [ ] Component library recommendation with rationale
+- [ ] Migration strategy from current UI to new identity (phased, not big-bang)
+- [ ] Impact assessment on existing BAU items (BAU-5, BAU-6, BAU-23 may be subsumed or reshaped)
+
+**Relationships:** This spike should be completed before BAU-5 (component split) and BAU-6 (shadcn adoption) — no point refactoring into a design system you're about to replace. BAU-23's sub-areas (alignment tools, numeric input, PDF export) should be designed within the new UI identity.
+
+---
 
 #### BAU-23: Spike — Professional design tool parity `high`
 
