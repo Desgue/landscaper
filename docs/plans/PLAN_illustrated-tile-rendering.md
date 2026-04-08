@@ -44,24 +44,24 @@
 
 ## Phases
 
-### Phase 1 — Foundation & Plant Sprites [ ]
+### Phase 1 — Foundation & Plant Sprites [x]
 
 > Extract shared drawing utilities and upgrade plant sprites from basic shapes to illustrated per-type renderings. This phase has no downstream dependencies and delivers the most visible improvement.
 
-#### Feature: Shared Drawing Utilities [ ]
+#### Feature: Shared Drawing Utilities [x]
 
-**Status:** `todo`
+**Status:** `done`
 **File:** `src/canvas-pixi/textures/DrawingUtils.ts` (new)
 
 ##### Tasks
 
-- [ ] Create `DrawingUtils.ts` with extracted color helpers consolidated from PlantSprites.ts, StructureSprites.ts, **and ProceduralTextures.ts**: `hexToRgb` (all three files), `rgbToHex` (StructureSprites + ProceduralTextures only), `lighten` (PlantSprites only), `hslToRgb`/`rgbToHsl` (ProceduralTextures only)
-- [ ] Extract `darken` as two distinct functions: `darkenByOffset(hex, amount)` (from PlantSprites — subtracts flat RGB offset) and `darkenByFactor(hex, factor)` (from StructureSprites — multiplies channels by 0-1 factor). **Note:** these have incompatible semantics and must not be unified.
-- [ ] Add `hashString(s: string): number` — djb2 hash for deterministic per-type variation seeding
-- [ ] Add `seededRandom(seed: number): () => number` — simple PRNG that returns a function producing deterministic floats 0-1
-- [ ] Add `drawRimHighlight(ctx, cx, cy, radius, angle?)` — subtle white arc highlight for directional light effect
-- [ ] Add `shiftHue(hex: string, degrees: number): string` — shift a hex color's HSL hue by a given amount
-- [ ] Update PlantSprites.ts, StructureSprites.ts, and ProceduralTextures.ts to import from DrawingUtils instead of local copies
+- [x] Create `DrawingUtils.ts` with extracted color helpers consolidated from PlantSprites.ts, StructureSprites.ts, **and ProceduralTextures.ts**: `hexToRgb` (all three files), `rgbToHex` (StructureSprites + ProceduralTextures only), `lighten` (PlantSprites only), `hslToRgb`/`rgbToHsl` (ProceduralTextures only)
+- [x] Extract `darken` as two distinct functions: `darkenByOffset(hex, amount)` (from PlantSprites — subtracts flat RGB offset) and `darkenByFactor(hex, factor)` (from StructureSprites — multiplies channels by 0-1 factor). **Note:** these have incompatible semantics and must not be unified.
+- [x] Add `hashString(s: string): number` — djb2 hash for deterministic per-type variation seeding
+- [x] Add `seededRandom(seed: number): () => number` — simple PRNG that returns a function producing deterministic floats 0-1
+- [x] Add `drawRimHighlight(ctx, cx, cy, radius, angle?)` — subtle white arc highlight for directional light effect
+- [x] Add `shiftHue(hex: string, degrees: number): string` — shift a hex color's HSL hue by a given amount
+- [x] Update PlantSprites.ts, StructureSprites.ts, and ProceduralTextures.ts to import from DrawingUtils instead of local copies
 
 ##### Decisions
 
@@ -73,24 +73,24 @@
 
 ---
 
-#### Feature: Illustrated Plant Sprites [ ]
+#### Feature: Illustrated Plant Sprites [x]
 
-**Status:** `todo`
+**Status:** `done`
 **File:** `src/canvas-pixi/textures/PlantSprites.ts`
 
 ##### Tasks
 
-- [ ] Change signature to `generatePlantSprite(category, sizePx, typeId?, plantType?)` — optional params for per-type variation, backward compatible
-- [ ] Implement per-type variation via `hashString(typeId)`: hue shift ±15°, detail count variation, shape proportion variation
-- [ ] Rewrite `drawTree` — 3-7 overlapping leaf-cluster blobs (count from hash), radial dome gradient (dark edge → light center), rim highlight arc on upper-left
-- [ ] Rewrite `drawShrub` — 3-5 overlapping ellipses at hash-seeded positions, highlight crescents per lobe, silhouette varies round↔oblong based on hash
-- [ ] Rewrite `drawFlower` — 5-8 petals (count from hash), petal vein strokes (darker line down center), varied center dot color (yellow/orange/brown from hash)
-- [ ] Replace `drawSquare` with `drawVegetable` — rounded leaf rosette: 4-6 radiating leaf shapes over soil-circle base, per-leaf shade variation
-- [ ] Replace `drawTriangle` with `drawHerb` — cluster of 3-5 elongated leaves from central stem, each with center-vein stroke, leaf angle spread varies per type
-- [ ] Replace `drawCircle` with `drawFruit` — small tree-like canopy with 2-4 colored fruit dots, fruit dot color derived from type hash
-- [ ] Keep `drawDropShadow` as-is — it already uses Canvas2D `createRadialGradient` which produces a smooth, hardware-accelerated shadow. **Do not** replace with concentric rings (that would be a quality downgrade).
-- [ ] Remove `PlantRenderer.drawShadow()` (lines 123-136) — it draws a redundant 3-ring Graphics shadow that stacks on top of the shadow already baked into the sprite texture. This eliminates per-element Graphics objects and fixes the double-shadow visual bug.
-- [ ] Add radial gradient overlay on all canopy shapes (darker edges, lighter center) for dome lighting effect
+- [x] Change signature to `generatePlantSprite(category, sizePx, typeId?, plantType?)` — optional params for per-type variation, backward compatible
+- [x] Implement per-type variation via `hashString(typeId)`: hue shift ±15°, detail count variation, shape proportion variation
+- [x] Rewrite `drawTree` — 3-7 overlapping leaf-cluster blobs (count from hash), radial dome gradient (dark edge → light center), rim highlight arc on upper-left
+- [x] Rewrite `drawShrub` — 3-5 overlapping ellipses at hash-seeded positions, highlight crescents per lobe, silhouette varies round↔oblong based on hash
+- [x] Rewrite `drawFlower` — 5-8 petals (count from hash), petal vein strokes (darker line down center), varied center dot color (yellow/orange/brown from hash)
+- [x] Replace `drawSquare` with `drawVegetable` — rounded leaf rosette: 4-6 radiating leaf shapes over soil-circle base, per-leaf shade variation
+- [x] Replace `drawTriangle` with `drawHerb` — cluster of 3-5 elongated leaves from central stem, each with center-vein stroke, leaf angle spread varies per type
+- [x] Replace `drawCircle` with `drawFruit` — small tree-like canopy with 2-4 colored fruit dots, fruit dot color derived from type hash
+- [x] Keep `drawDropShadow` as-is — it already uses Canvas2D `createRadialGradient` which produces a smooth, hardware-accelerated shadow. **Do not** replace with concentric rings (that would be a quality downgrade).
+- [x] Remove `PlantRenderer.drawShadow()` (lines 123-136) — it draws a redundant 3-ring Graphics shadow that stacks on top of the shadow already baked into the sprite texture. This eliminates per-element Graphics objects and fixes the double-shadow visual bug.
+- [x] Add radial gradient overlay on all canopy shapes (darker edges, lighter center) for dome lighting effect
 
 ##### Decisions
 
@@ -100,16 +100,16 @@
 
 ---
 
-#### Feature: TextureAtlas Plant Integration [ ]
+#### Feature: TextureAtlas Plant Integration [x]
 
-**Status:** `todo`
+**Status:** `done`
 **File:** `src/canvas-pixi/textures/TextureAtlas.ts`
 
 ##### Tasks
 
-- [ ] Add `resolvePlantTypeObject(plantTypeId): PlantType | undefined` helper (mirrors existing `resolvePlantCategory` pattern)
-- [ ] Update `getPlantSprite` to resolve full PlantType and pass `(category, size, typeId, plantType)` to `generatePlantSprite`
-- [ ] Verify LRU cache still works correctly (keys are already per-typeId, no change needed)
+- [x] Add `resolvePlantTypeObject(plantTypeId): PlantType | undefined` helper (mirrors existing `resolvePlantCategory` pattern)
+- [x] Update `getPlantSprite` to resolve full PlantType and pass `(category, size, typeId, plantType)` to `generatePlantSprite`
+- [x] Verify LRU cache still works correctly (keys are already per-typeId, no change needed)
 
 ##### Decisions
 
