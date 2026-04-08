@@ -11,6 +11,7 @@
 
 import type { Container, Graphics } from 'pixi.js'
 import type { CanvasElement } from '../types/schema'
+import type { CanvasTokens } from '../tokens/canvasTokens'
 import { EXTRUSION_SCALE } from './textures/constants'
 
 // ---------------------------------------------------------------------------
@@ -118,4 +119,5 @@ export function isExtrudedCategory(category: string): boolean {
 export interface RendererHandle {
   update: () => void
   destroy: () => void
+  setTokens?: (tokens: CanvasTokens) => void
 }
