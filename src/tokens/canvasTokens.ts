@@ -39,8 +39,11 @@ function cssColorToPixi(cssVarName: string): number {
 
 export function buildCanvasTokens(): CanvasTokens {
   return {
-    colorInteractive:       cssColorToPixi('--ls-color-interactive'),
-    colorInteractiveSubtle: cssColorToPixi('--ls-color-interactive-subtle'),
+    // Read palette tokens directly — getPropertyValue does not resolve var() aliases,
+    // so semantic tokens like --ls-color-interactive would return "var(--ls-brand-500)"
+    // instead of a hex string, causing parseInt to return NaN.
+    colorInteractive:       cssColorToPixi('--ls-brand-500'),
+    colorInteractiveSubtle: cssColorToPixi('--ls-brand-100'),
     surfaceCanvasOverflow:  cssColorToPixi('--ls-surface-canvas-overflow'),
     textPrimary:            cssColorToPixi('--ls-text-primary'),
     plantColors: {
