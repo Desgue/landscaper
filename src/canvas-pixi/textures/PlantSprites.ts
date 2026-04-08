@@ -16,10 +16,10 @@ import {
 import type { PlantType } from '../../types/schema'
 
 // ---------------------------------------------------------------------------
-// Category color mapping
+// Category color mapping — overridden by updatePlantColors()
 // ---------------------------------------------------------------------------
 
-const CATEGORY_COLORS: Record<string, string> = {
+let CATEGORY_COLORS: Record<string, string> = {
   vegetable: '#4CAF50',
   herb: '#81C784',
   fruit: '#FF9800',
@@ -28,7 +28,13 @@ const CATEGORY_COLORS: Record<string, string> = {
   shrub: '#9CCC65',
 }
 
-const FALLBACK_PLANT_COLOR = '#4CAF50'
+let FALLBACK_PLANT_COLOR = '#4CAF50'
+
+/** Update category colors from canvas tokens. Called by PlantRenderer.setTokens(). */
+export function updatePlantColors(colors: Record<string, string>): void {
+  CATEGORY_COLORS = { ...CATEGORY_COLORS, ...colors }
+  FALLBACK_PLANT_COLOR = colors.vegetable ?? FALLBACK_PLANT_COLOR
+}
 
 // ---------------------------------------------------------------------------
 // Canvas creation helper
