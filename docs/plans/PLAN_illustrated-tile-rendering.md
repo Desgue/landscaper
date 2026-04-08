@@ -9,7 +9,7 @@
 | **Plan ID** | `PLAN-ITR` |
 | **Title** | Illustrated Plant & Structure Tile Rendering |
 | **Scope** | Upgrade procedural plant sprites and structure rendering from basic geometry/flat fills to illustrated/stylized vector-art with per-type differentiation, texture patterns, and improved shading. Excludes external asset loading, terrain changes, and path rendering. |
-| **Status** | `in-progress` |
+| **Status** | `done` |
 | **Started** | 2026-04-07 |
 | **Last updated** | 2026-04-07 |
 | **Phases** | Phase 1 · Phase 2 · Phase 3 |
@@ -117,27 +117,27 @@ _None yet._
 
 ---
 
-### Phase 2 — Structure Textures & Shading [ ]
+### Phase 2 — Structure Textures & Shading [x]
 
 > Add texture patterns to structure sprites and improve the 2.5D shading. Depends on DrawingUtils from Phase 1.
 
-#### Feature: Structure Texture Patterns [ ]
+#### Feature: Structure Texture Patterns [x]
 
-**Status:** `todo`
+**Status:** `done`
 **File:** `src/canvas-pixi/textures/StructureSprites.ts`
 
 ##### Tasks
 
-- [ ] Change signature to `generateStructureSprite(color, widthPx, heightPx, category?, typeId?, material?)` — backward compatible; material enables texture dispatch within a category
-- [ ] Add `MAX_STRUCTURE_TEX_DIM = 256` constant to `constants.ts` — cap texture generation size to prevent GPU memory blowout on large elements; PixiJS Sprite scales up from capped texture
-- [ ] Implement `drawBoundaryTexture(ctx, w, h, color, rng, material?)` — branch on material: masonry → brick-row pattern with mortar gaps and half-brick offset; wood → plank fence pattern; metal → smooth with rivet dots; stone → irregular stone pattern; default → brick
-- [ ] Implement `drawContainerTexture(ctx, w, h, color, rng, material?)` — wood plank grain on sides (sinusoidal noise lines), soil-noise fill on top face; masonry variant for stone planters
-- [ ] Implement `drawSurfaceTexture(ctx, w, h, color, rng)` — stone tile grid with thin mortar lines and per-tile hue variation
-- [ ] Implement `drawOverheadTexture(ctx, w, h, color, rng)` — crosshatch lattice lines over semi-transparent fill
-- [ ] Implement `drawFeatureTexture(ctx, w, h, color, rng)` — concentric ripple rings for water features, warm radial gradient for fire pits
-- [ ] Implement `drawFurnitureTexture(ctx, w, h, color, rng, material?)` — wood → horizontal grain with knot patterns; metal → brushed steel lines
-- [ ] Add south-face vertical gradient (light top → dark bottom) instead of flat `darkenByFactor`
-- [ ] Add 1px highlight line along top edge of top face (bevel/edge catch)
+- [x] Change signature to `generateStructureSprite(color, widthPx, heightPx, category?, typeId?, material?)` — backward compatible; material enables texture dispatch within a category
+- [x] Add `MAX_STRUCTURE_TEX_DIM = 256` constant to `constants.ts` — cap texture generation size to prevent GPU memory blowout on large elements; PixiJS Sprite scales up from capped texture
+- [x] Implement `drawBoundaryTexture(ctx, w, h, color, rng, material?)` — branch on material: masonry → brick-row pattern with mortar gaps and half-brick offset; wood → plank fence pattern; metal → smooth with rivet dots; stone → irregular stone pattern; default → brick
+- [x] Implement `drawContainerTexture(ctx, w, h, color, rng, material?)` — wood plank grain on sides (sinusoidal noise lines), soil-noise fill on top face; masonry variant for stone planters
+- [x] Implement `drawSurfaceTexture(ctx, w, h, color, rng)` — stone tile grid with thin mortar lines and per-tile hue variation
+- [x] Implement `drawOverheadTexture(ctx, w, h, color, rng)` — crosshatch lattice lines over semi-transparent fill
+- [x] Implement `drawFeatureTexture(ctx, w, h, color, rng)` — concentric ripple rings for water features, warm radial gradient for fire pits
+- [x] Implement `drawFurnitureTexture(ctx, w, h, color, rng, material?)` — wood → horizontal grain with knot patterns; metal → brushed steel lines
+- [x] Add south-face vertical gradient (light top → dark bottom) instead of flat `darkenByFactor`
+- [x] Add 1px highlight line along top edge of top face (bevel/edge catch)
 
 ##### Decisions
 
@@ -148,18 +148,18 @@ _None yet._
 
 ---
 
-#### Feature: TextureAtlas Structure Integration [ ]
+#### Feature: TextureAtlas Structure Integration [x]
 
-**Status:** `todo`
+**Status:** `done`
 **File:** `src/canvas-pixi/textures/TextureAtlas.ts`
 
 ##### Tasks
 
-- [ ] Add `resolveStructureType(structureTypeId): StructureType | undefined` helper
-- [ ] Add `CATEGORY_HEX_COLORS` map converting numeric `CATEGORY_COLORS` (from StructureRenderer) to hex strings for Canvas2D `fillStyle`
-- [ ] Update `getStructureSprite` to accept element dimensions, resolve StructureType (for category + material), clamp dims to `MAX_STRUCTURE_TEX_DIM`, and pass `(color, w, h, category, typeId, material)` to generator
-- [ ] Change structure cache key from `structureTypeId` to `${structureTypeId}:${wBucket}x${hBucket}` where wBucket/hBucket are quantized to nearest power-of-2 (e.g. 32, 64, 128, 256). This prevents cache thrashing on drag-resize while still generating dimension-appropriate textures for brick/grain patterns.
-- [ ] Fix cache eviction naming: rename `evictOldest` comments/docs from "LRU" to "FIFO" to reflect actual behavior (evicts by insertion order, does not re-order on access). Optionally upgrade to true LRU by re-inserting on cache hit.
+- [x] Add `resolveStructureType(structureTypeId): StructureType | undefined` helper
+- [x] Add `CATEGORY_HEX_COLORS` map converting numeric `CATEGORY_COLORS` (from StructureRenderer) to hex strings for Canvas2D `fillStyle`
+- [x] Update `getStructureSprite` to accept element dimensions, resolve StructureType (for category + material), clamp dims to `MAX_STRUCTURE_TEX_DIM`, and pass `(color, w, h, category, typeId, material)` to generator
+- [x] Change structure cache key from `structureTypeId` to `${structureTypeId}:${wBucket}x${hBucket}` where wBucket/hBucket are quantized to nearest power-of-2 (e.g. 32, 64, 128, 256). This prevents cache thrashing on drag-resize while still generating dimension-appropriate textures for brick/grain patterns.
+- [x] Fix cache eviction naming: rename `evictOldest` comments/docs from "LRU" to "FIFO" to reflect actual behavior (evicts by insertion order, does not re-order on access). Optionally upgrade to true LRU by re-inserting on cache hit.
 
 ##### Decisions
 
@@ -170,24 +170,24 @@ _None yet._
 
 ---
 
-### Phase 3 — Renderer Integration & Polish [ ]
+### Phase 3 — Renderer Integration & Polish [x]
 
 > Wire the improved textured sprites into the StructureRenderer and verify the complete visual pipeline.
 
-#### Feature: StructureRenderer Sprite Top Face [ ]
+#### Feature: StructureRenderer Sprite Top Face [x]
 
-**Status:** `todo`
+**Status:** `done`
 **File:** `src/canvas-pixi/StructureRenderer.ts`
 
 ##### Tasks
 
-- [ ] Change `topFace` type to `Graphics | Sprite` in `StructureEntry` interface, with a discriminant or type guard
-- [ ] In `createStructureEntry`: branch on `el.shape` — **rectangular** structures get a `Sprite` top-face from `atlas.getStructureSprite(el.structureTypeId, w, h)`; **curved** structures (those with `arcSagitta`) retain `Graphics` top-face (a Sprite is a rectangular quad and cannot represent arc polygons natively)
-- [ ] Remove `void atlas` placeholder (line 117) — atlas is now actively used
-- [ ] Keep southFace, aoGradient, castShadow, outline, **overheadShadow** as Graphics (need dynamic sizing per element)
-- [ ] Update `updateStructureEntry` to handle the mixed `topFace` type: Sprite path updates texture/dimensions; Graphics path continues using `drawTopFace` calls
-- [ ] Improve AO gradient from 5 → 6 strips for smoother falloff
-- [ ] Add 1px highlight stroke along top edge of top-face Sprite position (rectangular structures only)
+- [x] Change `topFace` type to `Graphics | Sprite` in `StructureEntry` interface, with a discriminant or type guard
+- [x] In `createStructureEntry`: branch on `el.shape` — **rectangular** structures get a `Sprite` top-face from `atlas.getStructureSprite(el.structureTypeId, w, h)`; **curved** structures (those with `arcSagitta`) retain `Graphics` top-face (a Sprite is a rectangular quad and cannot represent arc polygons natively)
+- [x] Remove `void atlas` placeholder (line 117) — atlas is now actively used
+- [x] Keep southFace, aoGradient, castShadow, outline, **overheadShadow** as Graphics (need dynamic sizing per element)
+- [x] Update `updateStructureEntry` to handle the mixed `topFace` type: Sprite path updates texture/dimensions; Graphics path continues using `drawTopFace` calls
+- [x] Improve AO gradient from 5 → 6 strips for smoother falloff
+- [x] Add 1px highlight stroke along top edge of top-face Sprite position (rectangular structures only)
 
 ##### Decisions
 
@@ -197,19 +197,19 @@ _None yet._
 
 ---
 
-#### Feature: Visual Verification & Polish [ ]
+#### Feature: Visual Verification & Polish [x]
 
-**Status:** `todo`
+**Status:** `done`
 
 ##### Tasks
 
-- [ ] Verify plant sprites render correctly for all 6 categories with per-type variation (place multiple types per category)
-- [ ] Verify structure textures render for all 6 categories (boundary, container, surface, overhead, feature, furniture)
-- [ ] Verify zoom in/out — sprites stay crisp, no blurring or pop-in artifacts
-- [ ] Verify Y-sort ordering still works correctly between plants and extruded structures
-- [ ] Verify layer visibility and locked-opacity still applied correctly
-- [ ] Run `npm run lint && npm run typecheck` — zero regressions
-- [ ] Performance check: place 100+ mixed elements, confirm smooth pan/zoom
+- [x] Verify plant sprites render correctly for all 6 categories with per-type variation (place multiple types per category)
+- [x] Verify structure textures render for all 6 categories (boundary, container, surface, overhead, feature, furniture)
+- [x] Verify zoom in/out — sprites stay crisp, no blurring or pop-in artifacts
+- [x] Verify Y-sort ordering still works correctly between plants and extruded structures
+- [x] Verify layer visibility and locked-opacity still applied correctly
+- [x] Run `npm run lint && npm run typecheck` — zero regressions
+- [x] Performance check: place 100+ mixed elements, confirm smooth pan/zoom
 
 ##### Decisions
 
