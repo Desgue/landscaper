@@ -15,6 +15,26 @@ const TOOL_TO_TAB: Partial<Record<ToolId, Tab>> = {
   path: 'Paths',
 }
 
+const PLANT_COLORS: Record<string, string> = {
+  vegetable: 'var(--ls-plant-vegetable)',
+  herb: 'var(--ls-plant-herb)',
+  fruit: 'var(--ls-plant-fruit)',
+  flower: 'var(--ls-plant-flower)',
+  tree: 'var(--ls-plant-tree)',
+  shrub: 'var(--ls-plant-shrub)',
+  other: 'var(--ls-text-tertiary)',
+}
+
+// TODO(ENG-32+): extract to src/tokens/structureColors.ts and map to --ls-structure-category-* tokens
+const STRUCTURE_CATEGORY_COLORS: Record<string, string> = {
+  boundary: '#6b7280',
+  container: '#92400e',
+  surface: '#d97706',
+  overhead: '#7c3aed',
+  feature: '#0891b2',
+  furniture: '#1d4ed8',
+}
+
 export default function SidePalette() {
   const [collapsed, setCollapsed] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('Terrain')
@@ -71,15 +91,6 @@ export default function SidePalette() {
   function handlePlantSwatchClick(id: string) {
     setSelectedPlantTypeId(id)
     useToolStore.getState().setTool('plant')
-  }
-
-  const STRUCTURE_CATEGORY_COLORS: Record<string, string> = {
-    boundary: '#6b7280',
-    container: '#92400e',
-    surface: '#d97706',
-    overhead: '#7c3aed',
-    feature: '#0891b2',
-    furniture: '#1d4ed8',
   }
 
   function handleStructureSwatchClick(id: string) {
@@ -195,15 +206,6 @@ export default function SidePalette() {
             <div className="flex-1 overflow-y-auto p-3">
               <div className="flex flex-wrap gap-2">
                 {plantTypes.map((pt) => {
-                  const PLANT_COLORS: Record<string, string> = {
-                    vegetable: 'var(--ls-plant-vegetable)',
-                    herb: 'var(--ls-plant-herb)',
-                    fruit: 'var(--ls-plant-fruit)',
-                    flower: 'var(--ls-plant-flower)',
-                    tree: 'var(--ls-plant-tree)',
-                    shrub: 'var(--ls-plant-shrub)',
-                    other: 'var(--ls-text-tertiary)',
-                  }
                   const color = PLANT_COLORS[pt.category] ?? PLANT_COLORS['other']
                   return (
                     <button
