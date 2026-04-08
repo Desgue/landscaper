@@ -381,7 +381,7 @@ export function createBoundaryRenderer(
       textObj.anchor.set(0.5, 0.5)
       textObj.visible = true
 
-      // Arc drag handle — only for arc edges
+      // Arc drag handle (active arc) or ghost handle (straight edge midpoint)
       const edge = boundary.edgeTypes[i]
       if (edge?.type === 'arc' && edge.arcSagitta !== null) {
         const sag = edge.arcSagitta
@@ -401,6 +401,11 @@ export function createBoundaryRenderer(
         handlesGraphics.circle(handleX, handleY, arcHandleRadius)
           .fill({ color: 0xe7f5ff })
           .stroke({ color: BOUNDARY_COLOR, width: 1.5 / zoom })
+      } else {
+        // Ghost handle at midpoint — drag to curve the edge
+        handlesGraphics.circle(mid.x, mid.y, arcHandleRadius)
+          .fill({ color: 0xe7f5ff, alpha: 0.4 })
+          .stroke({ color: BOUNDARY_COLOR, width: 1 / zoom, alpha: 0.3 })
       }
     }
   }

@@ -75,6 +75,10 @@ export function createInteractionManager(
 ): InteractionManagerHandle {
   const ssm = createSelectionStateMachine()
 
+  // Boundary vertex/arc handle drag state — managed outside SSM
+  let boundaryDrag: { type: 'vertex' | 'arc'; index: number } | null = null
+  let boundaryDragMoved = false
+
   // Cached canvas rect — avoids forced layout per pointermove.
   // Instance-scoped (not module-level) for React Strict Mode safety.
   let cachedRect: DOMRect = getCanvasRect()
@@ -127,6 +131,56 @@ export function createInteractionManager(
     return toolHandlers.boundary.getPlacementState().isPlacing
   }
 
+  function hitTestBoundaryHandles(
+    worldX: number, worldY: number,
+  ): { type: 'vertex' | 'arc'; index: number } | null {
+    const project = useProjectStore.getState().currentProject
+    const boundary = project?.yardBoundary
+    if (!boundary || boundary.vertices.length < 3) return null
+
+    const zoom = useViewportStore.getState().zoom
+    const threshold = 6 / zoom
+    const n = boundary.vertices.length
+
+    // Vertices first (higher priority — smaller targets)
+    for (let i = 0; i < n; i++) {
+      const v = boundary.vertices[i]
+      const dx = worldX - v.x, dy = worldY - v.y
+      if (Math.sqrt(dx * dx + dy * dy) <= threshold) {
+        return { type: 'vertex', index: i }
+      }
+    }
+
+    // Edge midpoints / arc handles
+    for (let i = 0; i < n; i++) {
+      const p1 = boundary.vertices[i]
+      const p2 = boundary.vertices[(i + 1) % n]
+      const midX = (p1.x + p2.x) / 2
+      const midY = (p1.y + p2.y) / 2
+
+      let handleX = midX
+      let handleY = midY
+
+      const edge = boundary.edgeTypes[i]
+      if (edge?.type === 'arc' && edge.arcSagitta !== null) {
+        const chordDx = p2.x - p1.x, chordDy = p2.y - p1.y
+        const chordLen = Math.sqrt(chordDx * chordDx + chordDy * chordDy)
+        if (chordLen > 1e-6) {
+          const perpX = -chordDy / chordLen, perpY = chordDx / chordLen
+          handleX = midX + perpX * edge.arcSagitta
+          handleY = midY + perpY * edge.arcSagitta
+        }
+      }
+
+      const dx = worldX - handleX, dy = worldY - handleY
+      if (Math.sqrt(dx * dx + dy * dy) <= threshold) {
+        return { type: 'arc', index: i }
+      }
+    }
+
+    return null
+  }
+
   // ---- Event handlers ----
 
   const onPointerDown = (e: FederatedPointerEvent) => {
@@ -140,6 +194,21 @@ export function createInteractionManager(
     if (tool === 'select' && isBoundaryPlacing()) {
       toolHandlers.boundary.onPlacementClick(worldX, worldY, native.altKey)
       return
+    }
+
+    // Boundary vertex/arc handle drag (when boundary exists, not placing)
+    if (tool === 'select' && !isBoundaryPlacing()) {
+      const hit = hitTestBoundaryHandles(worldX, worldY)
+      if (hit) {
+        boundaryDrag = hit
+        boundaryDragMoved = false
+        if (hit.type === 'vertex') {
+          toolHandlers.boundary.onVertexDragStart(hit.index)
+        } else {
+          toolHandlers.boundary.onArcHandleDragStart(hit.index)
+        }
+        return
+      }
     }
 
     if (isSelectionTool(tool)) {
@@ -187,6 +256,17 @@ export function createInteractionManager(
       return
     }
 
+    // Boundary vertex/arc handle drag move
+    if (boundaryDrag) {
+      boundaryDragMoved = true
+      if (boundaryDrag.type === 'vertex') {
+        toolHandlers.boundary.onVertexDrag(boundaryDrag.index, worldX, worldY, native.altKey)
+      } else {
+        toolHandlers.boundary.onArcHandleDrag(boundaryDrag.index, worldX, worldY)
+      }
+      return
+    }
+
     if (isSelectionTool(tool)) {
       const ssmEvent = makeSSMEvent(e, 'move')
       const visual = ssm.handlePointer(ssmEvent)
@@ -222,6 +302,19 @@ export function createInteractionManager(
   }
 
   const onPointerUp = (e: FederatedPointerEvent) => {
+    // Boundary vertex/arc handle drag end — only push history if pointer actually moved
+    if (boundaryDrag) {
+      if (boundaryDragMoved) {
+        if (boundaryDrag.type === 'vertex') {
+          toolHandlers.boundary.onVertexDragEnd(boundaryDrag.index)
+        } else {
+          toolHandlers.boundary.onArcHandleDragEnd()
+        }
+      }
+      boundaryDrag = null
+      return
+    }
+
     const tool = useToolStore.getState().activeTool
 
     if (isSelectionTool(tool)) {
@@ -259,6 +352,15 @@ export function createInteractionManager(
       if (newTool !== oldTool) {
         ssm.reset()
         selectionOverlay.updateVisualState(ssm.getVisualState())
+        // End any active boundary drag before clearing state
+        if (boundaryDrag && boundaryDragMoved) {
+          if (boundaryDrag.type === 'vertex') {
+            toolHandlers.boundary.onVertexDragEnd(boundaryDrag.index)
+          } else {
+            toolHandlers.boundary.onArcHandleDragEnd()
+          }
+        }
+        boundaryDrag = null
         // Cancel in-progress boundary placement when leaving select tool
         if (oldTool === 'select' && toolHandlers.boundary.getPlacementState().isPlacing) {
           toolHandlers.boundary.destroy()

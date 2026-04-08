@@ -67,7 +67,11 @@ export function computePlantSortKey(el: CanvasElement): number {
  * Enables frustum culling (v8 built-in).
  */
 export function setupWorldObject(obj: { cullable?: boolean; eventMode?: string }): void {
-  obj.cullable = true
+  // NOTE: Do NOT set cullable = true here. PixiJS v8's built-in frustum culling
+  // interacts incorrectly with isRenderGroup on the world container, causing
+  // sprites to be culled even when visible. Each renderer already performs its
+  // own manual viewport culling via updateElementVisibility / updateChunkVisibility.
+  obj.cullable = false
   obj.eventMode = 'none'
 }
 

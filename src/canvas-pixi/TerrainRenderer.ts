@@ -39,8 +39,10 @@ const CELL_SIZE = 100
 /** World size of one chunk edge in cm. */
 const CHUNK_WORLD_SIZE = CHUNK_SIZE * CELL_SIZE // 1000cm
 
-/** Maximum cached chunks before LRU eviction. */
-const MAX_CHUNK_POOL = 24
+/** Maximum cached chunks before LRU eviction.
+ *  At 40% zoom on a 1920×1080 screen, ~35 chunks are visible.
+ *  Use 64 to comfortably handle zoomed-out views without LRU thrashing. */
+const MAX_CHUNK_POOL = 64
 
 /** Alpha for terrain transition blending at cell edges. */
 const TRANSITION_BLEND_ALPHA = 0.35
