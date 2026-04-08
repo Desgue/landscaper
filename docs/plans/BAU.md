@@ -80,7 +80,7 @@ Tracks A–D can run in parallel. Track E starts after A and D are done.
 
 ### No dependencies (start anytime)
 
-BAU-2, BAU-3, BAU-7, BAU-12, BAU-15, BAU-11, BAU-17, BAU-18
+BAU-2, BAU-3, BAU-7, BAU-12, BAU-15, BAU-11, BAU-17, BAU-18, BAU-28, BAU-29
 
 ---
 
@@ -94,6 +94,7 @@ BAU-2, BAU-3, BAU-7, BAU-12, BAU-15, BAU-11, BAU-17, BAU-18
 | BAU-20 | API yard_photo validation rejects data-URL format | critical | `open` |
 | BAU-22 | Structure sprite texture includes extrusion (double south-face) | medium | `open` |
 | BAU-27 | Plant sprites rendered at fixed 64px regardless of real-world size | high | `open` |
+| BAU-28 | Structure bounding box doesn't rotate with shape | medium | `open` |
 
 ### Error Handling & Resilience
 
@@ -113,6 +114,7 @@ BAU-2, BAU-3, BAU-7, BAU-12, BAU-15, BAU-11, BAU-17, BAU-18
 | BAU-21 | No visual feedback on plant placement failure | high | `open` |
 | BAU-13 | Bold/italic keyboard shortcuts for labels | medium | `open` |
 | BAU-14 | Multi-select plant batch editing | medium | `open` |
+| BAU-29 | Angle snapping for structure rotation | medium | `open` |
 
 ### Refactoring & Code Quality
 
@@ -264,6 +266,53 @@ Structures don't have this problem because `getStructureSprite()` receives actua
 
 ---
 
+#### BAU-28: Structure bounding box doesn't rotate with shape `medium`
+
+**Problem:** When a structure is rotated (via the Rotation field in the inspector or the rotation handle), the selection bounding box (blue dashed rectangle), resize handles, and rotation handle all stay axis-aligned instead of rotating with the shape. A Brick Wall rotated 10 degrees shows the bounding box still aligned to 0 degrees, with handles floating in empty space away from the actual shape corners.
+
+**Root cause:** `structureGetAABB()` in `elementAABB.ts:95-98` returns raw `x, y, width, height` and completely ignores `element.rotation`:
+
+```typescript
+export function structureGetAABB(element: StructureElement) {
+  return { x: element.x, y: element.y, w: element.width, h: element.height }
+}
+```
+
+The entire selection rendering pipeline consumes this unrotated AABB:
+- `SelectionOverlay.ts:89` — `getElementAABB(el)` feeds `drawDashedBoundingBox()` (line 90), `drawResizeHandles()` (line 94), and `drawRotationHandle()` (line 99), all with axis-aligned coordinates
+- `SelectionOverlay.ts:217-230` — `drawResizeHandles()` uses `getHandlePositions(aabb)` which returns 8 positions from raw AABB
+- `SelectionOverlay.ts:232-250` — `drawRotationHandle()` places the circle at `aabb.x + aabb.w / 2, aabb.y - offset` (unrotated top-center)
+- `SelectionStateMachine.ts:129-139` — `isOnRotationHandle()` hit-tests against the unrotated handle position
+- `structureHitTest()` in `elementAABB.ts:86-93` also ignores rotation (marked `ignores rotation for MVP` in the comment at line 85)
+
+Note: the `structureHitTest` at `elementAABB.ts:85-93` is also axis-aligned and has the same bug — clicks miss the rotated shape and hit empty space inside the unrotated AABB. This should be fixed as part of this item.
+
+**Fix approach:** Two viable paths:
+1. **Rotated OBB overlay** — keep `structureGetAABB()` as-is but apply a rotation transform when drawing in `SelectionOverlay.ts` (rotate the Graphics context around the element center before drawing box/handles). Update `isOnRotationHandle()` and `isOnResizeHandle()` to inverse-transform the pointer into local space before hit-testing.
+2. **Compute enclosing AABB** — change `structureGetAABB()` to return the axis-aligned bounding box of the rotated rectangle (rotate 4 corners, take min/max). Simpler but handles won't sit on the actual corners of the rotated shape.
+
+Option 1 is recommended — it matches professional design tool behavior.
+
+**Context hints:**
+- `src/canvas/elementAABB.ts:85-98` — `structureHitTest()` and `structureGetAABB()`, both ignore rotation
+- `src/canvas-pixi/SelectionOverlay.ts:86-100` — selection rendering consumes AABB for box, resize handles, and rotation handle
+- `src/canvas-pixi/SelectionOverlay.ts:217-250` — `drawResizeHandles()` and `drawRotationHandle()` draw from unrotated AABB
+- `src/canvas-pixi/SelectionStateMachine.ts:95-111` — `getHandlePositions()` returns 8 positions from raw AABB
+- `src/canvas-pixi/SelectionStateMachine.ts:129-139` — `isOnRotationHandle()` hit-tests unrotated position
+- `src/canvas-pixi/StructureRenderer.ts:280,418` — rotation IS correctly applied to the visual via `group.rotation = (safeRotation * Math.PI) / 180`
+- `src/components/InspectorPanel.tsx:429-444` — rotation input (0–359 degrees)
+
+**Acceptance criteria:**
+
+- [ ] **GIVEN** a structure rotated to a non-zero angle (e.g. 10 degrees via inspector) **WHEN** the structure is selected **THEN** the dashed bounding box is drawn rotated to match the structure's visual orientation
+- [ ] **GIVEN** a rotated structure is selected **WHEN** the user views the resize handles **THEN** all 8 handles sit on the actual corners and edge midpoints of the rotated shape, not on the axis-aligned AABB
+- [ ] **GIVEN** a rotated structure is selected **WHEN** the user views the rotation handle **THEN** the circular handle and its connecting line extend from the rotated top-center of the structure
+- [ ] **GIVEN** a rotated structure **WHEN** the user clicks on the visible shape area that falls outside the unrotated AABB **THEN** the click registers as a hit on the structure
+- [ ] **GIVEN** a structure is selected and the user changes its rotation via the inspector field **WHEN** the rotation value updates **THEN** the bounding box, resize handles, and rotation handle reposition in real-time to match the new angle
+- [ ] **GIVEN** a rotated structure is selected **WHEN** the user drags a resize handle **THEN** resizing operates along the structure's local axes (not the canvas axes)
+
+---
+
 ### Error Handling & Resilience
 
 #### BAU-2: Error boundary for lazy imports `critical`
@@ -407,6 +456,38 @@ Structures don't have this problem because `getStructureSprite()` receives actua
 - [ ] Multi-select inspector shows editable fields for batch-applicable properties (status, notes, layer)
 - [ ] Per-element-only properties (position X/Y) are hidden in multi-select mode
 - [ ] Changes apply to all selected plants atomically (single undo step)
+
+---
+
+#### BAU-29: Angle snapping for structure rotation `medium`
+
+**Problem:** The interactive drag-to-rotate handle on structures works (SelectionStateMachine.ts:625-641) but rotation is fully freehand — there is no way to constrain to common angles (0, 15, 30, 45, 90 degrees). Users must manually type exact values into the inspector rotation field (`InspectorPanel.tsx:429-444`) to get precise angles. Professional design tools allow Shift-held rotation to snap to 15-degree increments.
+
+**Current rotation implementation (already working):**
+- Rotation handle rendered as a circle above the bounding box: `SelectionOverlay.ts:232-250`
+- Hit detection: `SelectionStateMachine.ts:129-139` (`isOnRotationHandle()`)
+- Drag mode activation: `SelectionStateMachine.ts:333-350` (sets `drag.mode = 'rotating'`)
+- Angle computation during drag: `SelectionStateMachine.ts:625-641` (free rotation via `Math.atan2`, no snapping)
+- Undo support: `SelectionStateMachine.ts:644+` (history pushed on `handleUp` for `'rotating'` mode)
+
+**What's missing:** The rotation drag handler at `SelectionStateMachine.ts:635-636` computes `newRotation` as a continuous value with no modifier key check. The snap system (`snapSystem.ts:22-28`) explicitly defers angle snapping: _"A general projection-based perpendicular snap (for rotated elements, arcs, and non-rectangular shapes) is deferred"_.
+
+**Fix approach:** In the `'rotating'` branch of `handleMove()` (SelectionStateMachine.ts:625-641), check for Shift key held, and if so, round `newRotation` to the nearest 15-degree increment before assigning. Optionally add a visual angle indicator (arc or degree label) near the rotation handle during drag.
+
+**Context hints:**
+- `src/canvas-pixi/SelectionStateMachine.ts:625-641` — rotation drag handler (add snap logic here)
+- `src/canvas-pixi/SelectionStateMachine.ts:333-350` — rotation mode activation (Shift key available on the event)
+- `src/canvas-pixi/SelectionOverlay.ts:232-250` — rotation handle rendering (add angle indicator here)
+- `src/snap/snapSystem.ts:22-28` — comment documenting deferred angle snap
+- Related: BAU-23 sub-area 4 (angle snapping spike) covers the broader angle snap design; this item covers the specific Shift-to-snap interaction for the existing rotation handle
+
+**Acceptance criteria:**
+
+- [ ] **GIVEN** a structure is selected and the user drags the rotation handle **WHEN** Shift is NOT held **THEN** the structure rotates freely (existing behavior unchanged)
+- [ ] **GIVEN** a structure is selected and the user drags the rotation handle **WHEN** Shift IS held **THEN** the rotation snaps to the nearest 15-degree increment (0, 15, 30, 45, ... 345)
+- [ ] **GIVEN** the user is dragging the rotation handle with Shift held **WHEN** the user releases Shift mid-drag **THEN** rotation transitions smoothly to freehand mode without jumping
+- [ ] **GIVEN** the user is dragging the rotation handle **WHEN** the rotation angle changes **THEN** the inspector Rotation field updates in real-time to reflect the current angle
+- [ ] **GIVEN** the user completes a rotation drag (with or without Shift snap) **WHEN** the user presses Ctrl+Z **THEN** the rotation reverts to its pre-drag value in a single undo step
 
 ---
 

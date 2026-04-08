@@ -12,15 +12,15 @@ Plants snap to 10cm increments by default [snap-system.md "## Grid Snap"]. Alt d
 
 Visual size depends on `growthForm`:
 
-- **Herb, groundcover, climber**: icon size = `spacingCm`. Centered in the 1m grid cell.
+- **Herb, groundcover, climber**: illustrated sprite size = `spacingCm`. Centered in the 1m grid cell.
 - **Tree**: canopy size = `canopyWidthCm`, trunk size = `trunkWidthCm`. Centered on the plant position. May extend well beyond the grid cell.
-- **Shrub**: icon size = `canopyWidthCm` if set, else `spacingCm`.
+- **Shrub**: illustrated sprite size = `canopyWidthCm` if set, else `spacingCm`.
 
 For herbs (default behavior):
 
 ```
-iconPosition = cellOrigin + (100 - spacingCm) / 2
-iconSize = spacingCm (in world cm)
+spritePosition = cellOrigin + (100 - spacingCm) / 2
+spriteSize = spacingCm (in world cm)
 ```
 
 A tomato (spacingCm 60) occupies 60% of the cell. A carrot (spacingCm 5) occupies 5%. Minimum render size: 4px screen-space to prevent illegibility at low zoom. See [spatial-math-specification.md "## 9. Plant Visual Size"].
@@ -35,19 +35,19 @@ The `growthForm` field on the plant type [data-schema.md "### Plant Type"] deter
 
 ### Herb (default)
 
-Current behavior — icon centered in grid cell, size = `spacingCm`. Applies to vegetables, herbs, flowers, and small plants.
+Renders as an illustrated procedural sprite with category-specific visual style. Applies to vegetables, herbs, flowers, and small plants. Icon centered in grid cell, size = `spacingCm`. Each plant type receives deterministic per-type variation via djb2 hash seeding — same plant type always renders with the same visual characteristics (color hue, detail count, proportions).
 
 ### Tree
 
-Dual-circle rendering:
+Renders as a leaf-cluster blob (illustrated canopy) with trunk. Consists of:
 - **Trunk**: small filled circle at the plant center, diameter = `trunkWidthCm`. Dark brown. Participates in collision detection as a ground-level obstacle (blocks like a small structure).
-- **Canopy**: large semi-transparent circle, diameter = `canopyWidthCm`. Uses the plant type's color at 30–40% opacity [visual-design.md "## Color Palette"]. Does NOT participate in collision detection — other elements can exist beneath the canopy.
+- **Canopy**: large illustrated leaf-cluster shape, diameter = `canopyWidthCm`. Rendered with radial gradient dome lighting and baked drop shadow. Does NOT participate in collision detection — other elements can exist beneath the canopy.
 
 Visual size = `canopyWidthCm` (not `spacingCm`). Trees often exceed the 1m grid cell.
 
 ### Shrub
 
-Filled circle or rounded shape, diameter = `canopyWidthCm` if set, else `spacingCm`. Solid fill (not semi-transparent like trees). Participates in spacing collision like herbs.
+Renders as overlapping ellipses forming an illustrated shrub silhouette, diameter = `canopyWidthCm` if set, else `spacingCm`. Includes radial gradient dome lighting and drop shadow. Solid fill (not semi-transparent like trees). Participates in spacing collision like herbs.
 
 ### Groundcover
 
@@ -55,7 +55,7 @@ Fills area similar to terrain but is placed as a plant element. Icon renders as 
 
 ### Climber
 
-Placed against structures. Icon includes a directional indicator (arrow pointing toward the nearest structure edge). Collision uses `spacingCm` like herbs.
+Placed against structures. Icon renders as an illustrated plant form with a directional indicator (arrow pointing toward the nearest structure edge). Collision uses `spacingCm` like herbs.
 
 ## Type Properties (from registry)
 

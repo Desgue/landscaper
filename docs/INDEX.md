@@ -68,12 +68,13 @@ Workflows, UI, and non-element features.
 | [template.md](template.md) | Writing conventions, doc type skeletons, cross-reference format, anti-patterns |
 | [INDEX.md](INDEX.md) | This file — entry point and manifest |
 | [PLAN_TEMPLATE.md](plans/PLAN_TEMPLATE.md) | AI-first plan template — copy this to create a new implementation plan; includes agent protocol and context map structure |
-| [IMPLEMENTATION_PLAN.md](plans/frontend/IMPLEMENTATION_PLAN.md) | Full implementation plan for all features; living document updated by agents throughout development |
-| [PLAN-F.md](plans/frontend/PLAN-F.md) | Image generation UI plan — Generate button, options panel, API client, loading overlay, result modal, error handling |
-| [landingpage-plan.md](plans/frontend/landingpage-plan.md) | PLAN-G: Landing page redesign — performance infrastructure, SEO, Blueprint Garden visual identity, section-by-section rebuild |
-| [PLAN-H.md](plans/frontend/PLAN-H.md) | PLAN-H: Image-based sprite loading — async asset loader, TextureAtlas integration, renderer migration, built-in PNG sprites for plants and structures |
-| [PLAN_illustrated-tile-rendering.md](plans/PLAN_illustrated-tile-rendering.md) | PLAN-ITR: Illustrated tile rendering — richer plant sprites, structure texture patterns, per-type differentiation, improved shading/depth |
+| [IMPLEMENTATION_PLAN_FRONTEND.md](plans/IMPLEMENTATION_PLAN_FRONTEND.md) | Frontend coordination plan — tracks sub-plan status and cross-plan contracts; plans A–G completed, H and LP remain |
+| [PLAN_landingpage.md](plans/PLAN_landingpage.md) | Landing page redesign — performance infrastructure, SEO, Blueprint Garden visual identity, section-by-section rebuild (`in-progress`) |
+| [PLAN_sprite-loading.md](plans/PLAN_sprite-loading.md) | Image-based sprite loading — async asset loader, TextureAtlas integration, renderer migration, built-in PNG sprites (`todo`) |
 | [BAU.md](plans/BAU.md) | BAU backlog — AI-first backlog of improvements, bug fixes, and technical debt for agentic teams to plan and implement |
+| [PLAN_BAU-4.md](plans/PLAN_BAU-4.md) | BAU-4: Centralized error logging & toast system (`in-progress`) |
+| [PLAN_BAU-8.md](plans/PLAN_BAU-8.md) | BAU-8: IndexedDB migration system (`in-progress`) |
+| [PLAN_BAU-19.md](plans/PLAN_BAU-19.md) | BAU-19: Tree/shrub plant visibility fix (`in-progress`) |
 
 ---
 

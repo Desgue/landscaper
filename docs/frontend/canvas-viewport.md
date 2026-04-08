@@ -82,6 +82,8 @@ Rendered via PixiJS v8 with three top-level Containers (`world`, `interaction`, 
 3. Paths (Graphics strokes)
 4. Boundary (dashed polygon outline, vertex handles)
 5. Elements — structures + plants (Y-sorted via `sortableChildren`)
+   - Structures render with 2.5D isometric extrusion and material-based procedural textures (wood, metal, masonry, stone, etc.). Rectangular structures use cached Sprite textures from TextureAtlas; curved structures use Graphics. Max texture size capped at 256px for GPU memory efficiency.
+   - Plants render as illustrated procedural sprites per category (trees as leaf-cluster blobs, shrubs as overlapping ellipses, flowers as petals, etc.). Each plant type uses deterministic per-type variation via djb2 hash seeding. All sprites include radial gradient dome lighting and baked drop shadows.
 6. Labels + dimension lines (Text)
 7. Overflow dim overlay (outside yard boundary — see Overflow Dimming below)
 8. Selection overlay, handles, snap guides, hover highlight

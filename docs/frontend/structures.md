@@ -6,7 +6,7 @@ Structures are placeable elements like walls, fences, and raised beds. They can 
 
 Structure tool (S). Click to place at default dimensions (defined per type in the registry as `defaultWidthCm` × `defaultDepthCm` — the 2D canvas footprint, e.g., brick-wall: 200×20cm, fence: 200×10cm, raised-bed: 200×100cm). Drag to define extent (start to end, edges snap to 10cm increments). Alt disables snap [snap-system.md "## Alt Modifier Behavior"]. Geometry snapping (edge, perpendicular, midpoint) is active during placement [snap-system.md "## Geometry Snap"].
 
-The app is 2D only. Structure dimensions are top-down footprint (X × Y on canvas). Physical real-world height (how tall a fence or wall is) is not modeled — there is no Z-axis or elevation in the data model or rendering.
+The data model is 2D (footprint only). Structure dimensions are top-down footprint (X × Y on canvas). Physical real-world height is not stored in the data model. Rendering uses 2.5D isometric extrusion with directional shading (south-facing vertical gradient and top-face edge highlight) to create visual depth.
 
 ## Straight vs Curved
 
@@ -64,6 +64,19 @@ Shows: structure type, dimensions (in meters), shape (straight/curved), arc radi
 **Furniture**: bench (150×50cm), table (120×80cm).
 
 See [data-schema.md "### Structure Type"] for category semantics. Extensible via registry.
+
+## Visual Rendering
+
+Structures render with 2.5D isometric extrusion and material-based texture patterns. The `material` field on each structure type determines the texture pattern applied:
+
+- **Boundary** (walls, fences): brick or plank patterns
+- **Container** (raised beds, planters): wood grain with soil texture
+- **Surface** (patios, decks): stone tile patterns
+- **Overhead** (pergolas, arbors): crosshatch lattice
+- **Feature** (water, fire): ripple rings (water) or radial gradient (fire)
+- **Furniture** (benches, tables): wood grain or brushed steel
+
+Rectangular structures use cached sprite textures from the TextureAtlas for performance (capped at MAX_STRUCTURE_TEX_DIM = 256px). Curved structures retain procedural Graphics rendering. All structures include south-facing vertical gradient shading and a rim highlight on the top face to create directional light effect.
 
 ## Collision Rules
 
