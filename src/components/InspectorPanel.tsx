@@ -62,8 +62,7 @@ function LayerDropdown({ element }: { element: CanvasElement }) {
   const layers = project?.layers ?? []
 
   const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const newLayerId = e.target.value
+    (newLayerId: string) => {
       const proj = useProjectStore.getState().currentProject
       if (!proj) return
 
@@ -93,7 +92,7 @@ function LayerDropdown({ element }: { element: CanvasElement }) {
   return (
     <div className="mb-2">
       <div className={labelCls}>Layer</div>
-      <Select value={element.layerId} onValueChange={(v) => handleChange({ target: { value: v } } as React.ChangeEvent<HTMLSelectElement>)}>
+      <Select value={element.layerId} onValueChange={handleChange}>
         <SelectTrigger className="h-8 text-sm">
           <SelectValue />
         </SelectTrigger>
