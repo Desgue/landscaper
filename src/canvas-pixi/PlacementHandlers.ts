@@ -21,6 +21,7 @@ import { useHistoryStore } from '../store/useHistoryStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { useInspectorStore } from '../store/useInspectorStore'
 import { useStructureToolStore, usePlantToolStore, useLabelToolStore, useMeasurementStore } from '../canvas/toolStores'
+import { usePlacementFeedbackStore } from '../store/usePlacementFeedbackStore'
 import { snapPoint } from '../snap/snapSystem'
 import { arcAABB } from '../canvas/arcGeometry'
 import type { RendererHandle } from './BaseRenderer'
@@ -326,9 +327,15 @@ export function createPlantPlacementHandler(): PlantPlacementHandle {
 
       // Collision checks
       const existingPlants = proj.elements.filter((el): el is PlantElement => el.type === 'plant')
-      if (hasSpacingCollision(snapped.x, snapped.y, plantType.spacingCm, existingPlants, regs.plants)) return
+      if (hasSpacingCollision(snapped.x, snapped.y, plantType.spacingCm, existingPlants, regs.plants)) {
+        usePlacementFeedbackStore.getState().showFeedback('Too close to another plant')
+        return
+      }
       const structures = proj.elements.filter((el): el is StructureElement => el.type === 'structure')
-      if (hasPlantStructureCollision(snapped.x, snapped.y, structures, regs.structures)) return
+      if (hasPlantStructureCollision(snapped.x, snapped.y, structures, regs.structures)) {
+        usePlacementFeedbackStore.getState().showFeedback('Can\'t place on a structure')
+        return
+      }
 
       const snapshot = structuredClone(proj)
       const id = crypto.randomUUID()

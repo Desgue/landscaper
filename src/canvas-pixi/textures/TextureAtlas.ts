@@ -141,6 +141,8 @@ export function createTextureAtlas(): TextureAtlas {
 
   // Default sizes for generation
   const DEFAULT_PLANT_SIZE = 64
+  const LARGE_PLANT_SIZE = 128
+  const LARGE_PLANT_CATEGORIES = new Set(['tree', 'shrub'])
   const DEFAULT_STRUCTURE_W = 64
   const DEFAULT_STRUCTURE_H = 48
 
@@ -183,7 +185,8 @@ export function createTextureAtlas(): TextureAtlas {
 
       const pt = resolvePlantTypeObject(plantTypeId)
       const category = pt?.category ?? 'vegetable'
-      const canvas = generatePlantSprite(category, DEFAULT_PLANT_SIZE, plantTypeId, pt)
+      const size = LARGE_PLANT_CATEGORIES.has(category) ? LARGE_PLANT_SIZE : DEFAULT_PLANT_SIZE
+      const canvas = generatePlantSprite(category, size, plantTypeId, pt)
       const texture = Texture.from(canvas)
       plantTextureCache.set(plantTypeId, texture)
       evictOldest(plantTextureCache, MAX_PLANT_CACHE)
