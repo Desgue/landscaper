@@ -48,12 +48,11 @@ Chain 1 — Rendering → Spikes (longest path, 5 steps):
                                     → BAU-26
 
 Chain 2 — Error UX (fan-out from toast system):
-  BAU-4 → BAU-21, BAU-10, BAU-9, BAU-16
+  BAU-4 → BAU-21, BAU-10, BAU-9
 
 Chain 3 — Refactor → Features:
   BAU-5 → BAU-6 → BAU-13
        → BAU-14
-       ~→ BAU-1 (soft: smaller components are easier to test)
 ```
 
 ### Parallel execution tracks
@@ -61,7 +60,7 @@ Chain 3 — Refactor → Features:
 | Track | Sequence | Notes |
 |-------|----------|-------|
 | **A — Rendering** | BAU-19 → BAU-27 → BAU-22 | Fix visibility first, then scale, then structure distortion |
-| **B — Errors** | BAU-2 + BAU-3 (parallel) → BAU-4 → BAU-21 + BAU-10 + BAU-9 (parallel) | BAU-4 toast system unlocks 3 downstream items |
+| **B — Errors** | BAU-2 + BAU-3 (parallel) → BAU-4 → BAU-21 + BAU-10 + BAU-9 (parallel) | BAU-4 toast system unlocks 3 items |
 | **C — Refactor** | BAU-5 → BAU-6 → BAU-13 + BAU-14 (parallel) | Split components before restyling or adding features |
 | **D — Infra** | BAU-8 | Unblocks all spikes (schema changes need migrations) |
 | **E — Spikes** | BAU-23 → BAU-25 + BAU-26 (parallel), BAU-24 (independent) | Start after tracks A + D complete |
@@ -73,9 +72,9 @@ Tracks A–D can run in parallel. Track E starts after A and D are done.
 | Upstream | Downstream | Reason |
 |----------|------------|--------|
 | BAU-19 (rendering) | BAU-27 (rendering) | Must fix tree visibility before sprite scaling matters |
-| BAU-8 (infra) | BAU-23, BAU-24 (spikes) | New element types / schema fields need migration system |
-| BAU-4 (errors) | BAU-21 (UX), BAU-10 (errors), BAU-9 (errors), BAU-16 (infra) | All need the centralized toast system |
-| BAU-5 (refactor) | BAU-6 (refactor), BAU-14 (UX), BAU-1 (testing) | Split InspectorPanel before restyling or testing it |
+| ~~BAU-8 (infra)~~ | ~~BAU-23, BAU-24 (spikes)~~ | ~~Dropped — schema evolution handled by validation on load~~ |
+| BAU-4 (errors) | BAU-21 (UX), BAU-10 (errors), BAU-9 (errors) | All need the centralized toast system |
+| BAU-5 (refactor) | BAU-6 (refactor), BAU-14 (UX) | Split InspectorPanel before restyling or batch editing |
 | BAU-23 (spike) | BAU-25 (spike), BAU-26 (spike) | Plant schedule embeds in PDF; SVG/DXF shares export arch |
 
 ### No dependencies (start anytime)
@@ -122,29 +121,29 @@ BAU-2, BAU-3, BAU-7, BAU-12, BAU-15, BAU-11, BAU-17, BAU-18, BAU-28, BAU-29
 |----|-------|----------|--------|
 | BAU-5 | Break down large components (JournalView, InspectorPanel) | high | `open` |
 | BAU-6 | Consolidate inspectors to shadcn/ui | high | `open` |
-| BAU-12 | Type-safe error handling (remove `as unknown` casts) | medium | `open` |
+| BAU-12 | ~~Type-safe error handling (remove `as unknown` casts)~~ | ~~medium~~ | `dropped` — only 14 casts, mostly PixiJS interop; fix opportunistically |
 
 ### Infrastructure & Backend
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
-| BAU-8 | IndexedDB migration system | high | `open` |
+| BAU-8 | ~~IndexedDB migration system~~ | ~~high~~ | `dropped` — over-engineered; schema evolution handled by validation on load |
 | BAU-15 | Go server graceful shutdown | medium | `open` |
-| BAU-16 | Anonymous error tracking (Sentry or similar) | low | `open` |
+| BAU-16 | ~~Anonymous error tracking (Sentry or similar)~~ | ~~low~~ | `dropped` — premature for personal project; BAU-4 toasts cover user-facing errors |
 
 ### Cleanup & Documentation
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
 | BAU-11 | Remove generate store stubs or implement features | medium | `open` |
-| BAU-17 | Store method JSDoc documentation | low | `open` |
-| BAU-18 | ESLint rule compliance (remove disables) | low | `open` |
+| BAU-17 | ~~Store method JSDoc documentation~~ | ~~low~~ | `dropped` — TypeScript types already document signatures; JSDoc decays fast |
+| BAU-18 | ~~ESLint rule compliance (remove disables)~~ | ~~low~~ | `dropped` — only 5 disables; fix inline when touching those files |
 
 ### Testing
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
-| BAU-1 | Component test coverage | critical | `open` |
+| BAU-1 | ~~Component test coverage~~ | ~~critical~~ | `dropped` — low ROI for UI components; test critical-path logic opportunistically |
 
 ### Spikes
 

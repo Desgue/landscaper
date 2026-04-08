@@ -73,7 +73,6 @@ Workflows, UI, and non-element features.
 | [PLAN_sprite-loading.md](plans/PLAN_sprite-loading.md) | Image-based sprite loading — async asset loader, TextureAtlas integration, renderer migration, built-in PNG sprites (`todo`) |
 | [BAU.md](plans/BAU.md) | BAU backlog — AI-first backlog of improvements, bug fixes, and technical debt for agentic teams to plan and implement |
 | [PLAN_BAU-4.md](plans/PLAN_BAU-4.md) | BAU-4: Centralized error logging & toast system (`in-progress`) |
-| [PLAN_BAU-8.md](plans/PLAN_BAU-8.md) | BAU-8: IndexedDB migration system (`in-progress`) |
 | [PLAN_BAU-19.md](plans/PLAN_BAU-19.md) | BAU-19: Tree/shrub plant visibility fix (`in-progress`) |
 
 ---
