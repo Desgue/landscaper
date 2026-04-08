@@ -44,6 +44,9 @@ export interface TextureAtlas {
   /** Invalidate all cached plant sprite textures, forcing regeneration on next access. */
   invalidatePlantCache(): void
 
+  /** Invalidate all cached structure sprite textures, forcing regeneration on next access. */
+  invalidateStructureCache(): void
+
   /** Destroy all textures and free GPU memory. */
   destroy(): void
 }
@@ -219,6 +222,13 @@ export function createTextureAtlas(): TextureAtlas {
         tex.destroy(true)
       }
       plantTextureCache.clear()
+    },
+
+    invalidateStructureCache(): void {
+      for (const tex of structureTextureCache.values()) {
+        tex.destroy(true)
+      }
+      structureTextureCache.clear()
     },
 
     destroy(): void {

@@ -61,17 +61,25 @@ describe('buildCanvasTokens', () => {
     expect(tokens.structureColors.texture).toBe(0xb8a090);
   });
 
-  it('throws a descriptive error when a CSS variable is missing', () => {
+  it('falls back to magenta and warns when a CSS variable is missing', () => {
     stubTokens({});
-    expect(() => buildCanvasTokens()).toThrow(
-      'canvasTokens: CSS variable "--ls-brand-500" resolved to "" — expected #rrggbb hex color.'
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const tokens = buildCanvasTokens();
+    expect(tokens.colorInteractive).toBe(0xFF00FF);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('CSS variable "--ls-brand-500" resolved to ""')
     );
+    warnSpy.mockRestore();
   });
 
-  it('throws a descriptive error when a CSS variable has a non-hex value', () => {
+  it('falls back to magenta and warns when a CSS variable has a non-hex value', () => {
     stubTokens({ '--ls-brand-500': 'rgb(43, 97, 145)' });
-    expect(() => buildCanvasTokens()).toThrow(
-      'canvasTokens: CSS variable "--ls-brand-500" resolved to "rgb(43, 97, 145)" — expected #rrggbb hex color.'
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const tokens = buildCanvasTokens();
+    expect(tokens.colorInteractive).toBe(0xFF00FF);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('CSS variable "--ls-brand-500" resolved to "rgb(43, 97, 145)"')
     );
+    warnSpy.mockRestore();
   });
 });

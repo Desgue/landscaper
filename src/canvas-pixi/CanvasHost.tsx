@@ -452,6 +452,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       dimensionRenderer.setTokens?.(tokens)
       labelRenderer.setTokens?.(tokens)
       plantRenderer.setTokens?.(tokens)
+      structureRenderer.setTokens?.(tokens)
 
       // Register Text-bearing renderers for context restore (v8 bug #11685)
       rendererUpdaters.push(
