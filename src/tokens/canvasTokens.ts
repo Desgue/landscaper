@@ -34,7 +34,14 @@ function cssColorToPixi(cssVarName: string): number {
     .getPropertyValue(cssVarName)
     .trim();
   // Converts #rrggbb hex to PixiJS 0xRRGGBB integer
-  return parseInt(raw.replace('#', '0x'), 16);
+  const result = parseInt(raw.replace('#', '0x'), 16);
+  if (isNaN(result)) {
+    throw new Error(
+      `canvasTokens: CSS variable "${cssVarName}" resolved to "${raw}" — expected #rrggbb hex color. ` +
+      'Ensure the --ls- token block is loaded in :root before calling buildCanvasTokens().'
+    );
+  }
+  return result;
 }
 
 export function buildCanvasTokens(): CanvasTokens {
