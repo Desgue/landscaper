@@ -39,14 +39,19 @@ If the issue is in Todo (not yet claimed via `/linear-pickup`):
 
 If already In Progress, skip this step.
 
-### 3. Create branch
+### 3. Create worktree and branch
+
+Use a git worktree so other agents can work in parallel on the main repo:
 
 ```bash
-git checkout main && git pull
-git checkout -b $ARGUMENTS-<slug>
+git fetch origin main
+SLUG="$ARGUMENTS-<slug>"   # kebab-case from issue title, 3-5 words max. Example: ENG-43-fix-tree-visibility
+WORKTREE_PATH="../landscaper-$SLUG"
+git worktree add -b "$SLUG" "$WORKTREE_PATH" origin/main
+cd "$WORKTREE_PATH"
 ```
 
-Use a kebab-case slug from the issue title, 3-5 words max. Example: `ENG-43-fix-tree-visibility`.
+All subsequent work (editing, testing, committing, pushing) happens inside the worktree directory (`$WORKTREE_PATH`), NOT the main repo checkout.
 
 ### 4. Implement
 
@@ -78,8 +83,9 @@ refactor(scope): description # for refactors
 
 ### 7. Push and create PR
 
+From within the worktree directory:
 ```bash
-git push -u origin $ARGUMENTS-<slug>
+git push -u origin $SLUG
 gh pr create --title "[$ARGUMENTS] <issue title>" --body "Fixes $ARGUMENTS"
 ```
 
@@ -98,7 +104,15 @@ Each reviewer reports issues. Fix any issues they find before proceeding. Re-run
 Use `mcp__linear-server__save_issue` with `id: "$ARGUMENTS"`, `state: "In Review"`.
 Use `mcp__linear-server__save_comment`: "Code ready. All checks pass. Pre-review (code/security/doc-sync) passed. Branch: `$ARGUMENTS-<slug>`. Ready for review."
 
-### 10. Report
+### 10. Clean up worktree
+
+Return to the main repo and remove the worktree:
+```bash
+cd /Users/mercor/Code/personal/landscaper
+git worktree remove "$WORKTREE_PATH"
+```
+
+### 11. Report
 
 Tell the user:
 - What was changed (files and summary)
