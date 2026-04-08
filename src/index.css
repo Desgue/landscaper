@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 @font-face {
   font-family: 'Inter';
   font-style: normal;
@@ -7,7 +9,14 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-@import "tailwindcss";
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
 @theme {
   /* Legacy brand tokens (backward compatibility) */
@@ -67,6 +76,173 @@
   --shadow-lg: 0 12px 36px rgba(42, 54, 42, 0.14), 0 4px 12px rgba(42, 54, 42, 0.08);
 
   --font-sans: 'Inter', system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* ============================================================
+   LANDSCAPER DESIGN TOKENS — --ls- namespace
+   These tokens are defined additively. No components reference
+   them yet — that happens in Phase 2+.
+   ============================================================ */
+:root {
+
+  /* ----------------------------------------------------------
+     BRAND: Slate (Blueprint Blue-Gray)
+  ---------------------------------------------------------- */
+  --ls-brand-50:  #f0f4f8;
+  --ls-brand-100: #d9e4f0;
+  --ls-brand-200: #b3c9e1;
+  --ls-brand-300: #7aa3c8;
+  --ls-brand-400: #4a7fad;
+  --ls-brand-500: #2b6191;
+  --ls-brand-600: #1f4d73;
+  --ls-brand-700: #163a57;
+  --ls-brand-800: #0e253a;
+  --ls-brand-900: #071520;
+  --ls-brand-950: #030b12;
+
+  /* ----------------------------------------------------------
+     EARTH: Warm Brown-Gray (Canvas Ground Tones)
+  ---------------------------------------------------------- */
+  --ls-earth-50:  #faf7f4;
+  --ls-earth-100: #f2ece4;
+  --ls-earth-200: #e3d5c3;
+  --ls-earth-300: #c9b49a;
+  --ls-earth-400: #ab8f70;
+  --ls-earth-500: #8a6f50;
+  --ls-earth-600: #6e5640;
+  --ls-earth-700: #533f2f;
+  --ls-earth-800: #382a1f;
+  --ls-earth-900: #1e1510;
+  --ls-earth-950: #100b08;
+
+  /* ----------------------------------------------------------
+     GARDEN: Field Green (Semantic — plants, growth, success)
+  ---------------------------------------------------------- */
+  --ls-garden-50:  #f2f7f0;
+  --ls-garden-100: #dcecd7;
+  --ls-garden-200: #b8d9b0;
+  --ls-garden-300: #8cc281;
+  --ls-garden-400: #60a854;
+  --ls-garden-500: #3d8b30;
+  --ls-garden-600: #2d6e23;
+  --ls-garden-700: #1f5218;
+  --ls-garden-800: #123410;
+  --ls-garden-900: #091a08;
+  --ls-garden-950: #040e04;
+
+  /* ----------------------------------------------------------
+     AMBER: Harvest (Semantic — generate, CTA, AI actions)
+  ---------------------------------------------------------- */
+  --ls-amber-50:  #fef9ee;
+  --ls-amber-100: #fdefc8;
+  --ls-amber-200: #fbda88;
+  --ls-amber-300: #f8c040;
+  --ls-amber-400: #f5a623;
+  --ls-amber-500: #d4880a;
+  --ls-amber-600: #a86806;
+  --ls-amber-700: #7a4b04;
+  --ls-amber-800: #4d2e02;
+  --ls-amber-900: #261701;
+  --ls-amber-950: #130b00;
+
+  /* ----------------------------------------------------------
+     SEMANTIC — functional color aliases
+  ---------------------------------------------------------- */
+
+  /* Interactive / Brand */
+  --ls-color-interactive:         var(--ls-brand-500);
+  --ls-color-interactive-hover:   var(--ls-brand-600);
+  --ls-color-interactive-pressed: var(--ls-brand-700);
+  --ls-color-interactive-subtle:  var(--ls-brand-100);
+  --ls-color-interactive-border:  var(--ls-brand-300);
+  --ls-color-focus-ring:          var(--ls-brand-400);
+
+  /* Selection (canvas elements) */
+  --ls-color-selection:           var(--ls-brand-400);
+  --ls-color-selection-bg:        var(--ls-brand-100);
+  --ls-color-selection-handle:    var(--ls-brand-500);
+  --ls-color-snap-guide:          var(--ls-brand-400);
+
+  /* CTA / Generate */
+  --ls-color-cta:                 var(--ls-amber-400);
+  --ls-color-cta-hover:           var(--ls-amber-500);
+  --ls-color-cta-pressed:         var(--ls-amber-600);
+  --ls-color-cta-text:            #ffffff;
+
+  /* Success / Plants / Garden */
+  --ls-color-success:             var(--ls-garden-500);
+  --ls-color-success-bg:          var(--ls-garden-100);
+  --ls-color-plant-canopy:        var(--ls-garden-200);
+
+  /* Warning */
+  --ls-color-warning:             var(--ls-amber-400);
+  --ls-color-warning-bg:          var(--ls-amber-100);
+
+  /* Destructive */
+  --ls-color-destructive:         #c0392b;
+  --ls-color-destructive-hover:   #a93226;
+  --ls-color-destructive-bg:      #fdf2f2;
+
+  /* ----------------------------------------------------------
+     SURFACES — four-level hierarchy (light mode)
+  ---------------------------------------------------------- */
+  --ls-surface-canvas:            #ffffff;
+  --ls-surface-canvas-overflow:   #f0f0ee;
+  --ls-surface-panel:             #f7f5f2;
+  --ls-surface-panel-header:      #ede9e4;
+  --ls-surface-toolbar:           #2b3a4a;
+  --ls-surface-toolbar-hover:     #364757;
+  --ls-surface-toolbar-active:    #1f2d3d;
+  --ls-surface-statusbar:         #1e2a38;
+  --ls-surface-modal:             #ffffff;
+  --ls-surface-tooltip:           #1e2a38;
+
+  /* ----------------------------------------------------------
+     BORDERS
+  ---------------------------------------------------------- */
+  --ls-border-subtle:             #e8e4de;
+  --ls-border-default:            #d1cac0;
+  --ls-border-strong:             #b5aba0;
+  --ls-border-focus:              var(--ls-brand-400);
+
+  /* ----------------------------------------------------------
+     TEXT
+  ---------------------------------------------------------- */
+  --ls-text-primary:              #1a1612;
+  --ls-text-secondary:            #4a4540;
+  --ls-text-tertiary:             #7a7570;
+  --ls-text-disabled:             #b0aba5;
+  --ls-text-on-dark:              #f5f3f0;
+  --ls-text-on-dark-secondary:    #a8a5a0;
+  --ls-text-link:                 var(--ls-brand-500);
+  --ls-text-link-hover:           var(--ls-brand-600);
+  --ls-text-dimension:            #555555;
+  --ls-text-cost:                 var(--ls-text-tertiary);
+
+  /* ----------------------------------------------------------
+     TYPOGRAPHY
+  ---------------------------------------------------------- */
+  --ls-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ----------------------------------------------------------
+     CANVAS-ONLY TOKENS — plant categories
+     Not used in HTML/CSS components; read by buildCanvasTokens()
+  ---------------------------------------------------------- */
+  --ls-plant-vegetable:           #7cb87a;
+  --ls-plant-herb:                #a8c5a0;
+  --ls-plant-fruit:               #e8a87c;
+  --ls-plant-flower:              #c98bb8;
+  --ls-plant-tree:                #4a8c6a;
+  --ls-plant-shrub:               #6aa87a;
+
+  --ls-plant-status-planned:      #94a3b8;
+  --ls-plant-status-planted:      #60a854;
+  --ls-plant-status-growing:      #3d8b30;
+  --ls-plant-status-harvested:    #f5a623;
+  --ls-plant-status-removed:      #c0392b;
+
+  --ls-structure-soil:            #c4a882;
+  --ls-structure-texture:         #b8a090;
 }
 
 .bg-dot-grid {
