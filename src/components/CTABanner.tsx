@@ -32,7 +32,7 @@ export default function CTABanner() {
         </p>
         <a
           href="/app"
-          className="inline-flex items-center justify-center w-full sm:w-auto bg-accent-hover hover:brightness-95 text-text font-semibold px-8 py-3.5 rounded-lg text-base transition-all shadow-md hover:shadow-lg min-h-[44px]"
+          className="inline-flex items-center justify-center w-full sm:w-auto bg-accent hover:bg-accent-hover text-text font-semibold px-8 py-3.5 rounded-lg text-base transition-colors shadow-md hover:shadow-lg min-h-[44px]"
         >
           Start designing for free <span aria-hidden="true">&rarr;</span>
         </a>

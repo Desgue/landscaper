@@ -219,7 +219,7 @@ function PlanCard({ plan, billing }: { plan: Plan; billing: BillingPeriod }) {
         href={plan.ctaHref}
         className={`block w-full text-center font-semibold py-3 rounded-lg transition-colors min-h-[44px] ${
           plan.highlighted
-            ? 'bg-accent-hover hover:brightness-95 text-text'
+            ? 'bg-accent hover:bg-accent-hover text-text'
             : 'border-2 border-primary text-primary hover:bg-primary hover:text-white'
         }`}
       >

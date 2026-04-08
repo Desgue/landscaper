@@ -47,7 +47,7 @@ export default function Hero() {
         <div className={`animate-on-scroll animate-delay-300 ${isInView ? 'animate-fade-up' : ''}`}>
           <a
             href="/app"
-            className="inline-flex items-center justify-center w-full sm:w-auto bg-accent-hover hover:brightness-95 text-text font-semibold px-8 py-3.5 rounded-lg text-base transition-all shadow-sm hover:shadow-md min-h-[44px]"
+            className="inline-flex items-center justify-center w-full sm:w-auto bg-accent hover:bg-accent-hover text-text font-semibold px-8 py-3.5 rounded-lg text-base transition-all shadow-sm hover:shadow-md min-h-[44px]"
           >
             Start planning — it's free <span aria-hidden="true">&rarr;</span>
           </a>
