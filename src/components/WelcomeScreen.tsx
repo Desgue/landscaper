@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-
-const MAX_IMPORT_SIZE_BYTES = 50 * 1024 * 1024 // 50 MB
 import { useRouter } from '@tanstack/react-router'
 import { getAllProjects, saveProject, deleteProject } from '../db/projectsDb'
 import { validateImport } from '../db/schemaValidation'
 import { useProjectStore } from '../store/useProjectStore'
 import { BUILTIN_REGISTRIES } from '../data/builtinRegistries'
 import type { Project } from '../types/schema'
+
+export const MAX_IMPORT_SIZE_BYTES = 50 * 1024 * 1024 // 50 MB
 
 type LoadState = 'loading' | 'ready' | 'error'
 
