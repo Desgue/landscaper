@@ -1,10 +1,9 @@
-import type { Application } from 'pixi.js'
 import { useViewportStore } from '../store/useViewportStore'
 import { clampZoom } from '../canvas/viewport'
 
 const ZOOM_ANIM_DURATION = 150
 
-export function createZoomAnimator(app: Application): {
+export function createZoomAnimator(): {
   onWheel: (e: WheelEvent) => void
   destroy: () => void
 } {
@@ -59,9 +58,6 @@ export function createZoomAnimator(app: Application): {
       useViewportStore.getState().setPan(panX - deltaX, panY - deltaY)
     }
   }
-
-  // Store reference to app for potential future use; suppress unused warning
-  void app
 
   const destroy = () => {
     if (zoomAnimRaf) {

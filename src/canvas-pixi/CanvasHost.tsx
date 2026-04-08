@@ -233,7 +233,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       // ------------------------------------------------------------------
       // Wheel zoom with smooth animation (lerp over ~150ms)
       // ------------------------------------------------------------------
-      const zoomAnimator = createZoomAnimator(app)
+      const zoomAnimator = createZoomAnimator()
       app.canvas.addEventListener('wheel', zoomAnimator.onWheel, { passive: false })
 
       // ------------------------------------------------------------------
