@@ -13,7 +13,7 @@ func themedOpts() *model.EffectiveOptions {
 	return &model.EffectiveOptions{
 		IncludePlanned: true,
 		GardenStyle:    "cottage",
-		Season:         "late summer",
+		Season:         "summer",
 		TimeOfDay:      "golden hour",
 		Viewpoint:      "eye-level",
 		AspectRatio:    "square",
@@ -93,7 +93,7 @@ func TestBuild_WithoutYardPhoto_EmptyYardPhotoInstruction(t *testing.T) {
 
 func TestBuild_ScenePromptContainsSubject(t *testing.T) {
 	parts := Build(nil, defaultOpts(), 0)
-	if !strings.Contains(parts.ScenePrompt, "cottage garden, late summer, golden hour") {
+	if !strings.Contains(parts.ScenePrompt, "cottage garden, summer, golden hour") {
 		t.Fatalf("ScenePrompt missing subject: %q", parts.ScenePrompt)
 	}
 }
@@ -227,7 +227,7 @@ func TestBuild_AllElementsIncluded(t *testing.T) {
 // --- Viewpoint tests ---
 
 func TestBuild_AllViewpointsProduceDifferentPrompts(t *testing.T) {
-	viewpoints := []string{"eye-level", "elevated", "isometric"}
+	viewpoints := []string{"eye-level", "elevated", "overhead", "isometric"}
 	prompts := map[string]string{}
 	for _, vp := range viewpoints {
 		opts := defaultOpts()
@@ -270,6 +270,15 @@ func TestBuild_IsometricContainsTiltShift(t *testing.T) {
 	parts := Build(nil, opts, 0)
 	if !strings.Contains(parts.ScenePrompt, "tilt-shift") {
 		t.Error("isometric should contain tilt-shift lens hint")
+	}
+}
+
+func TestBuild_OverheadContainsBirdsEye(t *testing.T) {
+	opts := defaultOpts()
+	opts.Viewpoint = "overhead"
+	parts := Build(nil, opts, 0)
+	if !strings.Contains(parts.ScenePrompt, "bird's-eye") {
+		t.Error("overhead should contain bird's-eye perspective hint")
 	}
 }
 
@@ -418,14 +427,14 @@ func TestDeriveSeasonNorthern(t *testing.T) {
 		date     string
 		expected string
 	}{
-		{"2026-03-15", "early spring"},
-		{"2026-04-10", "early spring"},
-		{"2026-04-20", "late spring"},
-		{"2026-05-15", "late spring"},
+		{"2026-03-15", "spring"},
+		{"2026-04-10", "spring"},
+		{"2026-04-20", "spring"},
+		{"2026-05-15", "spring"},
 		{"2026-06-15", "summer"},
 		{"2026-07-15", "summer"},
-		{"2026-09-10", "late summer"},
-		{"2026-10-10", "late summer"},
+		{"2026-09-10", "autumn"},
+		{"2026-10-10", "autumn"},
 		{"2026-10-20", "autumn"},
 		{"2026-11-15", "autumn"},
 		{"2026-12-15", "winter"},
@@ -447,14 +456,14 @@ func TestDeriveSeasonSouthern(t *testing.T) {
 		date     string
 		expected string
 	}{
-		{"2026-09-10", "early spring"},
-		{"2026-10-10", "early spring"},
-		{"2026-10-20", "late spring"},
-		{"2026-11-15", "late spring"},
+		{"2026-09-10", "spring"},
+		{"2026-10-10", "spring"},
+		{"2026-10-20", "spring"},
+		{"2026-11-15", "spring"},
 		{"2026-12-15", "summer"},
 		{"2026-01-15", "summer"},
-		{"2026-03-10", "late summer"},
-		{"2026-04-10", "late summer"},
+		{"2026-03-10", "autumn"},
+		{"2026-04-10", "autumn"},
 		{"2026-04-20", "autumn"},
 		{"2026-05-15", "autumn"},
 		{"2026-06-15", "winter"},
@@ -517,7 +526,7 @@ func TestBuild_BaseMode_NeutralStyle(t *testing.T) {
 
 func TestBuild_ThemedMode_CreativeSubject(t *testing.T) {
 	parts := Build(nil, themedOpts(), 0)
-	if !strings.Contains(parts.ScenePrompt, "cottage garden, late summer, golden hour") {
+	if !strings.Contains(parts.ScenePrompt, "cottage garden, summer, golden hour") {
 		t.Fatalf("themed mode should contain full creative subject: %q", parts.ScenePrompt)
 	}
 }

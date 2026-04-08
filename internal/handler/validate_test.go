@@ -67,7 +67,6 @@ func doValidatePhotos(body []byte, now time.Time) (*httptest.ResponseRecorder, [
 	return rec, photos, ok
 }
 
-
 // assertError checks status code and error message in the JSON response.
 func assertError(t *testing.T, rec *httptest.ResponseRecorder, wantStatus int, wantMsg string) {
 	t.Helper()
@@ -185,7 +184,7 @@ func TestInvalidGardenStyle(t *testing.T) {
 }
 
 func TestInvalidSeason(t *testing.T) {
-	body := bodyWithOptions(map[string]any{"season": "spring"})
+	body := bodyWithOptions(map[string]any{"season": "monsoon"})
 	rec, ok := doValidate(body, summerDate)
 	if ok {
 		t.Fatal("expected failure")
@@ -312,11 +311,11 @@ func TestEffectiveOptionsDefaults(t *testing.T) {
 	if !eff.IncludePlanned {
 		t.Error("IncludePlanned should default to true")
 	}
-	if eff.GardenStyle != "garden" {
-		t.Errorf("GardenStyle = %q; want %q", eff.GardenStyle, "garden")
+	if eff.GardenStyle != "contemporary" {
+		t.Errorf("GardenStyle = %q; want %q", eff.GardenStyle, "contemporary")
 	}
-	if eff.TimeOfDay != "golden hour" {
-		t.Errorf("TimeOfDay = %q; want %q", eff.TimeOfDay, "golden hour")
+	if eff.TimeOfDay != "afternoon" {
+		t.Errorf("TimeOfDay = %q; want %q", eff.TimeOfDay, "afternoon")
 	}
 	if eff.Viewpoint != "eye-level" {
 		t.Errorf("Viewpoint = %q; want %q", eff.Viewpoint, "eye-level")
@@ -609,22 +608,22 @@ func TestSeasonDerivation_NorthernAllRanges(t *testing.T) {
 		day   int
 		want  string
 	}{
-		{time.March, 1, "early spring"},
-		{time.March, 31, "early spring"},
-		{time.April, 1, "early spring"},
-		{time.April, 14, "early spring"},
-		{time.April, 15, "late spring"},
-		{time.April, 30, "late spring"},
-		{time.May, 15, "late spring"},
+		{time.March, 1, "spring"},
+		{time.March, 31, "spring"},
+		{time.April, 1, "spring"},
+		{time.April, 14, "spring"},
+		{time.April, 15, "spring"},
+		{time.April, 30, "spring"},
+		{time.May, 15, "spring"},
 		{time.June, 1, "summer"},
 		{time.July, 15, "summer"},
 		{time.August, 31, "summer"},
-		{time.September, 1, "late summer"},
-		{time.September, 14, "late summer"},
-		{time.September, 15, "late summer"},
-		{time.September, 30, "late summer"},
-		{time.October, 1, "late summer"},
-		{time.October, 14, "late summer"},
+		{time.September, 1, "autumn"},
+		{time.September, 14, "autumn"},
+		{time.September, 15, "autumn"},
+		{time.September, 30, "autumn"},
+		{time.October, 1, "autumn"},
+		{time.October, 14, "autumn"},
 		{time.October, 15, "autumn"},
 		{time.October, 31, "autumn"},
 		{time.November, 15, "autumn"},
@@ -646,19 +645,19 @@ func TestSeasonDerivation_SouthernAllRanges(t *testing.T) {
 		day   int
 		want  string
 	}{
-		{time.September, 1, "early spring"},
-		{time.September, 30, "early spring"},
-		{time.October, 1, "early spring"},
-		{time.October, 14, "early spring"},
-		{time.October, 15, "late spring"},
-		{time.November, 15, "late spring"},
+		{time.September, 1, "spring"},
+		{time.September, 30, "spring"},
+		{time.October, 1, "spring"},
+		{time.October, 14, "spring"},
+		{time.October, 15, "spring"},
+		{time.November, 15, "spring"},
 		{time.December, 1, "summer"},
 		{time.January, 15, "summer"},
 		{time.February, 28, "summer"},
-		{time.March, 1, "late summer"},
-		{time.March, 14, "late summer"},
-		{time.April, 1, "late summer"},
-		{time.April, 14, "late summer"},
+		{time.March, 1, "autumn"},
+		{time.March, 14, "autumn"},
+		{time.April, 1, "autumn"},
+		{time.April, 14, "autumn"},
 		{time.April, 15, "autumn"},
 		{time.May, 15, "autumn"},
 		{time.June, 1, "winter"},

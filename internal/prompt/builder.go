@@ -29,6 +29,7 @@ const yardPhotoInstruction = `This image is a real photograph of the yard. ` +
 var viewpointPhrases = map[string]string{
 	"eye-level": "eye-level perspective, 24mm wide-angle lens, ground-level viewpoint, horizon at mid-frame",
 	"elevated":  "elevated three-quarter view looking down at an angle, 35mm lens, slightly above fence height",
+	"overhead":  "overhead top-down view looking straight down, 50mm lens, bird's-eye perspective",
 	"isometric": "isometric perspective, tilt-shift lens effect, uniform scale across the scene",
 }
 
@@ -120,11 +121,7 @@ func Build(elements []filter.FilteredElement, opts *model.EffectiveOptions, phot
 
 func buildSubject(opts *model.EffectiveOptions) string {
 	if opts.Themed {
-		style := opts.GardenStyle
-		if style == "garden" {
-			style = "residential" // avoid "A garden garden, ..."
-		}
-		return "A " + style + " garden, " + opts.Season + ", " + opts.TimeOfDay
+		return "A " + opts.GardenStyle + " garden, " + opts.Season + ", " + opts.TimeOfDay
 	}
 	// Base mode: neutral subject with season for subtle realism
 	return "A residential garden photographed in " + opts.Season + " conditions"
@@ -157,7 +154,7 @@ func buildProhibitions(viewpoint string) string {
 		"NO elements, structures, or plants not shown in the layout map."
 	// "NO bird's-eye view" conflicts with isometric which is a top-down variant,
 	// so only add it for eye-level and elevated viewpoints.
-	if viewpoint != "isometric" {
+	if viewpoint != "isometric" && viewpoint != "overhead" {
 		base = "NO bird's-eye view. " + base
 	}
 	return base
@@ -227,25 +224,11 @@ func DeriveSeason(loc *model.Location, now time.Time) string {
 
 func deriveNorthernSeason(month time.Month, day int) string {
 	switch month {
-	case time.March:
-		return "early spring"
-	case time.April:
-		if day <= 14 {
-			return "early spring"
-		}
-		return "late spring"
-	case time.May:
-		return "late spring"
+	case time.March, time.April, time.May:
+		return "spring"
 	case time.June, time.July, time.August:
 		return "summer"
-	case time.September:
-		return "late summer"
-	case time.October:
-		if day <= 14 {
-			return "late summer"
-		}
-		return "autumn"
-	case time.November:
+	case time.September, time.October, time.November:
 		return "autumn"
 	case time.December, time.January, time.February:
 		return "winter"
@@ -255,25 +238,11 @@ func deriveNorthernSeason(month time.Month, day int) string {
 
 func deriveSouthernSeason(month time.Month, day int) string {
 	switch month {
-	case time.September:
-		return "early spring"
-	case time.October:
-		if day <= 14 {
-			return "early spring"
-		}
-		return "late spring"
-	case time.November:
-		return "late spring"
+	case time.September, time.October, time.November:
+		return "spring"
 	case time.December, time.January, time.February:
 		return "summer"
-	case time.March:
-		return "late summer"
-	case time.April:
-		if day <= 14 {
-			return "late summer"
-		}
-		return "autumn"
-	case time.May:
+	case time.March, time.April, time.May:
 		return "autumn"
 	case time.June, time.July, time.August:
 		return "winter"
