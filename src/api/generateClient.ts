@@ -41,8 +41,7 @@ export function buildRequestBody(
   if (options.gardenStyle != null) {
     mappedOptions.garden_style = options.gardenStyle;
   }
-  // season: 'auto' → omit (backend derives from location)
-  if (options.season != null && options.season !== 'auto') {
+  if (options.season != null) {
     mappedOptions.season = options.season;
   }
   if (options.timeOfDay != null) {

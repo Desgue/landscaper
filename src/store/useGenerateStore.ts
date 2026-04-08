@@ -7,7 +7,15 @@ import type {
   EditVersion,
   DraftVariant,
 } from '../types/generate';
-import { DEFAULT_OPTIONS } from '../types/generate';
+import {
+  DEFAULT_OPTIONS,
+  GARDEN_STYLES,
+  SEASONS,
+  TIMES_OF_DAY,
+  VIEWPOINTS,
+  ASPECT_RATIOS,
+  IMAGE_SIZES,
+} from '../types/generate';
 import { useProjectStore } from './useProjectStore';
 import { buildRequestBody, sendGenerateRequest, mapErrorToToast } from '../api/generateClient';
 
@@ -377,8 +385,27 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
       const validKeys = new Set(Object.keys(DEFAULT_OPTIONS));
       const persisted = project.uiState.lastGenerateOptions as unknown as Record<string, unknown>;
       const filtered: Record<string, unknown> = {};
+
+      // Valid value sets for each enum field
+      const validValues: Record<string, ReadonlySet<string>> = {
+        gardenStyle: new Set(GARDEN_STYLES.map((o) => o.value)),
+        season: new Set(SEASONS.map((o) => o.value)),
+        timeOfDay: new Set(TIMES_OF_DAY.map((o) => o.value)),
+        viewpoint: new Set(VIEWPOINTS.map((o) => o.value)),
+        aspectRatio: new Set(ASPECT_RATIOS.map((o) => o.value)),
+        imageSize: new Set(IMAGE_SIZES.map((o) => o.value)),
+      };
+
       for (const key of Object.keys(persisted)) {
-        if (validKeys.has(key)) {
+        if (!validKeys.has(key)) continue;
+        const allowed = validValues[key];
+        // For enum fields, only accept values still in the current set
+        if (allowed && typeof persisted[key] === 'string') {
+          if (allowed.has(persisted[key] as string)) {
+            filtered[key] = persisted[key];
+          }
+          // else: stale value, fall through to DEFAULT_OPTIONS
+        } else {
           filtered[key] = persisted[key];
         }
       }
