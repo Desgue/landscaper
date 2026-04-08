@@ -271,8 +271,14 @@ function validateStructureType(raw: unknown, warnings: string[]): StructureType 
     isFiniteNum(raw['costPerUnit']) && raw['costPerUnit'] > 0 ? raw['costPerUnit'] : null;
   const description =
     isString(raw['description']) ? raw['description'].slice(0, 500) : null;
+  const MATERIALS = ['wood', 'metal', 'masonry', 'stone', 'other'] as const;
+  const rawMaterial = raw['material'];
+  const material: StructureType['material'] =
+    isString(rawMaterial) && (MATERIALS as readonly string[]).includes(rawMaterial)
+      ? (rawMaterial as typeof MATERIALS[number])
+      : null;
 
-  return { id, name, category, iconUrl, defaultWidthCm, defaultDepthCm, costPerUnit, description };
+  return { id, name, category, material, iconUrl, defaultWidthCm, defaultDepthCm, costPerUnit, description };
 }
 
 function validatePathType(raw: unknown, warnings: string[]): PathType | null {

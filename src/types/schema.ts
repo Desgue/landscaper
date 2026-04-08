@@ -223,6 +223,7 @@ export interface StructureType {
   id: string;
   name: string;
   category: StructureCategory;
+  material: 'wood' | 'metal' | 'masonry' | 'stone' | 'other' | null;
   iconUrl: string;
   defaultWidthCm: number; // 1-10000, 2D canvas footprint X
   defaultDepthCm: number; // 1-10000, 2D canvas footprint Y
