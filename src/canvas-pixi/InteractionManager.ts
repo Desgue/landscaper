@@ -49,7 +49,7 @@ export interface InteractionManagerHandle extends RendererHandle {
   /** Call from CanvasHost native dblclick event. */
   handleDblClick(worldX: number, worldY: number): void
   /** Call from CanvasHost's useToolStore subscription when the active tool changes. */
-  onToolChange(newTool: string, oldTool: string): void
+  onToolChange(_newTool: string, oldTool: string): void
   /** Call from CanvasHost's useSelectionStore subscription when the primary selection changes. */
   onSelectionPrimaryChange(primaryId: string | null): void
 }
@@ -386,7 +386,7 @@ export function createInteractionManager(
       }
     },
 
-    onToolChange(newTool: string, oldTool: string): void {
+    onToolChange(_newTool: string, oldTool: string): void {
       ssm.reset()
       selectionOverlay.updateVisualState(ssm.getVisualState())
       // End any active boundary drag before clearing state
