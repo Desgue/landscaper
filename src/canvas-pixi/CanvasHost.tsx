@@ -13,6 +13,13 @@ import { Application, Container, type FederatedPointerEvent } from 'pixi.js'
 import { useViewportStore } from '../store/useViewportStore'
 import { useToolStore } from '../store/useToolStore'
 import { useCursorStore } from '../store/useCursorStore'
+import { useSelectionStore } from '../store/useSelectionStore'
+import { useProjectStore } from '../store/useProjectStore'
+import { useHistoryStore } from '../store/useHistoryStore'
+import { useInspectorStore } from '../store/useInspectorStore'
+import { usePlacementFeedbackStore } from '../store/usePlacementFeedbackStore'
+import { useMeasurementStore } from '../canvas/toolStores'
+import { useLabelToolStore } from '../canvas/toolStores'
 import { toWorld } from '../canvas/viewport'
 import { RenderScheduler } from './RenderScheduler'
 import { createTextureAtlas } from './textures/TextureAtlas'
@@ -35,10 +42,110 @@ import { useCanvasKeyboardShortcuts } from './useCanvasKeyboardShortcuts'
 import { createZoomAnimator } from './createZoomAnimator'
 import { buildCanvasSceneGraph } from './buildCanvasSceneGraph'
 import { createAllRenderers } from './createAllRenderers'
+import type { CanvasContext } from './CanvasContext'
 
 interface CanvasHostProps {
   width: number
   height: number
+}
+
+// ---------------------------------------------------------------------------
+// CanvasContext factory
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates a CanvasContext by delegating each method to the appropriate
+ * Zustand store. Constructed inside initApp and passed to handlers in
+ * Phase 2-4 of the CanvasContext migration.
+ */
+function createCanvasContext(): CanvasContext {
+  return {
+    // ---- Project reads -----------------------------------------------------
+    getProject() {
+      return useProjectStore.getState().currentProject
+    },
+    getRegistries() {
+      return useProjectStore.getState().registries
+    },
+
+    // ---- Project writes ----------------------------------------------------
+    applyLiveUpdate(actionName, updater) {
+      useProjectStore.getState().updateProject(actionName, updater)
+    },
+    pushDragHistory(snapshot) {
+      useHistoryStore.getState().pushHistory(snapshot)
+      useProjectStore.getState().markDirty()
+    },
+
+    // ---- Viewport ----------------------------------------------------------
+    getZoom() {
+      return useViewportStore.getState().zoom
+    },
+
+    // ---- Tool state --------------------------------------------------------
+    getToolState() {
+      const { activeTool, previousTool } = useToolStore.getState()
+      return { activeTool, previousTool }
+    },
+    setLabelEditing(id) {
+      useLabelToolStore.getState().setEditing(id)
+    },
+
+    // ---- Selection ---------------------------------------------------------
+    getSelectionState() {
+      const { selectedIds, primaryId, groupEditingId, lastClickWorldPos, tabCycleIndex } =
+        useSelectionStore.getState()
+      return { selectedIds, primaryId, groupEditingId, lastClickWorldPos, tabCycleIndex }
+    },
+    select(id) {
+      useSelectionStore.getState().select(id)
+    },
+    selectMultiple(ids) {
+      useSelectionStore.getState().selectMultiple(ids)
+    },
+    toggleSelect(id) {
+      useSelectionStore.getState().toggleSelect(id)
+    },
+    deselectAll() {
+      useSelectionStore.getState().deselectAll()
+    },
+    setGroupEditing(groupId) {
+      useSelectionStore.getState().setGroupEditing(groupId)
+    },
+    setLastClickWorldPos(pos) {
+      useSelectionStore.getState().setLastClickWorldPos(pos)
+    },
+    setTabCycleIndex(index) {
+      useSelectionStore.getState().setTabCycleIndex(index)
+    },
+
+    // ---- Inspector ---------------------------------------------------------
+    setInspectedElement(id) {
+      useInspectorStore.getState().setInspectedElementId(id)
+    },
+
+    // ---- Placement feedback ------------------------------------------------
+    showPlacementFeedback(msg) {
+      usePlacementFeedbackStore.getState().showFeedback(msg)
+    },
+
+    // ---- Boundary UI -------------------------------------------------------
+    setBoundaryPlacementState(state) {
+      useBoundaryUIStore.getState().setPlacementState(state)
+    },
+    setBoundaryEditingEdge(edgeIndex) {
+      useBoundaryUIStore.getState().setEditingEdgeIndex(edgeIndex)
+    },
+
+    // ---- Measurement UI ----------------------------------------------------
+    getMeasurementState() {
+      const { phase, startPoint, endPoint, livePoint } = useMeasurementStore.getState()
+      return { phase, startPoint, endPoint, livePoint }
+    },
+    setMeasurementState(update) {
+      useMeasurementStore.setState(update)
+    },
+  }
 }
 
 // ---- Texture GC interval (ms) ----
@@ -285,6 +392,11 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       // ------------------------------------------------------------------
       // Phase 4: Selection overlay + Interaction manager + Tool handlers
       // ------------------------------------------------------------------
+
+      // Construct the CanvasContext for this app instance.
+      // Phase 2-4 will pass this to handlers instead of having them import stores directly.
+      const _canvasContext = createCanvasContext()
+
       const selectionContainer = new Container()
       selectionContainer.label = 'selection'
       selectionContainer.eventMode = 'none'
