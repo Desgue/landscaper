@@ -1,6 +1,5 @@
 import { useCallback } from 'react'
 import { useProjectStore } from '../../store/useProjectStore'
-import { useHistoryStore } from '../../store/useHistoryStore'
 import { Input } from '@/components/ui/input'
 import type { DimensionElement } from '../../types/schema'
 import { labelCls, dividerCls } from './inspectorConstants'
@@ -10,11 +9,11 @@ import {
   LockedToggle,
   InspectorExtensionSlots,
 } from './inspectorShared'
+import { useInspectorEdit } from './useInspectorEdit'
 
 export function DimensionInspector({ element }: { element: DimensionElement }) {
-  const updateProject = useProjectStore((s) => s.updateProject)
-  const pushHistory = useHistoryStore((s) => s.pushHistory)
   const project = useProjectStore((s) => s.currentProject)
+  const { update } = useInspectorEdit<DimensionElement>(element.id, 'dimension')
 
   const distanceCm = Math.sqrt(
     (element.endPoint.x - element.startPoint.x) ** 2 +
@@ -23,19 +22,10 @@ export function DimensionInspector({ element }: { element: DimensionElement }) {
 
   const updateOffset = useCallback(
     (newOffset: number) => {
-      const proj = useProjectStore.getState().currentProject
-      if (!proj) return
-      const snapshot = structuredClone(proj)
-      updateProject('updateDimension', (draft) => {
-        const el = draft.elements.find((e) => e.id === element.id)
-        if (el && el.type === 'dimension') {
-          ;(el as DimensionElement).offsetCm = newOffset
-        }
-      })
-      pushHistory(snapshot)
+      update((el) => { el.offsetCm = newOffset })
       useProjectStore.getState().markDirty()
     },
-    [element.id, updateProject, pushHistory],
+    [update],
   )
 
   // Resolve linked element names

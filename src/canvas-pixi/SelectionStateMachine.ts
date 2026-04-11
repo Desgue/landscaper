@@ -655,6 +655,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
     const tool = useToolStore.getState().activeTool
 
     // Eraser release
+    // intentional: pre-captured drag snapshot (not commitProjectUpdate)
     if (tool === 'eraser') {
       eraserActive = false
       if (eraserSnapshot) {
@@ -665,6 +666,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
       return
     }
 
+    // intentional: pre-captured drag snapshot (not commitProjectUpdate)
     if (
       drag.mode === 'moving' ||
       drag.mode === 'resizing' ||

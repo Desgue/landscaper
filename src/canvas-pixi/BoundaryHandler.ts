@@ -18,6 +18,7 @@ import { useViewportStore } from '../store/useViewportStore'
 import { useToolStore } from '../store/useToolStore'
 import { snapPoint } from '../snap/snapSystem'
 import { useBoundaryUIStore } from '../store/useBoundaryUIStore'
+import { commitProjectUpdate } from '../store/projectActions'
 import type { RendererHandle } from './BaseRenderer'
 
 // ---------------------------------------------------------------------------
@@ -178,12 +179,9 @@ export function createBoundaryHandler(): BoundaryHandle {
       () => ({ type: 'line' as const, arcSagitta: null }),
     )
     const edgeLengths: (number | null)[] = Array.from({ length: n }, () => null)
-    const snap = useProjectStore.getState().currentProject
-    if (snap) useHistoryStore.getState().pushHistory(structuredClone(snap))
-    useProjectStore.getState().updateProject('commitBoundary', (draft) => {
+    commitProjectUpdate('commitBoundary', (draft) => {
       draft.yardBoundary = { vertices: verts, edgeLengths, edgeTypes }
     })
-    useProjectStore.getState().markDirty()
     isPlacing = false
     placedVertices = []
     cursorWorld = null
@@ -239,6 +237,7 @@ export function createBoundaryHandler(): BoundaryHandle {
     },
 
     onVertexDragEnd(_vertexIndex: number): void {
+      // intentional: pre-captured drag snapshot (not commitProjectUpdate)
       if (preDragSnapshot) {
         useHistoryStore.getState().pushHistory(preDragSnapshot)
         useProjectStore.getState().markDirty()
@@ -278,6 +277,7 @@ export function createBoundaryHandler(): BoundaryHandle {
     },
 
     onArcHandleDragEnd(): void {
+      // intentional: pre-captured drag snapshot (not commitProjectUpdate)
       if (preArcDragSnapshot) {
         useHistoryStore.getState().pushHistory(preArcDragSnapshot)
         useProjectStore.getState().markDirty()
@@ -299,27 +299,21 @@ export function createBoundaryHandler(): BoundaryHandle {
       const n = proj.yardBoundary.vertices.length
       if (!Number.isInteger(edgeIndex) || edgeIndex < 0 || edgeIndex >= n) return
 
-      const snapshot = structuredClone(proj)
       const newVertices = propagateEdge(proj.yardBoundary.vertices, edgeIndex, newLengthCm)
 
-      useProjectStore.getState().updateProject('applyEdgeLength', (draft) => {
+      commitProjectUpdate('applyEdgeLength', (draft) => {
         if (!draft.yardBoundary) return
         draft.yardBoundary.vertices = newVertices
       })
-      useHistoryStore.getState().pushHistory(snapshot)
-      useProjectStore.getState().markDirty()
     },
 
     deleteBoundary(): void {
       useBoundaryUIStore.getState().setEditingEdgeIndex(null)
       const proj = useProjectStore.getState().currentProject
       if (!proj?.yardBoundary) return
-      const snapshot = structuredClone(proj)
-      useProjectStore.getState().updateProject('deleteBoundary', (draft) => {
+      commitProjectUpdate('deleteBoundary', (draft) => {
         draft.yardBoundary = null
       })
-      useHistoryStore.getState().pushHistory(snapshot)
-      useProjectStore.getState().markDirty()
     },
 
     update(): void {},

@@ -1,64 +1,18 @@
-import { useCallback, useRef } from 'react'
-import { useProjectStore } from '../../store/useProjectStore'
-import { useHistoryStore } from '../../store/useHistoryStore'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import type { LabelElement, TextAlign, Project } from '../../types/schema'
+import type { LabelElement, TextAlign } from '../../types/schema'
 import { labelCls, dividerCls } from './inspectorConstants'
 import {
   LayerDropdown,
   LockedToggle,
   InspectorExtensionSlots,
 } from './inspectorShared'
+import { useInspectorEdit } from './useInspectorEdit'
 
 export function LabelInspector({ element }: { element: LabelElement }) {
-  const updateProject = useProjectStore((s) => s.updateProject)
-  const pushHistory = useHistoryStore((s) => s.pushHistory)
-
-  // Snapshot ref for debounced text edits
-  const snapshotRef = useRef<Project | null>(null)
-
-  const startEdit = useCallback(() => {
-    if (!snapshotRef.current) {
-      const proj = useProjectStore.getState().currentProject
-      if (proj) snapshotRef.current = structuredClone(proj)
-    }
-  }, [])
-
-  const commitTextEdit = useCallback(() => {
-    if (snapshotRef.current) {
-      pushHistory(snapshotRef.current)
-      snapshotRef.current = null
-    }
-  }, [pushHistory])
-
-  /** Immediate update with history push (for discrete controls). */
-  const update = useCallback(
-    (updater: (el: LabelElement) => void) => {
-      const proj = useProjectStore.getState().currentProject
-      if (!proj) return
-      const snapshot = structuredClone(proj)
-      updateProject('updateLabel', (draft) => {
-        const el = draft.elements.find((e) => e.id === element.id)
-        if (el && el.type === 'label') updater(el as LabelElement)
-      })
-      pushHistory(snapshot)
-    },
-    [element.id, updateProject, pushHistory],
-  )
-
-  /** Live preview update without history push (for text inputs). */
-  const updateLive = useCallback(
-    (updater: (el: LabelElement) => void) => {
-      updateProject('updateLabel', (draft) => {
-        const el = draft.elements.find((e) => e.id === element.id)
-        if (el && el.type === 'label') updater(el as LabelElement)
-      })
-    },
-    [element.id, updateProject],
-  )
+  const { startEdit, commitEdit, update, updateLive } = useInspectorEdit<LabelElement>(element.id, 'label')
 
   return (
     <div>
@@ -70,7 +24,7 @@ export function LabelInspector({ element }: { element: LabelElement }) {
           value={element.text}
           onFocus={startEdit}
           onChange={(e) => updateLive((el) => { el.text = e.target.value })}
-          onBlur={commitTextEdit}
+          onBlur={commitEdit}
           rows={3}
         />
       </div>

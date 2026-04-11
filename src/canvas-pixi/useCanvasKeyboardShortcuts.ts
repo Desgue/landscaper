@@ -2,11 +2,11 @@ import { useEffect, type RefObject } from 'react'
 import { useProjectStore } from '../store/useProjectStore'
 import { useToolStore } from '../store/useToolStore'
 import { useSelectionStore } from '../store/useSelectionStore'
-import { useHistoryStore } from '../store/useHistoryStore'
 import { useInspectorStore } from '../store/useInspectorStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { fitToView } from '../canvas/viewport'
 import { boundaryGetAABB as getAABB } from '../canvas/elementAABB'
+import { commitProjectUpdate } from '../store/projectActions'
 import type { InteractionManagerHandle } from './InteractionManager'
 
 export function useCanvasKeyboardShortcuts(
@@ -71,15 +71,12 @@ export function useCanvasKeyboardShortcuts(
         const project = useProjectStore.getState().currentProject
         if (!project) return
         e.preventDefault()
-        const snapshot = structuredClone(project)
-        useProjectStore.getState().updateProject('deleteElements', (draft) => {
+        commitProjectUpdate('deleteElements', (draft) => {
           draft.elements = draft.elements.filter((el) => !selectedIds.has(el.id))
           for (const g of draft.groups) {
             g.elementIds = g.elementIds.filter((id) => !selectedIds.has(id))
           }
         })
-        useHistoryStore.getState().pushHistory(snapshot)
-        useProjectStore.getState().markDirty()
         useSelectionStore.getState().deselectAll()
         useInspectorStore.getState().setInspectedElementId(null)
         return

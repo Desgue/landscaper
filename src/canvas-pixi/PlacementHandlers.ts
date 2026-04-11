@@ -18,12 +18,12 @@ import type {
 } from '../types/schema'
 import { createLogger } from '../utils/logger'
 import { useProjectStore } from '../store/useProjectStore'
-import { useHistoryStore } from '../store/useHistoryStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { useInspectorStore } from '../store/useInspectorStore'
 import { useStructureToolStore, usePlantToolStore, useLabelToolStore, useMeasurementStore } from '../canvas/toolStores'
 import { snapPoint } from '../snap/snapSystem'
 import { arcAABB } from '../canvas/arcGeometry'
+import { commitProjectUpdate } from '../store/projectActions'
 import type { RendererHandle } from './BaseRenderer'
 
 // ---------------------------------------------------------------------------
@@ -181,11 +181,10 @@ export function createStructurePlacementHandler(): StructurePlacementHandle {
       log.debug('structure placement rejected: collision', { x: rect.x, y: rect.y, width: rect.width, height: rect.height })
       return
     }
-    const snapshot = structuredClone(proj)
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
     const layerId = proj.layers[0]?.id ?? 'default'
-    useProjectStore.getState().updateProject('placeStructure', (draft) => {
+    commitProjectUpdate('placeStructure', (draft) => {
       draft.elements.push({
         id, type: 'structure', structureTypeId: selectedStructureTypeId,
         x: rect.x, y: rect.y, width: rect.width, height: rect.height,
@@ -193,8 +192,6 @@ export function createStructurePlacementHandler(): StructurePlacementHandle {
         createdAt: now, updatedAt: now, shape, arcSagitta: sagitta, notes: null,
       } satisfies StructureElement)
     })
-    useHistoryStore.getState().pushHistory(snapshot)
-    useProjectStore.getState().markDirty()
     useInspectorStore.getState().setInspectedElementId(id)
   }
 
@@ -342,12 +339,11 @@ export function createPlantPlacementHandler(): PlantPlacementHandle {
         return
       }
 
-      const snapshot = structuredClone(proj)
       const id = crypto.randomUUID()
       const now = new Date().toISOString()
       const layerId = proj.layers[0]?.id ?? 'default'
 
-      useProjectStore.getState().updateProject('placePlant', (draft) => {
+      commitProjectUpdate('placePlant', (draft) => {
         draft.elements.push({
           id, type: 'plant', plantTypeId: selectedPlantTypeId,
           x: snapped.x, y: snapped.y,
@@ -357,8 +353,6 @@ export function createPlantPlacementHandler(): PlantPlacementHandle {
           quantity: 1, status: 'planned', plantedDate: null, notes: null,
         } satisfies PlantElement)
       })
-      useHistoryStore.getState().pushHistory(snapshot)
-      useProjectStore.getState().markDirty()
       useInspectorStore.getState().setInspectedElementId(id)
     },
 
@@ -394,12 +388,11 @@ export function createLabelPlacementHandler(): LabelPlacementHandle {
       )
       if (existingLabel) return
 
-      const snapshot = structuredClone(proj)
       const id = crypto.randomUUID()
       const now = new Date().toISOString()
       const layerId = proj.layers[0]?.id ?? 'default'
 
-      useProjectStore.getState().updateProject('placeLabel', (draft) => {
+      commitProjectUpdate('placeLabel', (draft) => {
         draft.elements.push({
           id, type: 'label', text: 'Text', fontSize: 16,
           fontColor: '#000000', fontFamily: 'sans-serif',
@@ -409,8 +402,6 @@ export function createLabelPlacementHandler(): LabelPlacementHandle {
           createdAt: now, updatedAt: now,
         } satisfies LabelElement)
       })
-      useHistoryStore.getState().pushHistory(snapshot)
-      useProjectStore.getState().markDirty()
       useLabelToolStore.getState().setEditing(id)
     },
 

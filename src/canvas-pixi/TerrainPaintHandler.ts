@@ -187,6 +187,7 @@ export function createTerrainPaintHandler(): TerrainPaintHandle {
     isDragging = false
     lastWorldPos = null
 
+    // intentional drag-paint pattern: snapshot captured at onPointerDown; history committed on release, not inline
     if (prePaintSnapshot) {
       useHistoryStore.getState().pushHistory(prePaintSnapshot)
       useProjectStore.getState().markDirty()
