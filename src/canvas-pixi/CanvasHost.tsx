@@ -459,6 +459,27 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       )
       interactionManagerRef.current = interactionManager
 
+      // ------------------------------------------------------------------
+      // Store subscriptions — owned here so cleanup is centralised
+      // ------------------------------------------------------------------
+
+      // Sync inspector with selection primary change
+      const unsubInspector = useSelectionStore.subscribe((state, prevState) => {
+        if (state.primaryId !== prevState.primaryId) {
+          interactionManager.onSelectionPrimaryChange(state.primaryId)
+        }
+      })
+
+      // Reset SSM + path drawing state on tool change
+      const unsubTool = useToolStore.subscribe((state, prevState) => {
+        const newTool = state.activeTool
+        const oldTool = prevState.activeTool
+        if (newTool !== oldTool) {
+          interactionManager.onToolChange(newTool, oldTool)
+          pathDrawingHandler.onToolChange(newTool, oldTool)
+        }
+      })
+
       rendererUpdaters.push(() => selectionOverlay.update())
 
       // ------------------------------------------------------------------
@@ -492,6 +513,8 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         textureAtlas.destroy()
         renderers.gridRenderer.destroy()
         unsubViewport()
+        unsubInspector()
+        unsubTool()
         if (cursorRafRef.current) {
           cancelAnimationFrame(cursorRafRef.current)
           cursorRafRef.current = 0
