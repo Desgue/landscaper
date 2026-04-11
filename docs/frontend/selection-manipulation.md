@@ -40,7 +40,7 @@ Delete or Backspace removes all selected elements.
 
 ## Copy & Paste
 
-Ctrl+C copies the selection. Ctrl+V pastes at the current cursor position, snapped to 10cm increments. The pasted group's AABB (axis-aligned bounding box) center is placed at the cursor position. Elements maintain their relative positions within the group. Pasted elements become the active selection.
+Ctrl+C copies the selection. Ctrl+V pastes with an offset of +20cm from the original position, snapped to 10cm increments. Elements maintain their relative positions within the group. Pasted elements become the active selection. If a group was copied, the pasted elements form a new group with a new group ID.
 
 ## Undo & Redo
 

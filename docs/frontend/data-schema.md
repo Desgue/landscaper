@@ -46,7 +46,6 @@ Defines the JSON structure for project export/import and the registry format for
       ]
     },
     "currency": "string (display symbol, default '$')",
-    "yardPhoto": "string (base64-encoded JPEG or PNG of the real yard) | null",
     "layers": ["...see Layer Schema below"],
     "groups": ["...see Group Schema below"],
     "elements": ["...see Element Schema below"],
@@ -63,15 +62,11 @@ Defines the JSON structure for project export/import and the registry format for
 
 ### Yard Photo Storage
 
-`yardPhoto` stores a base64-encoded JPEG or PNG image of the real yard. It is used as the reference photo input for AI image generation [image-generation.md "## Reference Photo"].
+Yard photo support is currently in development. The feature will allow users to upload a base64-encoded JPEG or PNG image of the real yard as a reference photo input for AI image generation [image-generation.md "## Reference Photo"].
 
-**Storage**: `yardPhoto` is stored in the `Project` object in IndexedDB alongside all other project data.
+**Current state**: `yardPhoto` is stored in the `useGenerateStore` (ephemeral, not persisted across page reloads). The `Project` schema does not yet include a `yardPhoto` field.
 
-**Export exclusion**: `yardPhoto` is **excluded from JSON export** (the `.json` file download). Base64 images can be several megabytes and would bloat project files significantly. A project re-imported from a JSON file will have `yardPhoto: null`; the user will be prompted to re-upload if they want to include it in generation.
-
-**Import**: If `yardPhoto` is present in an imported JSON (e.g., a hand-crafted file), it is accepted and stored. Validation: must be a valid base64 string decoding to JPEG (`\xFF\xD8\xFF`) or PNG (`\x89PNG`) magic bytes. If invalid, it is set to `null` with a warning.
-
-**API usage**: When calling `POST /api/generate`, the frontend reads `project.yardPhoto` and sends it as the top-level `yard_photo` field in the request body — it is **not** nested inside the `project` field. See [api-contract.md "## yard_photo Field Disambiguation"].
+**Future implementation**: The photo will be persisted to the Project object in IndexedDB. When exporting to JSON, base64 images will be excluded to prevent file bloat. Imported JSON files will accept `yardPhoto` if present, with validation for valid JPEG (`\xFF\xD8\xFF`) or PNG (`\x89PNG`) magic bytes. API calls to `POST /api/generate` will send the photo as the top-level `yard_photo` field in the request body — not nested inside the `project` field.
 
 ---
 
@@ -320,7 +315,7 @@ Registries define the available types for each element category. Built-in types 
 {
   "id": "string (slug, e.g. 'grass')",
   "name": "string (e.g. 'Grass', max 100 chars)",
-  "category": "natural | hardscape | water | mulch | other",
+  "category": "natural | hardscape | water | other",
   "color": "string (hex, 6-digit with hash, e.g. '#4CAF50')",
   "textureUrl": "string (URL or relative path) | null",
   "costPerUnit": "number | null (cost per m²)",
@@ -328,7 +323,7 @@ Registries define the available types for each element category. Built-in types 
 }
 ```
 
-The segmentation render maps terrain type IDs to fixed colors by exact ID match before falling back to `category`. Built-in terrain type IDs and their semantic mappings: `"grass"` → lawn/grass, `"soil"` / `"mulch"` / `"bark"` → soil/mulch, `"gravel"` / `"concrete"` → gravel/stone, `"wood-decking"` / `"decking-surface"` → wood decking, `"water"` → water. Custom terrain types without a matching built-in ID fall back to their `category`: `natural` → `#00AA00`, `hardscape` → `#AAAAAA`, `water` → `#4169E1`, `mulch` → `#6B3A2A`, `other` → `#8B4513`. See [segmentation-render.md "## Segmentation Color Table"].
+The segmentation render maps terrain type IDs to fixed colors by exact ID match before falling back to `category`. Built-in terrain type IDs and their semantic mappings: `"grass"` → lawn/grass, `"soil"` / `"mulch"` / `"bark"` → soil/mulch (all category `natural`), `"gravel"` / `"concrete"` → gravel/stone, `"wood-decking"` / `"decking-surface"` → wood decking, `"water"` → water. Custom terrain types without a matching built-in ID fall back to their `category`: `natural` → `#00AA00`, `hardscape` → `#AAAAAA`, `water` → `#4169E1`, `other` → `#8B4513`. See [segmentation-render.md "## Segmentation Color Table"].
 
 ### Plant Type
 
@@ -402,7 +397,6 @@ The `category` field has semantic meaning for collision rules [canvas-viewport.m
   "id": "string (slug, e.g. 'brick-edging')",
   "name": "string (e.g. 'Brick Edging', max 100 chars)",
   "category": "string (e.g. 'edging', 'walkway', max 50 chars)",
-  "material": "stone | gravel | brick | wood | concrete | other | null",
   "defaultWidthCm": "number (1-500)",
   "color": "string (hex, 6-digit with hash, e.g. '#8B4513')",
   "costPerUnit": "number | null (cost per linear meter)",
@@ -410,7 +404,7 @@ The `category` field has semantic meaning for collision rules [canvas-viewport.m
 }
 ```
 
-`material` drives the segmentation render color [segmentation-render.md "## Segmentation Color Table"]. Allowed values: `"stone"`, `"gravel"`, `"brick"`, `"wood"`, `"concrete"`, `"other"`, or `null`. When `null` or omitted, the backend falls back to `#888888`. The `color` field drives the 2D canvas display only and has no effect on segmentation rendering.
+The `color` field drives the 2D canvas display and also the segmentation render [segmentation-render.md "## Segmentation Color Table"].
 
 ### Registry ID Format
 
@@ -441,7 +435,6 @@ All hex color fields use the format `#RRGGBB` — 6-digit, lowercase or uppercas
 | `project.gridConfig.originX` | Finite number | `0` |
 | `project.gridConfig.originY` | Finite number | `0` |
 | `project.currency` | Non-empty string, max 10 chars | `"$"` |
-| `project.yardPhoto` | Valid base64 JPEG or PNG, or null | `null` (invalid value → `null` + warning) |
 | `project.layers` | Array of Layer objects | `[{ id: generated, name: "Default", visible: true, locked: false, order: 0 }]` |
 | `project.groups` | Array of Group objects | `[]` |
 
@@ -591,7 +584,7 @@ Note: if `plantedDate` is non-null and `status` is `"planned"`, the import keeps
 |-------|-----------|---------|
 | `id` | Non-empty string matching slug format, unique within registry | **Skip type** (no valid ID = unusable) |
 | `name` | Non-empty string, max 100 chars | Title-case from `id`: split on `-`, capitalize each word, join with space (e.g., `"cherry-tomato"` → `"Cherry Tomato"`) |
-| `category` (terrain) | One of: `"natural"`, `"hardscape"`, `"water"`, `"mulch"`, `"other"` | `"other"` |
+| `category` (terrain) | One of: `"natural"`, `"hardscape"`, `"water"`, `"other"` | `"other"` |
 | `category` (plant/structure/path) | String, max 50 chars | `"other"` |
 | `color` (terrain/path) | Valid hex (see Hex Color Format) | `"#999999"` |
 | `iconUrl` (plant/structure) | Non-empty string | **Skip type** (can't render without icon) |
@@ -610,7 +603,6 @@ Note: if `plantedDate` is non-null and `status` is `"planned"`, the import keeps
 | `heightCm` (plant) | Positive number 1-5000 or null | `null` |
 | `trunkWidthCm` (plant) | Positive number 1-500 or null | `null` |
 | `material` (structure) | One of: `"wood"`, `"metal"`, `"masonry"`, `"stone"`, `"other"`, or null | `null` |
-| `material` (path) | One of: `"stone"`, `"gravel"`, `"brick"`, `"wood"`, `"concrete"`, `"other"`, or null | `null` |
 | `costPerUnit` (all registries) | Positive number or null | `null` |
 | `description` (all) | String, max 500 chars, or null | `null` |
 
