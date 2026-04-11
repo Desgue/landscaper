@@ -48,7 +48,7 @@ export function PlantInspector({ element }: { element: PlantElement }) {
       const proj = useProjectStore.getState().currentProject
       if (!proj) return
       const snapshot = structuredClone(proj)
-      updateProject((draft) => {
+      updateProject('updatePlant', (draft) => {
         const el = draft.elements.find((e) => e.id === element.id)
         if (el && el.type === 'plant') updater(el as PlantElement)
       })
@@ -60,7 +60,7 @@ export function PlantInspector({ element }: { element: PlantElement }) {
   /** Live preview update without history push (for text inputs). */
   const updateLive = useCallback(
     (updater: (el: PlantElement) => void) => {
-      updateProject((draft) => {
+      updateProject('updatePlant', (draft) => {
         const el = draft.elements.find((e) => e.id === element.id)
         if (el && el.type === 'plant') updater(el as PlantElement)
       })

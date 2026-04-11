@@ -40,7 +40,7 @@ export function LabelInspector({ element }: { element: LabelElement }) {
       const proj = useProjectStore.getState().currentProject
       if (!proj) return
       const snapshot = structuredClone(proj)
-      updateProject((draft) => {
+      updateProject('updateLabel', (draft) => {
         const el = draft.elements.find((e) => e.id === element.id)
         if (el && el.type === 'label') updater(el as LabelElement)
       })
@@ -52,7 +52,7 @@ export function LabelInspector({ element }: { element: LabelElement }) {
   /** Live preview update without history push (for text inputs). */
   const updateLive = useCallback(
     (updater: (el: LabelElement) => void) => {
-      updateProject((draft) => {
+      updateProject('updateLabel', (draft) => {
         const el = draft.elements.find((e) => e.id === element.id)
         if (el && el.type === 'label') updater(el as LabelElement)
       })

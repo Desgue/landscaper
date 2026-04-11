@@ -11,6 +11,7 @@
  */
 
 import type { Vec2, YardBoundaryEdge, Project } from '../types/schema'
+import { createLogger } from '../utils/logger'
 import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useViewportStore } from '../store/useViewportStore'
@@ -77,6 +78,8 @@ export function propagateEdge(
   }
   return cloned
 }
+
+const log = createLogger('BoundaryHandler')
 
 /** Hard cap on placement vertices to prevent resource exhaustion. */
 const MAX_PLACEMENT_VERTICES = 500
@@ -160,8 +163,14 @@ export function createBoundaryHandler(): BoundaryHandle {
   }
 
   function doCommitBoundary(verts: Vec2[]): void {
-    if (verts.length < 3) return
-    if (hasSelfIntersection(verts)) return
+    if (verts.length < 3) {
+      log.debug('boundary rejected: insufficient vertices', { count: verts.length })
+      return
+    }
+    if (hasSelfIntersection(verts)) {
+      log.debug('boundary rejected: self-intersection', { vertexCount: verts.length })
+      return
+    }
     useBoundaryUIStore.getState().setEditingEdgeIndex(null)
     const n = verts.length
     const edgeTypes: YardBoundaryEdge[] = Array.from(
@@ -171,7 +180,7 @@ export function createBoundaryHandler(): BoundaryHandle {
     const edgeLengths: (number | null)[] = Array.from({ length: n }, () => null)
     const snap = useProjectStore.getState().currentProject
     if (snap) useHistoryStore.getState().pushHistory(structuredClone(snap))
-    useProjectStore.getState().updateProject((draft) => {
+    useProjectStore.getState().updateProject('commitBoundary', (draft) => {
       draft.yardBoundary = { vertices: verts, edgeLengths, edgeTypes }
     })
     useProjectStore.getState().markDirty()
@@ -222,7 +231,7 @@ export function createBoundaryHandler(): BoundaryHandle {
 
     onVertexDrag(vertexIndex: number, worldX: number, worldY: number, altKey: boolean): void {
       const snapped = snapWorldPoint(worldX, worldY, altKey)
-      useProjectStore.getState().updateProject((draft) => {
+      useProjectStore.getState().updateProject('dragBoundaryVertex', (draft) => {
         if (!draft.yardBoundary) return
         if (vertexIndex < 0 || vertexIndex >= draft.yardBoundary.vertices.length) return
         draft.yardBoundary.vertices[vertexIndex] = { x: snapped.x, y: snapped.y }
@@ -258,7 +267,7 @@ export function createBoundaryHandler(): BoundaryHandle {
       const perpX = -chordDy / chordLen, perpY = chordDx / chordLen
       const sagitta = (worldX - midX) * perpX + (worldY - midY) * perpY
 
-      useProjectStore.getState().updateProject((draft) => {
+      useProjectStore.getState().updateProject('dragBoundaryArcHandle', (draft) => {
         if (!draft.yardBoundary) return
         if (edgeIndex < 0 || edgeIndex >= draft.yardBoundary.edgeTypes.length) return
         draft.yardBoundary.edgeTypes[edgeIndex] = {
@@ -293,7 +302,7 @@ export function createBoundaryHandler(): BoundaryHandle {
       const snapshot = structuredClone(proj)
       const newVertices = propagateEdge(proj.yardBoundary.vertices, edgeIndex, newLengthCm)
 
-      useProjectStore.getState().updateProject((draft) => {
+      useProjectStore.getState().updateProject('applyEdgeLength', (draft) => {
         if (!draft.yardBoundary) return
         draft.yardBoundary.vertices = newVertices
       })
@@ -306,7 +315,7 @@ export function createBoundaryHandler(): BoundaryHandle {
       const proj = useProjectStore.getState().currentProject
       if (!proj?.yardBoundary) return
       const snapshot = structuredClone(proj)
-      useProjectStore.getState().updateProject((draft) => {
+      useProjectStore.getState().updateProject('deleteBoundary', (draft) => {
         draft.yardBoundary = null
       })
       useHistoryStore.getState().pushHistory(snapshot)

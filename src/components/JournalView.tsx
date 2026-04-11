@@ -60,7 +60,7 @@ export default function JournalView({ onClose }: JournalViewProps) {
     (entry: JournalEntry) => {
       if (!project) return
       const snapshot = structuredClone(project)
-      updateProject((draft) => {
+      updateProject('saveJournalEntry', (draft) => {
         const idx = draft.journalEntries.findIndex((e) => e.id === entry.id)
         if (idx >= 0) {
           draft.journalEntries[idx] = entry
@@ -79,7 +79,7 @@ export default function JournalView({ onClose }: JournalViewProps) {
     (id: string) => {
       if (!project) return
       const snapshot = structuredClone(project)
-      updateProject((draft) => {
+      updateProject('deleteJournalEntry', (draft) => {
         draft.journalEntries = draft.journalEntries.filter((e) => e.id !== id)
       })
       pushHistory(snapshot)

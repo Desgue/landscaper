@@ -40,7 +40,7 @@ export function StructureInspector({ element }: { element: StructureElement }) {
       const proj = useProjectStore.getState().currentProject
       if (!proj) return
       const snapshot = structuredClone(proj)
-      updateProject((draft) => {
+      updateProject('updateStructure', (draft) => {
         const el = draft.elements.find((e) => e.id === element.id)
         if (el && el.type === 'structure') updater(el as StructureElement)
       })
@@ -52,7 +52,7 @@ export function StructureInspector({ element }: { element: StructureElement }) {
   /** Live preview update without history push (for text inputs). */
   const updateLive = useCallback(
     (updater: (el: StructureElement) => void) => {
-      updateProject((draft) => {
+      updateProject('updateStructure', (draft) => {
         const el = draft.elements.find((e) => e.id === element.id)
         if (el && el.type === 'structure') updater(el as StructureElement)
       })

@@ -61,7 +61,7 @@ export default function LayerPanel() {
         order: 0,
       }
       // Bootstrap only — do NOT push to undo stack (this is a system action, not user action)
-      updateProject((draft) => {
+      updateProject('bootstrapDefaultLayer', (draft) => {
         draft.layers.push(defaultLayer)
       })
       setActiveLayerId(defaultLayer.id)
@@ -129,7 +129,7 @@ export default function LayerPanel() {
       locked: false,
       order: maxOrder + 1,
     }
-    updateProject((draft) => {
+    updateProject('createLayer', (draft) => {
       draft.layers.push(newLayer)
     })
     pushHistory(snapshot)
@@ -143,7 +143,7 @@ export default function LayerPanel() {
       if (!layer) return
       const snapshot = structuredClone(project)
       const newVisible = !layer.visible
-      updateProject((draft) => {
+      updateProject('toggleLayerVisibility', (draft) => {
         const target = draft.layers.find((l) => l.id === layerId)
         if (target) target.visible = newVisible
       })
@@ -163,7 +163,7 @@ export default function LayerPanel() {
       if (!layer) return
       const snapshot = structuredClone(project)
       const newLocked = !layer.locked
-      updateProject((draft) => {
+      updateProject('toggleLayerLock', (draft) => {
         const target = draft.layers.find((l) => l.id === layerId)
         if (target) target.locked = newLocked
       })
@@ -184,7 +184,7 @@ export default function LayerPanel() {
       if (idx <= 0) return // already at top or not found
       const snapshot = structuredClone(project)
       const aboveId = sorted[idx - 1].id
-      updateProject((draft) => {
+      updateProject('moveLayerUp', (draft) => {
         const current = draft.layers.find((l) => l.id === layerId)
         const above = draft.layers.find((l) => l.id === aboveId)
         if (current && above) {
@@ -206,7 +206,7 @@ export default function LayerPanel() {
       if (idx < 0 || idx >= sorted.length - 1) return // already at bottom
       const snapshot = structuredClone(project)
       const belowId = sorted[idx + 1].id
-      updateProject((draft) => {
+      updateProject('moveLayerDown', (draft) => {
         const current = draft.layers.find((l) => l.id === layerId)
         const below = draft.layers.find((l) => l.id === belowId)
         if (current && below) {
@@ -231,7 +231,7 @@ export default function LayerPanel() {
       }
 
       const snapshot = structuredClone(project)
-      updateProject((draft) => {
+      updateProject('deleteLayer', (draft) => {
         // Move all elements from deleted layer to default layer
         for (const el of draft.elements) {
           if (el.layerId === layerId) {
@@ -266,7 +266,7 @@ export default function LayerPanel() {
 
       const targetLayer = sorted[idx + 1]
       const snapshot = structuredClone(project)
-      updateProject((draft) => {
+      updateProject('mergeLayerDown', (draft) => {
         // Move elements to target layer
         for (const el of draft.elements) {
           if (el.layerId === layerId) {
@@ -330,7 +330,7 @@ export default function LayerPanel() {
       return
     }
     const snapshot = structuredClone(project)
-    updateProject((draft) => {
+    updateProject('renameLayer', (draft) => {
       const target = draft.layers.find((l) => l.id === renamingLayerId)
       if (target) target.name = trimmed.slice(0, 100)
     })

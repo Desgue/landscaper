@@ -68,7 +68,7 @@ export default function ZOrderContextMenu() {
 
     const snapshot = structuredClone(project)
 
-    useProjectStore.getState().updateProject((draft) => {
+    useProjectStore.getState().updateProject('changeZOrder', (draft) => {
       for (const el of draft.elements) {
         if (!selectedIds.has(el.id)) continue
 
@@ -94,7 +94,7 @@ export default function ZOrderContextMenu() {
 
     const snapshot = structuredClone(project)
 
-    useProjectStore.getState().updateProject((draft) => {
+    useProjectStore.getState().updateProject('changeZOrder', (draft) => {
       for (const el of draft.elements) {
         if (!selectedIds.has(el.id)) continue
 

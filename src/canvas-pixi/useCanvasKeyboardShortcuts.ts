@@ -72,7 +72,7 @@ export function useCanvasKeyboardShortcuts(
         if (!project) return
         e.preventDefault()
         const snapshot = structuredClone(project)
-        useProjectStore.getState().updateProject((draft) => {
+        useProjectStore.getState().updateProject('deleteElements', (draft) => {
           draft.elements = draft.elements.filter((el) => !selectedIds.has(el.id))
           for (const g of draft.groups) {
             g.elementIds = g.elementIds.filter((id) => !selectedIds.has(id))

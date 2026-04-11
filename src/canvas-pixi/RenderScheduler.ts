@@ -9,12 +9,9 @@
  * to avoid React Strict Mode double-mount issues with stale app references.
  */
 import type { Application } from 'pixi.js'
+import { createLogger } from '../utils/logger'
 
-/**
- * Enable to log per-frame render time (ms) to the console.
- * Toggle at build time or patch at runtime via `(scheduler as any).perfLogging = true`.
- */
-const PERF_LOGGING = false
+const log = createLogger('RenderScheduler')
 
 type RenderCallback = () => void
 
@@ -25,8 +22,8 @@ export class RenderScheduler {
   private callbacks: Set<RenderCallback> = new Set()
   private running = false
 
-  /** Runtime-toggleable perf logging (mirrors the module-level default). */
-  perfLogging = PERF_LOGGING
+  /** Runtime-toggleable perf logging. Enable via `localStorage.setItem('LOG_MODULES', 'RenderScheduler')`. */
+  perfLogging = false
 
   /** Bind to an Application instance and begin accepting dirty signals. */
   start(app: Application): void {
@@ -86,7 +83,7 @@ export class RenderScheduler {
 
     if (this.perfLogging) {
       const elapsed = performance.now() - t0
-      console.debug(`[RenderScheduler] frame: ${elapsed.toFixed(2)}ms`)
+      log.debug(`frame: ${elapsed.toFixed(2)}ms`)
     }
   }
 }

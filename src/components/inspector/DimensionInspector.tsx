@@ -26,7 +26,7 @@ export function DimensionInspector({ element }: { element: DimensionElement }) {
       const proj = useProjectStore.getState().currentProject
       if (!proj) return
       const snapshot = structuredClone(proj)
-      updateProject((draft) => {
+      updateProject('updateDimension', (draft) => {
         const el = draft.elements.find((e) => e.id === element.id)
         if (el && el.type === 'dimension') {
           ;(el as DimensionElement).offsetCm = newOffset

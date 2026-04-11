@@ -147,7 +147,7 @@ export function createPathDrawingHandler(): PathDrawingHandle {
     const layerId = proj.layers[0]?.id ?? 'default'
     const snapshot = structuredClone(proj)
 
-    useProjectStore.getState().updateProject((draft) => {
+    useProjectStore.getState().updateProject('finalizePath', (draft) => {
       draft.elements.push({
         id, type: 'path', pathTypeId,
         points: points.map((p) => ({ x: p.x, y: p.y })),

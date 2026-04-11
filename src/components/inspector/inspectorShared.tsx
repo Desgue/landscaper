@@ -53,7 +53,7 @@ export function LayerDropdown({ element }: { element: CanvasElement }) {
       // Always include the current element
       idsToUpdate.add(element.id)
 
-      updateProject((draft) => {
+      updateProject('changeElementLayer', (draft) => {
         for (const el of draft.elements) {
           if (idsToUpdate.has(el.id)) {
             el.layerId = newLayerId
@@ -96,7 +96,7 @@ export function LockedToggle({ element }: { element: CanvasElement }) {
       const proj = useProjectStore.getState().currentProject
       if (!proj) return
       const snapshot = structuredClone(proj)
-      updateProject((draft) => {
+      updateProject('toggleElementLock', (draft) => {
         const el = draft.elements.find((item) => item.id === element.id)
         if (el) el.locked = locked
       })

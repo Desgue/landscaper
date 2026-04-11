@@ -18,6 +18,9 @@ import {
 } from '../types/generate';
 import { useProjectStore } from './useProjectStore';
 import { buildRequestBody, sendGenerateRequest, mapErrorToToast } from '../api/generateClient';
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('GenerateStore');
 
 interface GenerateStore {
   // Navigation
@@ -113,7 +116,7 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
     // Persist to project
     const projectStore = useProjectStore.getState();
     if (projectStore.currentProject) {
-      projectStore.updateProject((p) => {
+      projectStore.updateProject('setGenerateOption', (p) => {
         p.uiState.lastGenerateOptions = options;
       });
     }
@@ -124,7 +127,7 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
     set({ options });
     const projectStore = useProjectStore.getState();
     if (projectStore.currentProject) {
-      projectStore.updateProject((p) => {
+      projectStore.updateProject('setGenerateOptions', (p) => {
         p.uiState.lastGenerateOptions = options;
       });
     }
@@ -160,7 +163,9 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
       controller.abort();
     }, 60_000);
 
-    set({ status: { kind: 'loading', startedAt: Date.now() } });
+    const startTime = Date.now();
+    log.info('generate: start', { feature: get().activeFeature, hasYardPhoto: !!yardPhoto });
+    set({ status: { kind: 'loading', startedAt: startTime } });
 
     try {
       const blob = await sendGenerateRequest(body, controller.signal);
@@ -177,6 +182,7 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
       const url = URL.createObjectURL(blob);
       const mimeType = blob.type || 'image/png';
 
+      log.info('generate: success', { durationMs: Date.now() - startTime, mimeType });
       set({
         status: { kind: 'success', resultUrl: url },
         resultUrl: url,
@@ -208,9 +214,11 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
 
       const toast = mapErrorToToast(err);
       if (toast) {
+        log.error('generate: failed', { error: String(err), isTimeout: isTimeoutAbort, durationMs: Date.now() - startTime });
         set({ status: { kind: 'error', message: toast } });
       } else {
         // User cancel — no toast
+        log.debug('generate: cancelled');
         set({ status: { kind: 'idle' } });
       }
     } finally {

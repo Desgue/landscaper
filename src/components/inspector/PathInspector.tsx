@@ -24,7 +24,7 @@ export function PathInspector({ element }: { element: PathElement }) {
       const proj = useProjectStore.getState().currentProject
       if (!proj) return
       const snapshot = structuredClone(proj)
-      updateProject((draft) => {
+      updateProject('updatePath', (draft) => {
         const el = draft.elements.find((e) => e.id === element.id)
         if (el && el.type === 'path') updater(el as PathElement)
       })
