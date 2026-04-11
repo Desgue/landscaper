@@ -15,7 +15,6 @@ import { useSelectionStore } from '../store/useSelectionStore'
 import { useToolStore } from '../store/useToolStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { useViewportStore } from '../store/useViewportStore'
-import { connectStore } from './connectStore'
 import { setupWorldObject } from './BaseRenderer'
 import { drawDashedLine } from './utils/dashedLine'
 import type { RenderScheduler } from './RenderScheduler'
@@ -158,10 +157,18 @@ export function createSelectionOverlay(
 
   // Subscribe to selection and tool changes
   const unsubs = [
-    connectStore(useSelectionStore, (s) => s.selectedIds, () => { redraw(); scheduler.markDirty() }),
-    connectStore(useToolStore, (s) => s.activeTool, () => { redraw(); scheduler.markDirty() }),
-    connectStore(useProjectStore, (s) => s.currentProject?.elements, () => { redraw(); scheduler.markDirty() }),
-    connectStore(useViewportStore, (s) => s.zoom, () => { redraw(); scheduler.markDirty() }),
+    useSelectionStore.subscribe((state, prevState) => {
+      if (state.selectedIds !== prevState.selectedIds) { redraw(); scheduler.markDirty() }
+    }),
+    useToolStore.subscribe((state, prevState) => {
+      if (state.activeTool !== prevState.activeTool) { redraw(); scheduler.markDirty() }
+    }),
+    useProjectStore.subscribe((state, prevState) => {
+      if (state.currentProject?.elements !== prevState.currentProject?.elements) { redraw(); scheduler.markDirty() }
+    }),
+    useViewportStore.subscribe((state, prevState) => {
+      if (state.zoom !== prevState.zoom) { redraw(); scheduler.markDirty() }
+    }),
   ]
 
   // Initial render

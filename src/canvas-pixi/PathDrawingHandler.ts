@@ -8,18 +8,20 @@
  */
 
 import type { PathElement, PathSegment, Vec2 } from '../types/schema'
+import { createLogger } from '../utils/logger'
 import { useProjectStore } from '../store/useProjectStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { useToolStore } from '../store/useToolStore'
 import { usePathToolStore } from '../canvas/toolStores'
 import { snapPoint } from '../snap/snapSystem'
-import { connectStore } from './connectStore'
 import { commitProjectUpdate } from '../store/projectActions'
 import type { RendererHandle } from './BaseRenderer'
 
 // ---------------------------------------------------------------------------
 // Geometry
 // ---------------------------------------------------------------------------
+
+const log = createLogger('PathDrawingHandler')
 
 const MAX_PATH_POINTS = 500
 
@@ -95,15 +97,11 @@ export function createPathDrawingHandler(): PathDrawingHandle {
   window.addEventListener('keydown', handleKeyDown)
 
   // Reset when tool changes away from path
-  const unsubTool = connectStore(
-    useToolStore,
-    (s) => s.activeTool,
-    (newTool) => {
-      if (newTool !== 'path' && isDrawing) {
-        resetDrawing()
-      }
-    },
-  )
+  const unsubTool = useToolStore.subscribe((state, prevState) => {
+    if (state.activeTool !== prevState.activeTool && state.activeTool !== 'path' && isDrawing) {
+      resetDrawing()
+    }
+  })
 
   function resetDrawing(): void {
     drawingPoints = []
@@ -133,9 +131,15 @@ export function createPathDrawingHandler(): PathDrawingHandle {
 
     const regs = useProjectStore.getState().registries
     const pathTypeId = usePathToolStore.getState().selectedPathTypeId
-    if (!pathTypeId) return
+    if (!pathTypeId) {
+      log.debug('finalizePath rejected: no pathTypeId selected')
+      return
+    }
     const pathType = regs.paths.find((p) => p.id === pathTypeId)
-    if (!pathType) return
+    if (!pathType) {
+      log.debug('finalizePath rejected: path type not found', { pathTypeId })
+      return
+    }
 
     const finalSegments = closed
       ? [...segments, { type: 'line' as const, arcSagitta: null }]

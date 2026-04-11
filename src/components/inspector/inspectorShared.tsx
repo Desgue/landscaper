@@ -13,11 +13,13 @@ import {
 } from '@/components/ui/select'
 import type { CanvasElement, Layer } from '../../types/schema'
 import {
-  useInspectorSlots,
   labelCls,
   readonlyCls,
   dividerCls,
 } from './inspectorConstants'
+import GeometryPanel from '../GeometryPanel'
+import CostPanel from '../CostPanel'
+import JournalLinksPanel from '../JournalLinksPanel'
 
 export function ReadonlyField({ label, value }: { label: string; value: string }) {
   return (
@@ -53,7 +55,7 @@ export function LayerDropdown({ element }: { element: CanvasElement }) {
       // Always include the current element
       idsToUpdate.add(element.id)
 
-      updateProject((draft) => {
+      updateProject('changeElementLayer', (draft) => {
         for (const el of draft.elements) {
           if (idsToUpdate.has(el.id)) {
             el.layerId = newLayerId
@@ -96,7 +98,7 @@ export function LockedToggle({ element }: { element: CanvasElement }) {
       const proj = useProjectStore.getState().currentProject
       if (!proj) return
       const snapshot = structuredClone(proj)
-      updateProject((draft) => {
+      updateProject('toggleElementLock', (draft) => {
         const el = draft.elements.find((item) => item.id === element.id)
         if (el) el.locked = locked
       })
@@ -121,21 +123,11 @@ export function LockedToggle({ element }: { element: CanvasElement }) {
 // ─── Extension Slot Renderer ───────────────────────────────────────────────
 
 export function InspectorExtensionSlots({ element }: { element: CanvasElement }) {
-  const slots = useInspectorSlots()
-  const slotNames = ['inspector:cost', 'inspector:geometry', 'inspector:journal']
-
   return (
     <>
-      {slotNames.map((name) => {
-        const SlotComponent = slots.get(name)
-        if (!SlotComponent) return null
-        return (
-          <div key={name}>
-            <div className={dividerCls} />
-            <SlotComponent element={element} />
-          </div>
-        )
-      })}
+      <div><div className={dividerCls} /><CostPanel element={element} /></div>
+      <div><div className={dividerCls} /><GeometryPanel element={element} /></div>
+      <div><div className={dividerCls} /><JournalLinksPanel element={element} /></div>
     </>
   )
 }

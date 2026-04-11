@@ -30,7 +30,7 @@ export function useInspectorEdit<T extends CanvasElement>(
       const proj = useProjectStore.getState().currentProject
       if (!proj) return
       const snapshot = structuredClone(proj)
-      updateProject((draft) => {
+      updateProject(`update${elementType.charAt(0).toUpperCase()}${elementType.slice(1)}`, (draft) => {
         const el = draft.elements.find((e) => e.id === elementId)
         if (el && el.type === elementType) updater(el as T)
       })
@@ -41,7 +41,7 @@ export function useInspectorEdit<T extends CanvasElement>(
 
   const updateLive = useCallback(
     (updater: (el: T) => void) => {
-      updateProject((draft) => {
+      updateProject(`update${elementType.charAt(0).toUpperCase()}${elementType.slice(1)}`, (draft) => {
         const el = draft.elements.find((e) => e.id === elementId)
         if (el && el.type === elementType) updater(el as T)
       })

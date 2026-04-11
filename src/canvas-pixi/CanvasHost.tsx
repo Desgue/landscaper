@@ -15,7 +15,6 @@ import { useToolStore } from '../store/useToolStore'
 import { useCursorStore } from '../store/useCursorStore'
 import { toWorld } from '../canvas/viewport'
 import { RenderScheduler } from './RenderScheduler'
-import { DisposalManager } from './DisposalManager'
 import { createTextureAtlas } from './textures/TextureAtlas'
 import { createSelectionOverlay } from './SelectionOverlay'
 import { createInteractionManager, type InteractionManagerHandle } from './InteractionManager'
@@ -59,9 +58,6 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
   // ---- Cursor world-position tracking ----
   const cursorRafRef = useRef(0)
 
-  // ---- Disposal tracking ----
-  const disposalRef = useRef(new DisposalManager())
-
   // ---- Store accessors (stable refs to avoid re-render deps) ----
   const activeTool = useToolStore((s) => s.activeTool)
   const isPanActive = activeTool === 'hand'
@@ -94,7 +90,6 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
     if (!container) return
 
     let destroyed = false
-    const disposal = disposalRef.current
     const scheduler = new RenderScheduler()
     schedulerRef.current = scheduler
 
@@ -149,7 +144,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         labelsContainer,
         overflowDimContainer,
         interaction,
-      } = buildCanvasSceneGraph(app, width, height, disposal)
+      } = buildCanvasSceneGraph(app, width, height)
 
       interactionRef.current = interaction
 
@@ -372,7 +367,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         interaction.off('pointermove', onPointerMove)
         interaction.off('pointerup', onPointerUp)
         interaction.off('pointerupoutside', onPointerUp)
-        disposal.destroyAll()
+        world.destroy({ children: true })
         if (container.contains(app.canvas)) {
           container.removeChild(app.canvas)
         }

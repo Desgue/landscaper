@@ -83,7 +83,7 @@ export function EntryEditor({ entry, onSave, onCancel, elements, preSelectedIds 
           return
         }
         // Persist location
-        useProjectStore.getState().updateProject((draft) => {
+        useProjectStore.getState().updateProject('setProjectLocation', (draft) => {
           draft.location.lat = lat
           draft.location.lng = lng
         })

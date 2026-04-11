@@ -47,14 +47,14 @@ export function useKeyboardShortcuts(): void {
       // ─── Toggle snap: Ctrl+G (no shift) ──────────────────────────────
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'g') {
         e.preventDefault();
-        updateProject((p) => { p.uiState.snapEnabled = !p.uiState.snapEnabled; });
+        updateProject('toggleSnap', (p) => { p.uiState.snapEnabled = !p.uiState.snapEnabled; });
         return;
       }
 
       // ─── Toggle grid: Ctrl+' ─────────────────────────────────────────
       if ((e.ctrlKey || e.metaKey) && e.key === "'") {
         e.preventDefault();
-        updateProject((p) => { p.uiState.gridVisible = !p.uiState.gridVisible; });
+        updateProject('toggleGrid', (p) => { p.uiState.gridVisible = !p.uiState.gridVisible; });
         return;
       }
 
@@ -70,7 +70,7 @@ export function useKeyboardShortcuts(): void {
         const snapshot = structuredClone(project);
         const idsToDelete = new Set(selectedIds);
 
-        updateProject((draft) => {
+        updateProject('deleteElements', (draft) => {
           // Remove elements
           draft.elements = draft.elements.filter((el) => !idsToDelete.has(el.id));
 
@@ -136,7 +136,7 @@ export function useKeyboardShortcuts(): void {
           };
         });
 
-        updateProject((draft) => {
+        updateProject('pasteElements', (draft) => {
           draft.elements.push(...newElements);
         });
 
@@ -222,7 +222,7 @@ export function useKeyboardShortcuts(): void {
         const newGroupId = crypto.randomUUID();
         const selectedIdArray = Array.from(selectedIds);
 
-        updateProject((draft) => {
+        updateProject('groupElements', (draft) => {
           // Move elements to active layer if needed
           if (needsLayerMove) {
             for (const el of draft.elements) {
@@ -293,7 +293,7 @@ export function useKeyboardShortcuts(): void {
           }
         }
 
-        updateProject((draft) => {
+        updateProject('ungroupElements', (draft) => {
           // Remove group records
           draft.groups = draft.groups.filter((g) => !groupsToRemove.has(g.id));
 

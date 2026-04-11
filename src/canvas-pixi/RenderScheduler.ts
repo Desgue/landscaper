@@ -7,14 +7,14 @@
  *
  * NOT a module-level singleton — each CanvasHost creates its own instance
  * to avoid React Strict Mode double-mount issues with stale app references.
+ *
+ * Per-frame perf logging: set `localStorage.setItem('LOG_MODULES', 'RenderScheduler')`
+ * to enable frame-time debug output.
  */
 import type { Application } from 'pixi.js'
+import { createLogger } from '../utils/logger'
 
-/**
- * Enable to log per-frame render time (ms) to the console.
- * Toggle at build time or patch at runtime via `(scheduler as any).perfLogging = true`.
- */
-const PERF_LOGGING = false
+const log = createLogger('RenderScheduler')
 
 type RenderCallback = () => void
 
@@ -24,9 +24,6 @@ export class RenderScheduler {
   private rafId = 0
   private callbacks: Set<RenderCallback> = new Set()
   private running = false
-
-  /** Runtime-toggleable perf logging (mirrors the module-level default). */
-  perfLogging = PERF_LOGGING
 
   /** Bind to an Application instance and begin accepting dirty signals. */
   start(app: Application): void {
@@ -74,7 +71,7 @@ export class RenderScheduler {
     this.dirty = false
     if (!this.running || !this.app) return
 
-    const t0 = this.perfLogging ? performance.now() : 0
+    const t0 = performance.now()
 
     // Run pre-render callbacks
     for (const cb of this.callbacks) {
@@ -84,9 +81,7 @@ export class RenderScheduler {
     // Render the scene
     this.app.renderer.render({ container: this.app.stage })
 
-    if (this.perfLogging) {
-      const elapsed = performance.now() - t0
-      console.debug(`[RenderScheduler] frame: ${elapsed.toFixed(2)}ms`)
-    }
+    const elapsed = performance.now() - t0
+    log.debug(`frame: ${elapsed.toFixed(2)}ms`)
   }
 }

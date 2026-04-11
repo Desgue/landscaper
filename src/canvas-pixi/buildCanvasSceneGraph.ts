@@ -1,5 +1,4 @@
 import { type Application, Container, Graphics } from 'pixi.js'
-import type { DisposalManager } from './DisposalManager'
 
 export interface SceneGraph {
   world: Container
@@ -17,14 +16,12 @@ export function buildCanvasSceneGraph(
   app: Application,
   width: number,
   height: number,
-  disposal: DisposalManager,
 ): SceneGraph {
   // WORLD container — holds all scene content, transformed by viewport
   const world = new Container()
   world.label = 'world'
   world.eventMode = 'none'
   world.isRenderGroup = true
-  disposal.registerContainer(world)
 
   // World sub-containers (bottom to top)
   const gridContainer = new Container()

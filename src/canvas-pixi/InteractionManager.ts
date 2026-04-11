@@ -19,7 +19,6 @@ import { useInspectorStore } from '../store/useInspectorStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { getElementsAtPoint } from '../canvas/hitTestAll'
 import { useLabelToolStore } from '../canvas/toolStores'
-import { connectStore } from './connectStore'
 import type { RenderScheduler } from './RenderScheduler'
 import type { RendererHandle } from './BaseRenderer'
 import {
@@ -338,36 +337,34 @@ export function createInteractionManager(
   interactionContainer.on('pointerupoutside', onPointerUp)
 
   // Sync inspector with selection
-  const unsubInspector = connectStore(
-    useSelectionStore,
-    (s) => s.primaryId,
-    (primaryId) => useInspectorStore.getState().setInspectedElementId(primaryId),
-  )
+  const unsubInspector = useSelectionStore.subscribe((state, prevState) => {
+    if (state.primaryId !== prevState.primaryId) {
+      useInspectorStore.getState().setInspectedElementId(state.primaryId)
+    }
+  })
 
   // Reset SSM when tool changes
-  const unsubTool = connectStore(
-    useToolStore,
-    (s) => s.activeTool,
-    (newTool, oldTool) => {
-      if (newTool !== oldTool) {
-        ssm.reset()
-        selectionOverlay.updateVisualState(ssm.getVisualState())
-        // End any active boundary drag before clearing state
-        if (boundaryDrag && boundaryDragMoved) {
-          if (boundaryDrag.type === 'vertex') {
-            toolHandlers.boundary.onVertexDragEnd(boundaryDrag.index)
-          } else {
-            toolHandlers.boundary.onArcHandleDragEnd()
-          }
-        }
-        boundaryDrag = null
-        // Cancel in-progress boundary placement when leaving select tool
-        if (oldTool === 'select' && toolHandlers.boundary.getPlacementState().isPlacing) {
-          toolHandlers.boundary.destroy()
+  const unsubTool = useToolStore.subscribe((state, prevState) => {
+    const newTool = state.activeTool
+    const oldTool = prevState.activeTool
+    if (newTool !== oldTool) {
+      ssm.reset()
+      selectionOverlay.updateVisualState(ssm.getVisualState())
+      // End any active boundary drag before clearing state
+      if (boundaryDrag && boundaryDragMoved) {
+        if (boundaryDrag.type === 'vertex') {
+          toolHandlers.boundary.onVertexDragEnd(boundaryDrag.index)
+        } else {
+          toolHandlers.boundary.onArcHandleDragEnd()
         }
       }
-    },
-  )
+      boundaryDrag = null
+      // Cancel in-progress boundary placement when leaving select tool
+      if (oldTool === 'select' && toolHandlers.boundary.getPlacementState().isPlacing) {
+        toolHandlers.boundary.destroy()
+      }
+    }
+  })
 
   return {
     handleTabCycle(): void {

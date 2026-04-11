@@ -64,7 +64,7 @@ export default function StatusBar({ onOpenCostSummary }: StatusBarProps = {}) {
         aria-label="Toggle snap"
         aria-pressed={snapEnabled}
         className="hover:text-gray-900 cursor-pointer bg-transparent border-none p-0"
-        onClick={() => updateProject((p) => { p.uiState.snapEnabled = !p.uiState.snapEnabled })}
+        onClick={() => updateProject('toggleSnap', (p) => { p.uiState.snapEnabled = !p.uiState.snapEnabled })}
       >
         Snap: {snapEnabled ? 'ON' : 'OFF'}
       </button>
@@ -73,7 +73,7 @@ export default function StatusBar({ onOpenCostSummary }: StatusBarProps = {}) {
         aria-label="Toggle grid"
         aria-pressed={gridVisible}
         className="hover:text-gray-900 cursor-pointer bg-transparent border-none p-0"
-        onClick={() => updateProject((p) => { p.uiState.gridVisible = !p.uiState.gridVisible })}
+        onClick={() => updateProject('toggleGrid', (p) => { p.uiState.gridVisible = !p.uiState.gridVisible })}
       >
         Grid: {gridVisible ? 'ON' : 'OFF'}
       </button>

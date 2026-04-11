@@ -35,7 +35,7 @@ export function commitProjectUpdate(
   const proj = store.currentProject
   if (!proj) return
   const snapshot = structuredClone(proj)
-  store.updateProject(updater)
+  store.updateProject(_actionName, updater)
   useHistoryStore.getState().pushHistory(snapshot)
   // updateProject already calls markDirty internally; this second call restarts
   // the debounce timer, which is harmless. Keeping it explicit here so the full

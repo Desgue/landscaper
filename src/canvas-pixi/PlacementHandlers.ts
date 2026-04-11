@@ -16,6 +16,7 @@ import type {
   StructureElement, PlantElement, LabelElement,
   StructureType, PlantType, Vec2,
 } from '../types/schema'
+import { createLogger } from '../utils/logger'
 import { useProjectStore } from '../store/useProjectStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { useInspectorStore } from '../store/useInspectorStore'
@@ -28,6 +29,8 @@ import type { RendererHandle } from './BaseRenderer'
 // ---------------------------------------------------------------------------
 // Structure collision helper
 // ---------------------------------------------------------------------------
+
+const log = createLogger('PlacementHandlers')
 
 const BLOCKING_CATEGORIES = new Set(['boundary', 'feature', 'furniture'])
 
@@ -174,7 +177,10 @@ export function createStructurePlacementHandler(): StructurePlacementHandle {
     const existingStructures = proj.elements.filter(
       (el): el is StructureElement => el.type === 'structure',
     )
-    if (hasStructureCollision(rect.x, rect.y, rect.width, rect.height, existingStructures, regs.structures)) return
+    if (hasStructureCollision(rect.x, rect.y, rect.width, rect.height, existingStructures, regs.structures)) {
+      log.debug('structure placement rejected: collision', { x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+      return
+    }
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
     const layerId = proj.layers[0]?.id ?? 'default'
@@ -323,9 +329,15 @@ export function createPlantPlacementHandler(): PlantPlacementHandle {
 
       // Collision checks
       const existingPlants = proj.elements.filter((el): el is PlantElement => el.type === 'plant')
-      if (hasSpacingCollision(snapped.x, snapped.y, plantType.spacingCm, existingPlants, regs.plants)) return
+      if (hasSpacingCollision(snapped.x, snapped.y, plantType.spacingCm, existingPlants, regs.plants)) {
+        log.debug('plant placement rejected: spacing collision', { x: snapped.x, y: snapped.y, spacingCm: plantType.spacingCm })
+        return
+      }
       const structures = proj.elements.filter((el): el is StructureElement => el.type === 'structure')
-      if (hasPlantStructureCollision(snapped.x, snapped.y, structures, regs.structures)) return
+      if (hasPlantStructureCollision(snapped.x, snapped.y, structures, regs.structures)) {
+        log.debug('plant placement rejected: structure collision', { x: snapped.x, y: snapped.y })
+        return
+      }
 
       const id = crypto.randomUUID()
       const now = new Date().toISOString()
