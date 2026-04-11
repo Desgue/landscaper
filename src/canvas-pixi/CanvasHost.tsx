@@ -9,7 +9,7 @@
  * Activated via USE_PIXI feature flag.
  */
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { Application, Container, Graphics, type FederatedPointerEvent } from 'pixi.js'
+import { Application, Container, type FederatedPointerEvent } from 'pixi.js'
 import { useViewportStore } from '../store/useViewportStore'
 import { useToolStore } from '../store/useToolStore'
 import { useCursorStore } from '../store/useCursorStore'
@@ -35,6 +35,7 @@ import { useCanvasKeyboardShortcuts } from './useCanvasKeyboardShortcuts'
 import { createZoomAnimator } from './createZoomAnimator'
 import { buildCanvasSceneGraph } from './buildCanvasSceneGraph'
 import { createAllRenderers } from './createAllRenderers'
+
 interface CanvasHostProps {
   width: number
   height: number
@@ -74,12 +75,12 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
     return 'default'
   }, [isPanActive, isDragging, activeTool])
 
+  // ---- Keyboard shortcuts ----
+  useCanvasKeyboardShortcuts(width, height, interactionManagerRef)
+
   // Coerce to boolean so the init effect only re-runs on 0↔non-zero
   // transitions, not on every pixel resize.
   const hasSize = width > 0 && height > 0
-
-  // ---- Keyboard shortcuts ----
-  useCanvasKeyboardShortcuts(width, height, interactionManagerRef)
 
   // ======================================================================
   // Application init + scene graph setup
@@ -147,6 +148,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       } = buildCanvasSceneGraph(app, width, height)
 
       interactionRef.current = interaction
+
 
       // ------------------------------------------------------------------
       // Viewport wiring: subscribe to store, apply to world container
@@ -406,7 +408,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
 
     const interaction = interactionRef.current
     if (interaction && interaction.children.length > 0) {
-      const hitArea = interaction.children[0] as Graphics
+      const hitArea = interaction.children[0] as import('pixi.js').Graphics
       hitArea.clear()
       hitArea.rect(0, 0, width, height).fill({ color: 0xffffff, alpha: 0.001 })
     }
