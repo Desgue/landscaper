@@ -10,11 +10,7 @@
 
 import type { PathElement, Project, Vec2 } from '../types/schema'
 import { createLogger } from '../utils/logger'
-import { useToolStore } from '../store/useToolStore'
-import { useSelectionStore } from '../store/useSelectionStore'
-import { useProjectStore } from '../store/useProjectStore'
-import { useHistoryStore } from '../store/useHistoryStore'
-import { useViewportStore } from '../store/useViewportStore'
+import type { CanvasContext } from './CanvasContext'
 import {
   getElementAABB,
   getElementsAtPoint,
@@ -202,7 +198,7 @@ export interface SelectionStateMachine {
 
 const log = createLogger('SSM')
 
-export function createSelectionStateMachine(): SelectionStateMachine {
+export function createSelectionStateMachine(ctx: CanvasContext): SelectionStateMachine {
   let drag: DragState = createIdleDragState()
   let eraserActive = false
   let eraserSnapshot: Project | null = null
@@ -210,13 +206,13 @@ export function createSelectionStateMachine(): SelectionStateMachine {
 
   // ---- Eraser helper ----
   function eraseAtPoint(worldX: number, worldY: number): void {
-    const project = useProjectStore.getState().currentProject
+    const project = ctx.getProject()
     if (!project) return
     const hits = getElementsAtPoint(project.elements, project.layers, worldX, worldY)
     if (hits.length === 0) return
     const topElement = hits[0]
     log.debug('eraseAtPoint', { elementId: topElement.id, elementType: topElement.type })
-    useProjectStore.getState().updateProject('eraseElement', (draft) => {
+    ctx.applyLiveUpdate('eraseElement', (draft) => {
       draft.elements = draft.elements.filter((el) => el.id !== topElement.id)
       for (const g of draft.groups) {
         g.elementIds = g.elementIds.filter((id) => id !== topElement.id)
@@ -239,12 +235,12 @@ export function createSelectionStateMachine(): SelectionStateMachine {
   // ---- Handlers ----
   function handleDown(ev: SelectionPointerEvent): void {
     const { worldX, worldY, shiftKey } = ev
-    const tool = useToolStore.getState().activeTool
+    const tool = ctx.getToolState().activeTool
 
     // --- Eraser tool ---
     if (tool === 'eraser') {
       eraserActive = true
-      const project = useProjectStore.getState().currentProject
+      const project = ctx.getProject()
       if (project) eraserSnapshot = structuredClone(project)
       eraseAtPoint(worldX, worldY)
       return
@@ -252,16 +248,16 @@ export function createSelectionStateMachine(): SelectionStateMachine {
 
     if (tool !== 'select') return
 
-    const project = useProjectStore.getState().currentProject
+    const project = ctx.getProject()
     if (!project) return
 
     const {
       selectedIds: currentSelectedIds,
       primaryId: currentPrimaryId,
       groupEditingId: currentGroupEditingId,
-    } = useSelectionStore.getState()
+    } = ctx.getSelectionState()
 
-    const zoom = useViewportStore.getState().zoom
+    const zoom = ctx.getZoom()
 
     // Check path point handles
     if (currentSelectedIds.size === 1 && currentPrimaryId) {
@@ -359,7 +355,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
     }
 
     // Store click position for Tab cycling
-    useSelectionStore.getState().setLastClickWorldPos({ x: worldX, y: worldY })
+    ctx.setLastClickWorldPos({ x: worldX, y: worldY })
 
     // Hit test for element under cursor
     const hits = getElementsAtPoint(project.elements, project.layers, worldX, worldY)
@@ -383,13 +379,13 @@ export function createSelectionStateMachine(): SelectionStateMachine {
 
       if (shiftKey) {
         for (const id of idsToSelect) {
-          useSelectionStore.getState().toggleSelect(id)
+          ctx.toggleSelect(id)
         }
         return
       }
 
       if (!isAlreadySelected) {
-        useSelectionStore.getState().selectMultiple(idsToSelect)
+        ctx.selectMultiple(idsToSelect)
       }
 
       // Start MOVING
@@ -402,7 +398,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
       drag.preOpSnapshot = structuredClone(project)
       log.debug('handleDown → moving', { elementIds: [...idsToSelect], worldX, worldY })
 
-      const sel = useSelectionStore.getState().selectedIds
+      const sel = ctx.getSelectionState().selectedIds
       for (const el of project.elements) {
         if (sel.has(el.id)) {
           drag.elementStartPositions.set(el.id, { x: el.x, y: el.y, w: el.width, h: el.height })
@@ -411,9 +407,9 @@ export function createSelectionStateMachine(): SelectionStateMachine {
     } else {
       // Clicked on empty space
       if (!shiftKey) {
-        useSelectionStore.getState().deselectAll()
+        ctx.deselectAll()
         if (currentGroupEditingId !== null) {
-          useSelectionStore.getState().setGroupEditing(null)
+          ctx.setGroupEditing(null)
         }
       }
 
@@ -434,7 +430,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
 
   function handleMove(ev: SelectionPointerEvent): void {
     const { worldX, worldY, altKey, shiftKey } = ev
-    const tool = useToolStore.getState().activeTool
+    const tool = ctx.getToolState().activeTool
 
     // Eraser drag
     if (tool === 'eraser' && eraserActive) {
@@ -452,10 +448,10 @@ export function createSelectionStateMachine(): SelectionStateMachine {
     drag.altHeld = altKey
     drag.shiftHeld = shiftKey
 
-    const project = useProjectStore.getState().currentProject
+    const project = ctx.getProject()
     if (!project) return
 
-    const zoom = useViewportStore.getState().zoom
+    const zoom = ctx.getZoom()
 
     if (drag.mode === 'box_selecting') {
       const boxAABB = normalizeBoxAABB(drag.startWorldX, drag.startWorldY, worldX, worldY)
@@ -492,7 +488,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
         ? [...new Set([...drag.previousSelectedIds, ...expandedIds])]
         : [...expandedIds]
 
-      useSelectionStore.getState().selectMultiple(allIds)
+      ctx.selectMultiple(allIds)
       lastSnapGuideLines = []
     } else if (drag.mode === 'moving') {
       const deltaX = worldX - drag.startWorldX
@@ -518,7 +514,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
         lastSnapGuideLines = snapResult.guideLines
       }
 
-      useProjectStore.getState().updateProject('moveSelection', (draft) => {
+      ctx.applyLiveUpdate('moveSelection', (draft) => {
         for (const el of draft.elements) {
           const startPos = drag.elementStartPositions.get(el.id)
           if (!startPos) continue
@@ -556,7 +552,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
       const scaleX = startAABB.w > 0 ? newW / startAABB.w : 1
       const scaleY = startAABB.h > 0 ? newH / startAABB.h : 1
 
-      useProjectStore.getState().updateProject('resizeMultiSelection', (draft) => {
+      ctx.applyLiveUpdate('resizeMultiSelection', (draft) => {
         for (const el of draft.elements) {
           const startPos = drag.elementStartPositions.get(el.id)
           if (!startPos) continue
@@ -606,7 +602,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
         newH = MIN_SIZE_CM
       }
 
-      useProjectStore.getState().updateProject('resizeElement', (draft) => {
+      ctx.applyLiveUpdate('resizeElement', (draft) => {
         const el = draft.elements.find((e) => e.id === drag.resizeElementId)
         if (!el) return
         el.x = newX
@@ -617,7 +613,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
       })
       lastSnapGuideLines = []
     } else if (drag.mode === 'path_point_dragging' && drag.pathPointElementId !== null) {
-      useProjectStore.getState().updateProject('dragPathPoint', (draft) => {
+      ctx.applyLiveUpdate('dragPathPoint', (draft) => {
         const el = draft.elements.find((e) => e.id === drag.pathPointElementId)
         if (!el || el.type !== 'path') return
         const pathEl = el as PathElement
@@ -633,7 +629,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
       })
       lastSnapGuideLines = []
     } else if (drag.mode === 'rotating' && drag.rotateElementId) {
-      useProjectStore.getState().updateProject('rotateElement', (draft) => {
+      ctx.applyLiveUpdate('rotateElement', (draft) => {
         const target = draft.elements.find((e) => e.id === drag.rotateElementId)
         if (!target) return
         const aabb = getElementAABB(target)
@@ -652,15 +648,14 @@ export function createSelectionStateMachine(): SelectionStateMachine {
   }
 
   function handleUp(_ev: SelectionPointerEvent): void {
-    const tool = useToolStore.getState().activeTool
+    const tool = ctx.getToolState().activeTool
 
     // Eraser release
     // intentional: pre-captured drag snapshot (not commitProjectUpdate)
     if (tool === 'eraser') {
       eraserActive = false
       if (eraserSnapshot) {
-        useHistoryStore.getState().pushHistory(eraserSnapshot)
-        useProjectStore.getState().markDirty()
+        ctx.pushDragHistory(eraserSnapshot)
         eraserSnapshot = null
       }
       return
@@ -675,8 +670,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
     ) {
       log.debug('handleUp', { mode: drag.mode, deltaX: drag.currentWorldX - drag.startWorldX, deltaY: drag.currentWorldY - drag.startWorldY })
       if (drag.preOpSnapshot) {
-        useHistoryStore.getState().pushHistory(drag.preOpSnapshot)
-        useProjectStore.getState().markDirty()
+        ctx.pushDragHistory(drag.preOpSnapshot)
       }
     }
 
@@ -686,9 +680,9 @@ export function createSelectionStateMachine(): SelectionStateMachine {
   }
 
   function handleDblClick(ev: SelectionPointerEvent): void {
-    if (useToolStore.getState().activeTool !== 'select') return
+    if (ctx.getToolState().activeTool !== 'select') return
 
-    const project = useProjectStore.getState().currentProject
+    const project = ctx.getProject()
     if (!project) return
 
     const hits = getElementsAtPoint(project.elements, project.layers, ev.worldX, ev.worldY)
@@ -697,8 +691,8 @@ export function createSelectionStateMachine(): SelectionStateMachine {
 
     const group = project.groups.find((g) => g.id === topHit.groupId)
     if (group) {
-      useSelectionStore.getState().setGroupEditing(group.id)
-      useSelectionStore.getState().select(topHit.id)
+      ctx.setGroupEditing(group.id)
+      ctx.select(topHit.id)
     }
   }
 
