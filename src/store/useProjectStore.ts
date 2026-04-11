@@ -4,7 +4,7 @@ import { saveProject } from '../db/projectsDb';
 import { BUILTIN_REGISTRIES } from '../data/builtinRegistries';
 import { createLogger } from '../utils/logger';
 
-const log = createLogger('projectStore');
+const log = createLogger('ProjectStore');
 
 interface ProjectStore {
   currentProject: Project | null;

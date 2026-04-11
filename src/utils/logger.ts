@@ -33,37 +33,33 @@ export interface Logger {
 
 const cache = new Map<string, Logger>()
 
+function shouldLog(namespace: string, level: LogLevel): boolean {
+  if (getEnabledModules().has(namespace)) return true
+  return LEVEL_ORDER[level] >= LEVEL_ORDER[getGlobalLevel()]
+}
+
 export function createLogger(namespace: string): Logger {
   const cached = cache.get(namespace)
   if (cached) return cached
 
-  const globalLevel = getGlobalLevel()
-  const enabledModules = getEnabledModules()
-  const moduleForced = enabledModules.has(namespace)
-
-  function shouldLog(level: LogLevel): boolean {
-    if (moduleForced) return true
-    return LEVEL_ORDER[level] >= LEVEL_ORDER[globalLevel]
-  }
-
   const logger: Logger = {
     debug(message: string, data?: unknown) {
-      if (!shouldLog('debug')) return
+      if (!shouldLog(namespace, 'debug')) return
       if (data !== undefined) console.debug(`[${namespace}] ${message}`, data)
       else console.debug(`[${namespace}] ${message}`)
     },
     info(message: string, data?: unknown) {
-      if (!shouldLog('info')) return
+      if (!shouldLog(namespace, 'info')) return
       if (data !== undefined) console.info(`[${namespace}] ${message}`, data)
       else console.info(`[${namespace}] ${message}`)
     },
     warn(message: string, data?: unknown) {
-      if (!shouldLog('warn')) return
+      if (!shouldLog(namespace, 'warn')) return
       if (data !== undefined) console.warn(`[${namespace}] ${message}`, data)
       else console.warn(`[${namespace}] ${message}`)
     },
     error(message: string, data?: unknown) {
-      if (!shouldLog('error')) return
+      if (!shouldLog(namespace, 'error')) return
       if (data !== undefined) console.error(`[${namespace}] ${message}`, data)
       else console.error(`[${namespace}] ${message}`)
     },

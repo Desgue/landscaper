@@ -19,7 +19,7 @@ import type { RendererHandle } from './BaseRenderer'
 // Algorithms (ported from TerrainLayer.tsx — pure functions)
 // ---------------------------------------------------------------------------
 
-const log = createLogger('TerrainPaint')
+const log = createLogger('TerrainPaintHandler')
 
 function worldToCell(worldX: number, worldY: number): { cellX: number; cellY: number } {
   return {
