@@ -87,6 +87,10 @@ function createCanvasContext(): CanvasContext {
     getZoom() {
       return useViewportStore.getState().zoom
     },
+    getPan() {
+      const { panX, panY } = useViewportStore.getState()
+      return { panX, panY }
+    },
 
     // ---- Tool state --------------------------------------------------------
     getToolState() {

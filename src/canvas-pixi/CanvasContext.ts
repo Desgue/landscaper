@@ -115,6 +115,9 @@ export interface CanvasContext {
   /** Returns the current zoom level. */
   getZoom(): number
 
+  /** Returns the current pan offset in screen pixels. */
+  getPan(): { panX: number; panY: number }
+
   // ---- Tool state ----------------------------------------------------------
 
   /** Returns a read-only snapshot of the current tool state. */

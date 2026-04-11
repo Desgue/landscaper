@@ -12,13 +12,12 @@
 import type { Container } from 'pixi.js'
 import type { FederatedPointerEvent } from 'pixi.js'
 import { toWorld } from '../canvas/viewport'
+// NOTE: useSelectionStore and useToolStore are retained here only for their
+// subscribe() calls. All getState() reads have been migrated to ctx.*
+// (CanvasContext). Moving subscriptions to CanvasHost is a future cleanup task.
 import { useToolStore } from '../store/useToolStore'
-import { useViewportStore } from '../store/useViewportStore'
 import { useSelectionStore } from '../store/useSelectionStore'
-import { useInspectorStore } from '../store/useInspectorStore'
-import { useProjectStore } from '../store/useProjectStore'
 import { getElementsAtPoint } from '../canvas/hitTestAll'
-import { useLabelToolStore } from '../canvas/toolStores'
 import type { RenderScheduler } from './RenderScheduler'
 import type { RendererHandle } from './BaseRenderer'
 import {
@@ -99,7 +98,8 @@ export function createInteractionManager(
     const native = e.nativeEvent as PointerEvent
     const screenX = native.clientX - cachedRect.left
     const screenY = native.clientY - cachedRect.top
-    const { panX, panY, zoom } = useViewportStore.getState()
+    const { panX, panY } = ctx.getPan()
+    const zoom = ctx.getZoom()
     const w = toWorld(screenX, screenY, panX, panY, zoom)
     return { worldX: w.x, worldY: w.y }
   }
@@ -135,11 +135,11 @@ export function createInteractionManager(
   function hitTestBoundaryHandles(
     worldX: number, worldY: number,
   ): { type: 'vertex' | 'arc'; index: number } | null {
-    const project = useProjectStore.getState().currentProject
+    const project = ctx.getProject()
     const boundary = project?.yardBoundary
     if (!boundary || boundary.vertices.length < 3) return null
 
-    const zoom = useViewportStore.getState().zoom
+    const zoom = ctx.getZoom()
     const threshold = 6 / zoom
     const n = boundary.vertices.length
 
@@ -188,7 +188,7 @@ export function createInteractionManager(
     const native = e.nativeEvent as PointerEvent
     if (native.button !== 0) return // Only left-click for tool interaction
 
-    const tool = useToolStore.getState().activeTool
+    const tool = ctx.getToolState().activeTool
     const { worldX, worldY } = eventToWorld(e)
 
     // Boundary placement intercepts select tool when placing
@@ -247,7 +247,7 @@ export function createInteractionManager(
     // Skip tool dispatch during pan operations
     if (isPanActive()) return
 
-    const tool = useToolStore.getState().activeTool
+    const tool = ctx.getToolState().activeTool
     const native = e.nativeEvent as PointerEvent
     const { worldX, worldY } = eventToWorld(e)
 
@@ -275,7 +275,7 @@ export function createInteractionManager(
 
       // Hover highlight on pointermove when select tool is active
       if (tool === 'select') {
-        const project = useProjectStore.getState().currentProject
+        const project = ctx.getProject()
         if (project) {
           const hits = getElementsAtPoint(project.elements, project.layers, worldX, worldY)
           const topHitId = hits.length > 0 ? hits[0].id : null
@@ -316,7 +316,7 @@ export function createInteractionManager(
       return
     }
 
-    const tool = useToolStore.getState().activeTool
+    const tool = ctx.getToolState().activeTool
 
     if (isSelectionTool(tool)) {
       const ssmEvent = makeSSMEvent(e, 'up')
@@ -339,9 +339,10 @@ export function createInteractionManager(
   interactionContainer.on('pointerupoutside', onPointerUp)
 
   // Sync inspector with selection
+  // NOTE: useSelectionStore.subscribe is retained directly (no subscribe API on CanvasContext).
   const unsubInspector = useSelectionStore.subscribe((state, prevState) => {
     if (state.primaryId !== prevState.primaryId) {
-      useInspectorStore.getState().setInspectedElementId(state.primaryId)
+      ctx.setInspectedElement(state.primaryId)
     }
   })
 
@@ -370,9 +371,9 @@ export function createInteractionManager(
 
   return {
     handleTabCycle(): void {
-      const project = useProjectStore.getState().currentProject
+      const project = ctx.getProject()
       if (!project) return
-      const { lastClickWorldPos, tabCycleIndex } = useSelectionStore.getState()
+      const { lastClickWorldPos, tabCycleIndex } = ctx.getSelectionState()
       if (!lastClickWorldPos) return
 
       const hits = getElementsAtPoint(
@@ -382,28 +383,28 @@ export function createInteractionManager(
       if (hits.length === 0) return
 
       const newIndex = (tabCycleIndex + 1) % hits.length
-      useSelectionStore.getState().select(hits[newIndex].id)
-      useSelectionStore.getState().setTabCycleIndex(newIndex)
+      ctx.select(hits[newIndex].id)
+      ctx.setTabCycleIndex(newIndex)
     },
 
     handleDblClick(worldX: number, worldY: number): void {
-      const tool = useToolStore.getState().activeTool
+      const tool = ctx.getToolState().activeTool
 
       if (tool === 'select') {
         // Enter group editing mode on double-click
-        const project = useProjectStore.getState().currentProject
+        const project = ctx.getProject()
         if (!project) return
         const hits = getElementsAtPoint(project.elements, project.layers, worldX, worldY)
         const topHit = hits[0]
         if (!topHit || !topHit.groupId) return
         const group = project.groups.find((g) => g.id === topHit.groupId)
         if (group) {
-          useSelectionStore.getState().setGroupEditing(group.id)
-          useSelectionStore.getState().select(topHit.id)
+          ctx.setGroupEditing(group.id)
+          ctx.select(topHit.id)
         }
       } else if (tool === 'label') {
         // Double-click on existing label to edit
-        const project = useProjectStore.getState().currentProject
+        const project = ctx.getProject()
         if (!project) return
         const clickedLabel = project.elements.find(
           (el) =>
@@ -412,7 +413,7 @@ export function createInteractionManager(
             worldY >= el.y && worldY <= el.y + el.height,
         )
         if (clickedLabel) {
-          useLabelToolStore.getState().setEditing(clickedLabel.id)
+          ctx.setLabelEditing(clickedLabel.id)
         }
       }
     },
