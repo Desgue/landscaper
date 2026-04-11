@@ -12,7 +12,7 @@
 
 import type { Vec2, YardBoundaryEdge, Project } from '../types/schema'
 import { createLogger } from '../utils/logger'
-import { snapPoint } from '../snap/snapSystem'
+import { snapWorldPoint } from './snapUtils'
 import { commitProjectUpdate } from '../store/projectActions'
 import type { RendererHandle } from './BaseRenderer'
 import type { CanvasContext } from './CanvasContext'
@@ -80,22 +80,6 @@ const log = createLogger('BoundaryHandler')
 
 /** Hard cap on placement vertices to prevent resource exhaustion. */
 const MAX_PLACEMENT_VERTICES = 500
-
-// ---------------------------------------------------------------------------
-// Snap helper
-// ---------------------------------------------------------------------------
-
-function snapWorldPoint(worldX: number, worldY: number, altKey: boolean, ctx: CanvasContext): Vec2 {
-  const proj = ctx.getProject()
-  if (!proj) return { x: worldX, y: worldY }
-  const zoom = ctx.getZoom()
-  const result = snapPoint(
-    worldX, worldY, 'place', proj.elements, zoom,
-    proj.gridConfig.snapIncrementCm,
-    proj.uiState.snapEnabled, altKey,
-  )
-  return { x: result.x, y: result.y }
-}
 
 // ---------------------------------------------------------------------------
 // Boundary state (shared with HTML overlays via store-like interface)
@@ -190,7 +174,7 @@ export function createBoundaryHandler(ctx: CanvasContext): BoundaryHandle {
       checkAutoPlacement()
       if (!isPlacing) return
       if (ctx.getToolState().activeTool !== 'select') return
-      const snapped = snapWorldPoint(worldX, worldY, altKey, ctx)
+      const snapped = snapWorldPoint(worldX, worldY, 'place', altKey, ctx)
       if (isNearFirstVertex(snapped)) {
         doCommitBoundary(placedVertices)
         return
@@ -203,7 +187,7 @@ export function createBoundaryHandler(ctx: CanvasContext): BoundaryHandle {
     onPlacementMove(worldX: number, worldY: number, altKey: boolean): void {
       if (!isPlacing) return
       if (ctx.getToolState().activeTool !== 'select') return
-      const snapped = snapWorldPoint(worldX, worldY, altKey, ctx)
+      const snapped = snapWorldPoint(worldX, worldY, 'place', altKey, ctx)
       cursorWorld = snapped
       syncPlacementState()
     },
@@ -224,7 +208,7 @@ export function createBoundaryHandler(ctx: CanvasContext): BoundaryHandle {
     },
 
     onVertexDrag(vertexIndex: number, worldX: number, worldY: number, altKey: boolean): void {
-      const snapped = snapWorldPoint(worldX, worldY, altKey, ctx)
+      const snapped = snapWorldPoint(worldX, worldY, 'place', altKey, ctx)
       ctx.applyLiveUpdate('dragBoundaryVertex', (draft) => {
         if (!draft.yardBoundary) return
         if (vertexIndex < 0 || vertexIndex >= draft.yardBoundary.vertices.length) return
