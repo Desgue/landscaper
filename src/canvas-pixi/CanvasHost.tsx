@@ -414,10 +414,8 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       // ------------------------------------------------------------------
 
       // Construct the CanvasContext for this app instance.
-      // Phase 2-4 will pass this to handlers instead of having them import stores directly.
-      // CanvasContext is constructed here but wired to handlers in Phase 2-4 (ENG-86..ENG-88)
+      // Phase 2 (ENG-86): wired into SelectionStateMachine via InteractionManager.
       const canvasContext = createCanvasContext()
-      void canvasContext
 
       const selectionContainer = new Container()
       selectionContainer.label = 'selection'
@@ -452,6 +450,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         },
         getCanvasRect,
         () => panStateRef.current.active,
+        canvasContext,
         container,
       )
       interactionManagerRef.current = interactionManager

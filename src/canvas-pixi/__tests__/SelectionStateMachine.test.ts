@@ -19,6 +19,7 @@ import { useToolStore } from '../../store/useToolStore'
 import { useViewportStore } from '../../store/useViewportStore'
 import { useHistoryStore } from '../../store/useHistoryStore'
 import type { Project, StructureElement } from '../../types/schema'
+import type { CanvasContext } from '../CanvasContext'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -76,6 +77,81 @@ function move(worldX: number, worldY: number, opts: Partial<SelectionPointerEven
 
 function up(worldX: number, worldY: number, opts: Partial<SelectionPointerEvent> = {}): SelectionPointerEvent {
   return { worldX, worldY, button: 0, shiftKey: false, altKey: false, type: 'up', ...opts }
+}
+
+// ---------------------------------------------------------------------------
+// Mock CanvasContext factory
+// Creates a CanvasContext that delegates to the actual Zustand stores,
+// mirroring the production createCanvasContext() implementation in CanvasHost.
+// ---------------------------------------------------------------------------
+
+function makeMockCanvasContext(): CanvasContext {
+  return {
+    getProject() {
+      return useProjectStore.getState().currentProject
+    },
+    getRegistries() {
+      return useProjectStore.getState().registries
+    },
+    applyLiveUpdate(actionName, updater) {
+      useProjectStore.getState().updateProject(actionName, updater)
+    },
+    pushDragHistory(snapshot) {
+      useHistoryStore.getState().pushHistory(snapshot)
+      useProjectStore.getState().markDirty()
+    },
+    getZoom() {
+      return useViewportStore.getState().zoom
+    },
+    getToolState() {
+      const { activeTool, previousTool } = useToolStore.getState()
+      return {
+        activeTool,
+        previousTool,
+        selectedStructureTypeId: null,
+        selectedPlantTypeId: null,
+        selectedPathTypeId: null,
+        selectedTerrainTypeId: null,
+        brushSize: 1 as const,
+        editingLabelId: null,
+      }
+    },
+    setLabelEditing(_id) {},
+    getSelectionState() {
+      const { selectedIds, primaryId, groupEditingId, lastClickWorldPos, tabCycleIndex } =
+        useSelectionStore.getState()
+      return { selectedIds: new Set(selectedIds), primaryId, groupEditingId, lastClickWorldPos, tabCycleIndex }
+    },
+    select(id) {
+      useSelectionStore.getState().select(id)
+    },
+    selectMultiple(ids) {
+      useSelectionStore.getState().selectMultiple(ids)
+    },
+    toggleSelect(id) {
+      useSelectionStore.getState().toggleSelect(id)
+    },
+    deselectAll() {
+      useSelectionStore.getState().deselectAll()
+    },
+    setGroupEditing(groupId) {
+      useSelectionStore.getState().setGroupEditing(groupId)
+    },
+    setLastClickWorldPos(pos) {
+      useSelectionStore.getState().setLastClickWorldPos(pos)
+    },
+    setTabCycleIndex(index) {
+      useSelectionStore.getState().setTabCycleIndex(index)
+    },
+    setInspectedElement(_id) {},
+    showPlacementFeedback(_msg) {},
+    setBoundaryPlacementState(_state) {},
+    setBoundaryEditingEdge(_edgeIndex) {},
+    getMeasurementState() {
+      return { phase: 'idle' as const, startPoint: null, endPoint: null, livePoint: null }
+    },
+    setMeasurementState(_update) {},
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -160,7 +236,7 @@ describe('click-to-select', () => {
     const project = makeProject([struct])
     useProjectStore.getState().loadProject(project, { terrain: [], plants: [], structures: [], paths: [] })
 
-    const ssm = createSelectionStateMachine()
+    const ssm = createSelectionStateMachine(makeMockCanvasContext())
     // Click on the structure (center at 200, 150)
     ssm.handlePointer(down(200, 150))
     ssm.handlePointer(up(200, 150))
@@ -176,7 +252,7 @@ describe('click-to-select', () => {
     const project = makeProject([struct])
     useProjectStore.getState().loadProject(project, { terrain: [], plants: [], structures: [], paths: [] })
 
-    const ssm = createSelectionStateMachine()
+    const ssm = createSelectionStateMachine(makeMockCanvasContext())
 
     // First select the structure
     ssm.handlePointer(down(200, 150))
@@ -201,7 +277,7 @@ describe('box-select', () => {
     const project = makeProject([])
     useProjectStore.getState().loadProject(project, { terrain: [], plants: [], structures: [], paths: [] })
 
-    const ssm = createSelectionStateMachine()
+    const ssm = createSelectionStateMachine(makeMockCanvasContext())
     const v1 = ssm.handlePointer(down(0, 0))
     expect(v1.mode).toBe('box_selecting')
 
@@ -231,7 +307,7 @@ describe('move elements', () => {
     const project = makeProject([struct])
     useProjectStore.getState().loadProject(project, { terrain: [], plants: [], structures: [], paths: [] })
 
-    const ssm = createSelectionStateMachine()
+    const ssm = createSelectionStateMachine(makeMockCanvasContext())
 
     // Click to select + start moving
     ssm.handlePointer(down(200, 150))
@@ -263,7 +339,7 @@ describe('eraser tool', () => {
     useProjectStore.getState().loadProject(project, { terrain: [], plants: [], structures: [], paths: [] })
     useToolStore.getState().setTool('eraser')
 
-    const ssm = createSelectionStateMachine()
+    const ssm = createSelectionStateMachine(makeMockCanvasContext())
     ssm.handlePointer(down(200, 150))
     ssm.handlePointer(up(200, 150))
 
@@ -282,7 +358,7 @@ describe('eraser tool', () => {
 
 describe('reset', () => {
   it('resets to idle mode', () => {
-    const ssm = createSelectionStateMachine()
+    const ssm = createSelectionStateMachine(makeMockCanvasContext())
     expect(ssm.getMode()).toBe('idle')
     ssm.reset()
     expect(ssm.getMode()).toBe('idle')

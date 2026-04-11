@@ -26,6 +26,7 @@ import {
   type SelectionPointerEvent,
 } from './SelectionStateMachine'
 import type { createSelectionOverlay } from './SelectionOverlay'
+import type { CanvasContext } from './CanvasContext'
 import type { TerrainPaintHandle } from './TerrainPaintHandler'
 import type { StructurePlacementHandle } from './PlacementHandlers'
 import type { PlantPlacementHandle } from './PlacementHandlers'
@@ -70,9 +71,10 @@ export function createInteractionManager(
   toolHandlers: ToolHandlers,
   getCanvasRect: () => DOMRect,
   isPanActive: () => boolean,
+  ctx: CanvasContext,
   canvasElement?: HTMLElement,
 ): InteractionManagerHandle {
-  const ssm = createSelectionStateMachine()
+  const ssm = createSelectionStateMachine(ctx)
 
   // Boundary vertex/arc handle drag state — managed outside SSM
   let boundaryDrag: { type: 'vertex' | 'arc'; index: number } | null = null
