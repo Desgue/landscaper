@@ -9,13 +9,11 @@
 
 import type { PathElement, PathSegment, Vec2 } from '../types/schema'
 import { createLogger } from '../utils/logger'
-import { useProjectStore } from '../store/useProjectStore'
-import { useViewportStore } from '../store/useViewportStore'
 import { useToolStore } from '../store/useToolStore'
-import { usePathToolStore } from '../canvas/toolStores'
 import { snapPoint } from '../snap/snapSystem'
 import { commitProjectUpdate } from '../store/projectActions'
 import type { RendererHandle } from './BaseRenderer'
+import type { CanvasContext } from './CanvasContext'
 
 // ---------------------------------------------------------------------------
 // Geometry
@@ -44,10 +42,10 @@ function computePathAABB(points: Vec2[]): { x: number; y: number; w: number; h: 
 // Snap helper
 // ---------------------------------------------------------------------------
 
-function snapWorld(worldX: number, worldY: number, altKey: boolean): Vec2 {
-  const proj = useProjectStore.getState().currentProject
+function snapWorld(worldX: number, worldY: number, altKey: boolean, ctx: CanvasContext): Vec2 {
+  const proj = ctx.getProject()
   if (!proj) return { x: worldX, y: worldY }
-  const zoom = useViewportStore.getState().zoom
+  const zoom = ctx.getZoom()
   const result = snapPoint(
     worldX, worldY, 'place', proj.elements, zoom,
     proj.gridConfig.snapIncrementCm,
@@ -78,7 +76,7 @@ export interface PathDrawingState {
   isDrawing: boolean
 }
 
-export function createPathDrawingHandler(): PathDrawingHandle {
+export function createPathDrawingHandler(ctx: CanvasContext): PathDrawingHandle {
   let drawingPoints: Vec2[] = []
   let drawingSegments: PathSegment[] = []
   let isDrawing = false
@@ -96,6 +94,8 @@ export function createPathDrawingHandler(): PathDrawingHandle {
 
   window.addEventListener('keydown', handleKeyDown)
 
+  // TODO: ENG-88 — useToolStore.subscribe kept here until PathDrawingHandler
+  // subscription management is moved to CanvasHost (same pattern as InteractionManager).
   // Reset when tool changes away from path
   const unsubTool = useToolStore.subscribe((state, prevState) => {
     if (state.activeTool !== prevState.activeTool && state.activeTool !== 'path' && isDrawing) {
@@ -112,7 +112,7 @@ export function createPathDrawingHandler(): PathDrawingHandle {
 
   function isNearFirstPoint(pos: Vec2): boolean {
     if (drawingPoints.length < 3) return false
-    const zoom = useViewportStore.getState().zoom
+    const zoom = ctx.getZoom()
     const tol = 8 / zoom
     return dist(pos, drawingPoints[0]) <= tol
   }
@@ -126,11 +126,11 @@ export function createPathDrawingHandler(): PathDrawingHandle {
       return
     }
 
-    const proj = useProjectStore.getState().currentProject
+    const proj = ctx.getProject()
     if (!proj) return
 
-    const regs = useProjectStore.getState().registries
-    const pathTypeId = usePathToolStore.getState().selectedPathTypeId
+    const regs = ctx.getRegistries()
+    const pathTypeId = ctx.getToolState().selectedPathTypeId
     if (!pathTypeId) {
       log.debug('finalizePath rejected: no pathTypeId selected')
       return
@@ -168,8 +168,8 @@ export function createPathDrawingHandler(): PathDrawingHandle {
 
   return {
     onPointerDown(worldX: number, worldY: number, altKey: boolean): void {
-      if (useToolStore.getState().activeTool !== 'path') return
-      const snapped = snapWorld(worldX, worldY, altKey)
+      if (ctx.getToolState().activeTool !== 'path') return
+      const snapped = snapWorld(worldX, worldY, altKey, ctx)
 
       if (!isDrawing) {
         drawingPoints = [snapped]
@@ -194,7 +194,7 @@ export function createPathDrawingHandler(): PathDrawingHandle {
 
     onPointerMove(worldX: number, worldY: number, altKey: boolean): void {
       if (!isDrawing) return
-      const snapped = snapWorld(worldX, worldY, altKey)
+      const snapped = snapWorld(worldX, worldY, altKey, ctx)
       cursorWorld = snapped
     },
 

@@ -17,15 +17,11 @@ import type {
   StructureType, PlantType, Vec2,
 } from '../types/schema'
 import { createLogger } from '../utils/logger'
-import { useProjectStore } from '../store/useProjectStore'
-import { useViewportStore } from '../store/useViewportStore'
-import { useInspectorStore } from '../store/useInspectorStore'
-import { useStructureToolStore, usePlantToolStore, useLabelToolStore, useMeasurementStore } from '../canvas/toolStores'
-import { usePlacementFeedbackStore } from '../store/usePlacementFeedbackStore'
 import { snapPoint } from '../snap/snapSystem'
 import { arcAABB } from '../canvas/arcGeometry'
 import { commitProjectUpdate } from '../store/projectActions'
 import type { RendererHandle } from './BaseRenderer'
+import type { CanvasContext } from './CanvasContext'
 
 // ---------------------------------------------------------------------------
 // Structure collision helper
@@ -94,10 +90,11 @@ function hasPlantStructureCollision(
 function snapWorld(
   worldX: number, worldY: number, context: 'place' | 'label' | 'measurement',
   altKey: boolean,
+  ctx: CanvasContext,
 ): { x: number; y: number } {
-  const proj = useProjectStore.getState().currentProject
+  const proj = ctx.getProject()
   if (!proj) return { x: worldX, y: worldY }
-  const zoom = useViewportStore.getState().zoom
+  const zoom = ctx.getZoom()
   const result = snapPoint(
     worldX, worldY, context, proj.elements, zoom,
     proj.gridConfig.snapIncrementCm,
@@ -142,7 +139,7 @@ interface PlacingState {
   anchorY: number
 }
 
-export function createStructurePlacementHandler(): StructurePlacementHandle {
+export function createStructurePlacementHandler(ctx: CanvasContext): StructurePlacementHandle {
   let placing: PlacingState | null = null
   let arcAnchor: Vec2 | null = null
   let arcPlacing: { p1: Vec2; p2: Vec2; sagitta: number } | null = null
@@ -171,10 +168,10 @@ export function createStructurePlacementHandler(): StructurePlacementHandle {
     shape: 'straight' | 'curved',
     sagitta: number | null,
   ): void {
-    const proj = useProjectStore.getState().currentProject
-    const selectedStructureTypeId = useStructureToolStore.getState().selectedStructureTypeId
+    const proj = ctx.getProject()
+    const selectedStructureTypeId = ctx.getToolState().selectedStructureTypeId
     if (!proj || !selectedStructureTypeId) return
-    const regs = useProjectStore.getState().registries
+    const regs = ctx.getRegistries()
     const existingStructures = proj.elements.filter(
       (el): el is StructureElement => el.type === 'structure',
     )
@@ -193,19 +190,19 @@ export function createStructurePlacementHandler(): StructurePlacementHandle {
         createdAt: now, updatedAt: now, shape, arcSagitta: sagitta, notes: null,
       } satisfies StructureElement)
     })
-    useInspectorStore.getState().setInspectedElementId(id)
+    ctx.setInspectedElement(id)
   }
 
   return {
     onPointerDown(worldX: number, worldY: number, altKey: boolean, isArcTool: boolean): void {
-      const selectedStructureTypeId = useStructureToolStore.getState().selectedStructureTypeId
+      const selectedStructureTypeId = ctx.getToolState().selectedStructureTypeId
       if (!selectedStructureTypeId) return
-      const proj = useProjectStore.getState().currentProject
+      const proj = ctx.getProject()
       if (!proj) return
-      const regs = useProjectStore.getState().registries
+      const regs = ctx.getRegistries()
       const structureType = regs.structures.find((s) => s.id === selectedStructureTypeId)
       if (!structureType) return
-      const snapped = snapWorld(worldX, worldY, 'place', altKey)
+      const snapped = snapWorld(worldX, worldY, 'place', altKey, ctx)
 
       // Arc tool: 3-step
       if (isArcTool) {
@@ -251,9 +248,9 @@ export function createStructurePlacementHandler(): StructurePlacementHandle {
     },
 
     onPointerMove(worldX: number, worldY: number, altKey: boolean, isArcTool: boolean): void {
-      const selectedStructureTypeId = useStructureToolStore.getState().selectedStructureTypeId
+      const selectedStructureTypeId = ctx.getToolState().selectedStructureTypeId
       if (!selectedStructureTypeId) return
-      const snapped = snapWorld(worldX, worldY, 'place', altKey)
+      const snapped = snapWorld(worldX, worldY, 'place', altKey, ctx)
 
       // Arc tool curvature adjustment (step 3)
       if (isArcTool && arcPlacing) {
@@ -278,9 +275,9 @@ export function createStructurePlacementHandler(): StructurePlacementHandle {
 
       // Structure ghost preview
       if (!placing) return
-      const proj = useProjectStore.getState().currentProject
+      const proj = ctx.getProject()
       if (!proj) return
-      const regs = useProjectStore.getState().registries
+      const regs = ctx.getRegistries()
       const structureType = regs.structures.find((s) => s.id === selectedStructureTypeId)
       if (!structureType) return
       const rect = computeRect(placing, snapped, structureType)
@@ -315,30 +312,30 @@ export interface PlantPlacementHandle extends RendererHandle {
   onPointerDown(worldX: number, worldY: number, altKey: boolean): void
 }
 
-export function createPlantPlacementHandler(): PlantPlacementHandle {
+export function createPlantPlacementHandler(ctx: CanvasContext): PlantPlacementHandle {
   return {
     onPointerDown(worldX: number, worldY: number, altKey: boolean): void {
-      const selectedPlantTypeId = usePlantToolStore.getState().selectedPlantTypeId
+      const selectedPlantTypeId = ctx.getToolState().selectedPlantTypeId
       if (!selectedPlantTypeId) return
-      const proj = useProjectStore.getState().currentProject
+      const proj = ctx.getProject()
       if (!proj) return
-      const regs = useProjectStore.getState().registries
+      const regs = ctx.getRegistries()
       const plantType = regs.plants.find((p) => p.id === selectedPlantTypeId)
       if (!plantType) return
 
-      const snapped = snapWorld(worldX, worldY, 'place', altKey)
+      const snapped = snapWorld(worldX, worldY, 'place', altKey, ctx)
 
       // Collision checks
       const existingPlants = proj.elements.filter((el): el is PlantElement => el.type === 'plant')
       if (hasSpacingCollision(snapped.x, snapped.y, plantType.spacingCm, existingPlants, regs.plants)) {
         log.debug('plant placement rejected: spacing collision', { x: snapped.x, y: snapped.y, spacingCm: plantType.spacingCm })
-        usePlacementFeedbackStore.getState().showFeedback('Too close to another plant')
+        ctx.showPlacementFeedback('Too close to another plant')
         return
       }
       const structures = proj.elements.filter((el): el is StructureElement => el.type === 'structure')
       if (hasPlantStructureCollision(snapped.x, snapped.y, structures, regs.structures)) {
         log.debug('plant placement rejected: structure collision', { x: snapped.x, y: snapped.y })
-        usePlacementFeedbackStore.getState().showFeedback('Can\'t place on a structure')
+        ctx.showPlacementFeedback('Can\'t place on a structure')
         return
       }
 
@@ -356,7 +353,7 @@ export function createPlantPlacementHandler(): PlantPlacementHandle {
           quantity: 1, status: 'planned', plantedDate: null, notes: null,
         } satisfies PlantElement)
       })
-      useInspectorStore.getState().setInspectedElementId(id)
+      ctx.setInspectedElement(id)
     },
 
     update(): void {},
@@ -373,13 +370,13 @@ export interface LabelPlacementHandle extends RendererHandle {
   onDblClick(worldX: number, worldY: number): void
 }
 
-export function createLabelPlacementHandler(): LabelPlacementHandle {
+export function createLabelPlacementHandler(ctx: CanvasContext): LabelPlacementHandle {
   return {
     onPointerDown(worldX: number, worldY: number): void {
       if (!Number.isFinite(worldX) || !Number.isFinite(worldY)) return
-      const proj = useProjectStore.getState().currentProject
+      const proj = ctx.getProject()
       if (!proj) return
-      const { editingLabelId } = useLabelToolStore.getState()
+      const { editingLabelId } = ctx.getToolState()
       if (editingLabelId) return
 
       // Check if clicking on existing label — don't create new one
@@ -405,12 +402,12 @@ export function createLabelPlacementHandler(): LabelPlacementHandle {
           createdAt: now, updatedAt: now,
         } satisfies LabelElement)
       })
-      useLabelToolStore.getState().setEditing(id)
+      ctx.setLabelEditing(id)
     },
 
     onDblClick(worldX: number, worldY: number): void {
       if (!Number.isFinite(worldX) || !Number.isFinite(worldY)) return
-      const proj = useProjectStore.getState().currentProject
+      const proj = ctx.getProject()
       if (!proj) return
 
       // Double-click on existing label to edit
@@ -421,7 +418,7 @@ export function createLabelPlacementHandler(): LabelPlacementHandle {
           worldY >= el.y && worldY <= el.y + el.height,
       )
       if (clickedLabel) {
-        useLabelToolStore.getState().setEditing(clickedLabel.id)
+        ctx.setLabelEditing(clickedLabel.id)
       }
     },
 
@@ -439,21 +436,21 @@ export interface MeasurementHandle extends RendererHandle {
   onPointerMove(worldX: number, worldY: number, altKey: boolean): void
 }
 
-export function createMeasurementHandler(): MeasurementHandle {
+export function createMeasurementHandler(ctx: CanvasContext): MeasurementHandle {
   return {
     onPointerDown(worldX: number, worldY: number, altKey: boolean): void {
-      const store = useMeasurementStore.getState()
-      const snapped = snapWorld(worldX, worldY, 'measurement', altKey)
+      const store = ctx.getMeasurementState()
+      const snapped = snapWorld(worldX, worldY, 'measurement', altKey, ctx)
 
       if (store.phase === 'idle') {
-        useMeasurementStore.setState({
+        ctx.setMeasurementState({
           phase: 'first_placed',
           startPoint: snapped,
           endPoint: null,
           livePoint: snapped,
         })
       } else if (store.phase === 'first_placed') {
-        useMeasurementStore.setState({
+        ctx.setMeasurementState({
           phase: 'completed',
           endPoint: snapped,
           livePoint: null,
@@ -462,9 +459,9 @@ export function createMeasurementHandler(): MeasurementHandle {
     },
 
     onPointerMove(worldX: number, worldY: number, altKey: boolean): void {
-      if (useMeasurementStore.getState().phase !== 'first_placed') return
-      const snapped = snapWorld(worldX, worldY, 'measurement', altKey)
-      useMeasurementStore.setState({ livePoint: snapped })
+      if (ctx.getMeasurementState().phase !== 'first_placed') return
+      const snapped = snapWorld(worldX, worldY, 'measurement', altKey, ctx)
+      ctx.setMeasurementState({ livePoint: snapped })
     },
 
     update(): void {},

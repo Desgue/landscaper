@@ -12,14 +12,10 @@
 
 import type { Vec2, YardBoundaryEdge, Project } from '../types/schema'
 import { createLogger } from '../utils/logger'
-import { useProjectStore } from '../store/useProjectStore'
-import { useHistoryStore } from '../store/useHistoryStore'
-import { useViewportStore } from '../store/useViewportStore'
-import { useToolStore } from '../store/useToolStore'
 import { snapPoint } from '../snap/snapSystem'
-import { useBoundaryUIStore } from '../store/useBoundaryUIStore'
 import { commitProjectUpdate } from '../store/projectActions'
 import type { RendererHandle } from './BaseRenderer'
+import type { CanvasContext } from './CanvasContext'
 
 // ---------------------------------------------------------------------------
 // Geometry helpers
@@ -89,10 +85,10 @@ const MAX_PLACEMENT_VERTICES = 500
 // Snap helper
 // ---------------------------------------------------------------------------
 
-function snapWorldPoint(worldX: number, worldY: number, altKey: boolean): Vec2 {
-  const proj = useProjectStore.getState().currentProject
+function snapWorldPoint(worldX: number, worldY: number, altKey: boolean, ctx: CanvasContext): Vec2 {
+  const proj = ctx.getProject()
   if (!proj) return { x: worldX, y: worldY }
-  const zoom = useViewportStore.getState().zoom
+  const zoom = ctx.getZoom()
   const result = snapPoint(
     worldX, worldY, 'place', proj.elements, zoom,
     proj.gridConfig.snapIncrementCm,
@@ -134,7 +130,7 @@ export interface BoundaryHandle extends RendererHandle {
   deleteBoundary(): void
 }
 
-export function createBoundaryHandler(): BoundaryHandle {
+export function createBoundaryHandler(ctx: CanvasContext): BoundaryHandle {
   let isPlacing = false
   let placedVertices: Vec2[] = []
   let cursorWorld: Vec2 | null = null
@@ -142,12 +138,12 @@ export function createBoundaryHandler(): BoundaryHandle {
   let preArcDragSnapshot: Project | null = null
 
   function syncPlacementState(): void {
-    useBoundaryUIStore.getState().setPlacementState({ isPlacing, placedVertices, cursorWorld })
+    ctx.setBoundaryPlacementState({ isPlacing, placedVertices, cursorWorld })
   }
 
   // Auto-enter placement mode when no boundary exists
   function checkAutoPlacement(): void {
-    const proj = useProjectStore.getState().currentProject
+    const proj = ctx.getProject()
     if (proj && !proj.yardBoundary && !isPlacing) {
       isPlacing = true
       placedVertices = []
@@ -158,7 +154,7 @@ export function createBoundaryHandler(): BoundaryHandle {
 
   function isNearFirstVertex(pos: Vec2): boolean {
     if (placedVertices.length < 3) return false
-    const zoom = useViewportStore.getState().zoom
+    const zoom = ctx.getZoom()
     const tol = 8 / zoom
     return dist(pos, placedVertices[0]) <= tol
   }
@@ -172,7 +168,7 @@ export function createBoundaryHandler(): BoundaryHandle {
       log.debug('boundary rejected: self-intersection', { vertexCount: verts.length })
       return
     }
-    useBoundaryUIStore.getState().setEditingEdgeIndex(null)
+    ctx.setBoundaryEditingEdge(null)
     const n = verts.length
     const edgeTypes: YardBoundaryEdge[] = Array.from(
       { length: n },
@@ -193,8 +189,8 @@ export function createBoundaryHandler(): BoundaryHandle {
     onPlacementClick(worldX: number, worldY: number, altKey: boolean): void {
       checkAutoPlacement()
       if (!isPlacing) return
-      if (useToolStore.getState().activeTool !== 'select') return
-      const snapped = snapWorldPoint(worldX, worldY, altKey)
+      if (ctx.getToolState().activeTool !== 'select') return
+      const snapped = snapWorldPoint(worldX, worldY, altKey, ctx)
       if (isNearFirstVertex(snapped)) {
         doCommitBoundary(placedVertices)
         return
@@ -206,8 +202,8 @@ export function createBoundaryHandler(): BoundaryHandle {
 
     onPlacementMove(worldX: number, worldY: number, altKey: boolean): void {
       if (!isPlacing) return
-      if (useToolStore.getState().activeTool !== 'select') return
-      const snapped = snapWorldPoint(worldX, worldY, altKey)
+      if (ctx.getToolState().activeTool !== 'select') return
+      const snapped = snapWorldPoint(worldX, worldY, altKey, ctx)
       cursorWorld = snapped
       syncPlacementState()
     },
@@ -223,13 +219,13 @@ export function createBoundaryHandler(): BoundaryHandle {
 
     // ---- Editing mode: vertex drag ----
     onVertexDragStart(_vertexIndex: number): void {
-      const snap = useProjectStore.getState().currentProject
+      const snap = ctx.getProject()
       preDragSnapshot = snap ? structuredClone(snap) : null
     },
 
     onVertexDrag(vertexIndex: number, worldX: number, worldY: number, altKey: boolean): void {
-      const snapped = snapWorldPoint(worldX, worldY, altKey)
-      useProjectStore.getState().updateProject('dragBoundaryVertex', (draft) => {
+      const snapped = snapWorldPoint(worldX, worldY, altKey, ctx)
+      ctx.applyLiveUpdate('dragBoundaryVertex', (draft) => {
         if (!draft.yardBoundary) return
         if (vertexIndex < 0 || vertexIndex >= draft.yardBoundary.vertices.length) return
         draft.yardBoundary.vertices[vertexIndex] = { x: snapped.x, y: snapped.y }
@@ -239,20 +235,19 @@ export function createBoundaryHandler(): BoundaryHandle {
     onVertexDragEnd(_vertexIndex: number): void {
       // intentional: pre-captured drag snapshot (not commitProjectUpdate)
       if (preDragSnapshot) {
-        useHistoryStore.getState().pushHistory(preDragSnapshot)
-        useProjectStore.getState().markDirty()
+        ctx.pushDragHistory(preDragSnapshot)
         preDragSnapshot = null
       }
     },
 
     // ---- Editing mode: arc handle drag ----
     onArcHandleDragStart(_edgeIndex: number): void {
-      const snap = useProjectStore.getState().currentProject
+      const snap = ctx.getProject()
       preArcDragSnapshot = snap ? structuredClone(snap) : null
     },
 
     onArcHandleDrag(edgeIndex: number, worldX: number, worldY: number): void {
-      const proj = useProjectStore.getState().currentProject
+      const proj = ctx.getProject()
       if (!proj?.yardBoundary) return
       const bnd = proj.yardBoundary
       const n = bnd.vertices.length
@@ -266,7 +261,7 @@ export function createBoundaryHandler(): BoundaryHandle {
       const perpX = -chordDy / chordLen, perpY = chordDx / chordLen
       const sagitta = (worldX - midX) * perpX + (worldY - midY) * perpY
 
-      useProjectStore.getState().updateProject('dragBoundaryArcHandle', (draft) => {
+      ctx.applyLiveUpdate('dragBoundaryArcHandle', (draft) => {
         if (!draft.yardBoundary) return
         if (edgeIndex < 0 || edgeIndex >= draft.yardBoundary.edgeTypes.length) return
         draft.yardBoundary.edgeTypes[edgeIndex] = {
@@ -279,22 +274,21 @@ export function createBoundaryHandler(): BoundaryHandle {
     onArcHandleDragEnd(): void {
       // intentional: pre-captured drag snapshot (not commitProjectUpdate)
       if (preArcDragSnapshot) {
-        useHistoryStore.getState().pushHistory(preArcDragSnapshot)
-        useProjectStore.getState().markDirty()
+        ctx.pushDragHistory(preArcDragSnapshot)
         preArcDragSnapshot = null
       }
     },
 
     // ---- Editing mode: edge label ----
     onEdgeLabelClick(edgeIndex: number): void {
-      useBoundaryUIStore.getState().setEditingEdgeIndex(edgeIndex)
+      ctx.setBoundaryEditingEdge(edgeIndex)
     },
 
     applyEdgeLength(edgeIndex: number, newLengthMeters: number): void {
       const newLengthCm = newLengthMeters * 100
       if (!Number.isFinite(newLengthCm) || newLengthCm <= 0) return
 
-      const proj = useProjectStore.getState().currentProject
+      const proj = ctx.getProject()
       if (!proj?.yardBoundary) return
       const n = proj.yardBoundary.vertices.length
       if (!Number.isInteger(edgeIndex) || edgeIndex < 0 || edgeIndex >= n) return
@@ -308,8 +302,8 @@ export function createBoundaryHandler(): BoundaryHandle {
     },
 
     deleteBoundary(): void {
-      useBoundaryUIStore.getState().setEditingEdgeIndex(null)
-      const proj = useProjectStore.getState().currentProject
+      ctx.setBoundaryEditingEdge(null)
+      const proj = ctx.getProject()
       if (!proj?.yardBoundary) return
       commitProjectUpdate('deleteBoundary', (draft) => {
         draft.yardBoundary = null
@@ -323,7 +317,7 @@ export function createBoundaryHandler(): BoundaryHandle {
       cursorWorld = null
       preDragSnapshot = null
       preArcDragSnapshot = null
-      useBoundaryUIStore.getState().setEditingEdgeIndex(null)
+      ctx.setBoundaryEditingEdge(null)
       syncPlacementState()
     },
   }
