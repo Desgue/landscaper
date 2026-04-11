@@ -9,12 +9,12 @@
 
 import type { PathElement, PathSegment, Vec2 } from '../types/schema'
 import { useProjectStore } from '../store/useProjectStore'
-import { useHistoryStore } from '../store/useHistoryStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { useToolStore } from '../store/useToolStore'
 import { usePathToolStore } from '../canvas/toolStores'
 import { snapPoint } from '../snap/snapSystem'
 import { connectStore } from './connectStore'
+import { commitProjectUpdate } from '../store/projectActions'
 import type { RendererHandle } from './BaseRenderer'
 
 // ---------------------------------------------------------------------------
@@ -145,9 +145,8 @@ export function createPathDrawingHandler(): PathDrawingHandle {
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
     const layerId = proj.layers[0]?.id ?? 'default'
-    const snapshot = structuredClone(proj)
 
-    useProjectStore.getState().updateProject((draft) => {
+    commitProjectUpdate('finalizePath', (draft) => {
       draft.elements.push({
         id, type: 'path', pathTypeId,
         points: points.map((p) => ({ x: p.x, y: p.y })),
@@ -160,8 +159,6 @@ export function createPathDrawingHandler(): PathDrawingHandle {
         createdAt: now, updatedAt: now,
       } satisfies PathElement)
     })
-    useHistoryStore.getState().pushHistory(snapshot)
-    useProjectStore.getState().markDirty()
     resetDrawing()
   }
 
