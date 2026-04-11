@@ -13,11 +13,13 @@ import {
 } from '@/components/ui/select'
 import type { CanvasElement, Layer } from '../../types/schema'
 import {
-  useInspectorSlots,
   labelCls,
   readonlyCls,
   dividerCls,
 } from './inspectorConstants'
+import GeometryPanel from '../GeometryPanel'
+import CostPanel from '../CostPanel'
+import JournalLinksPanel from '../JournalLinksPanel'
 
 export function ReadonlyField({ label, value }: { label: string; value: string }) {
   return (
@@ -121,21 +123,11 @@ export function LockedToggle({ element }: { element: CanvasElement }) {
 // ─── Extension Slot Renderer ───────────────────────────────────────────────
 
 export function InspectorExtensionSlots({ element }: { element: CanvasElement }) {
-  const slots = useInspectorSlots()
-  const slotNames = ['inspector:cost', 'inspector:geometry', 'inspector:journal']
-
   return (
     <>
-      {slotNames.map((name) => {
-        const SlotComponent = slots.get(name)
-        if (!SlotComponent) return null
-        return (
-          <div key={name}>
-            <div className={dividerCls} />
-            <SlotComponent element={element} />
-          </div>
-        )
-      })}
+      <div><div className={dividerCls} /><CostPanel element={element} /></div>
+      <div><div className={dividerCls} /><GeometryPanel element={element} /></div>
+      <div><div className={dividerCls} /><JournalLinksPanel element={element} /></div>
     </>
   )
 }

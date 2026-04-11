@@ -15,7 +15,6 @@
  */
 
 import { Container, Text } from 'pixi.js'
-import { connectStore } from './connectStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { setupWorldObject } from './BaseRenderer'
 import type { RendererHandle } from './BaseRenderer'
@@ -217,20 +216,16 @@ export function createLabelRenderer(
   // ---------------------------------------------------------------------------
 
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.currentProject?.elements,
-      () => rebuildFromStore(),
-    ),
+    useProjectStore.subscribe((state, prevState) => {
+      if (state.currentProject?.elements !== prevState.currentProject?.elements) rebuildFromStore()
+    }),
   )
 
   // Rebuild when layer visibility/locked state changes
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.currentProject?.layers,
-      () => rebuildFromStore(),
-    ),
+    useProjectStore.subscribe((state, prevState) => {
+      if (state.currentProject?.layers !== prevState.currentProject?.layers) rebuildFromStore()
+    }),
   )
 
   // Initial render
