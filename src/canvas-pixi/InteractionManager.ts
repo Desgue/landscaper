@@ -12,11 +12,6 @@
 import type { Container } from 'pixi.js'
 import type { FederatedPointerEvent } from 'pixi.js'
 import { toWorld } from '../canvas/viewport'
-// NOTE: useSelectionStore and useToolStore are retained here only for their
-// subscribe() calls. All getState() reads have been migrated to ctx.*
-// (CanvasContext). Moving subscriptions to CanvasHost is a future cleanup task.
-import { useToolStore } from '../store/useToolStore'
-import { useSelectionStore } from '../store/useSelectionStore'
 import { getElementsAtPoint } from '../canvas/hitTestAll'
 import type { RenderScheduler } from './RenderScheduler'
 import type { RendererHandle } from './BaseRenderer'
@@ -53,6 +48,10 @@ export interface InteractionManagerHandle extends RendererHandle {
   handleTabCycle(): void
   /** Call from CanvasHost native dblclick event. */
   handleDblClick(worldX: number, worldY: number): void
+  /** Call from CanvasHost's useToolStore subscription when the active tool changes. */
+  onToolChange(newTool: string, oldTool: string): void
+  /** Call from CanvasHost's useSelectionStore subscription when the primary selection changes. */
+  onSelectionPrimaryChange(primaryId: string | null): void
 }
 
 // ---------------------------------------------------------------------------
@@ -338,37 +337,6 @@ export function createInteractionManager(
   interactionContainer.on('pointerup', onPointerUp)
   interactionContainer.on('pointerupoutside', onPointerUp)
 
-  // Sync inspector with selection
-  // NOTE: useSelectionStore.subscribe is retained directly (no subscribe API on CanvasContext).
-  const unsubInspector = useSelectionStore.subscribe((state, prevState) => {
-    if (state.primaryId !== prevState.primaryId) {
-      ctx.setInspectedElement(state.primaryId)
-    }
-  })
-
-  // Reset SSM when tool changes
-  const unsubTool = useToolStore.subscribe((state, prevState) => {
-    const newTool = state.activeTool
-    const oldTool = prevState.activeTool
-    if (newTool !== oldTool) {
-      ssm.reset()
-      selectionOverlay.updateVisualState(ssm.getVisualState())
-      // End any active boundary drag before clearing state
-      if (boundaryDrag && boundaryDragMoved) {
-        if (boundaryDrag.type === 'vertex') {
-          toolHandlers.boundary.onVertexDragEnd(boundaryDrag.index)
-        } else {
-          toolHandlers.boundary.onArcHandleDragEnd()
-        }
-      }
-      boundaryDrag = null
-      // Cancel in-progress boundary placement when leaving select tool
-      if (oldTool === 'select' && toolHandlers.boundary.getPlacementState().isPlacing) {
-        toolHandlers.boundary.destroy()
-      }
-    }
-  })
-
   return {
     handleTabCycle(): void {
       const project = ctx.getProject()
@@ -418,6 +386,28 @@ export function createInteractionManager(
       }
     },
 
+    onToolChange(newTool: string, oldTool: string): void {
+      ssm.reset()
+      selectionOverlay.updateVisualState(ssm.getVisualState())
+      // End any active boundary drag before clearing state
+      if (boundaryDrag && boundaryDragMoved) {
+        if (boundaryDrag.type === 'vertex') {
+          toolHandlers.boundary.onVertexDragEnd(boundaryDrag.index)
+        } else {
+          toolHandlers.boundary.onArcHandleDragEnd()
+        }
+      }
+      boundaryDrag = null
+      // Cancel in-progress boundary placement when leaving select tool
+      if (oldTool === 'select' && toolHandlers.boundary.getPlacementState().isPlacing) {
+        toolHandlers.boundary.destroy()
+      }
+    },
+
+    onSelectionPrimaryChange(primaryId: string | null): void {
+      ctx.setInspectedElement(primaryId)
+    },
+
     update(): void {
       selectionOverlay.update()
     },
@@ -427,8 +417,6 @@ export function createInteractionManager(
       interactionContainer.off('pointermove', onPointerMove)
       interactionContainer.off('pointerup', onPointerUp)
       interactionContainer.off('pointerupoutside', onPointerUp)
-      unsubInspector()
-      unsubTool()
       ssm.destroy()
       resizeObserver.disconnect()
     },

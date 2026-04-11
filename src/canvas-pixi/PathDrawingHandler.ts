@@ -9,7 +9,6 @@
 
 import type { PathElement, PathSegment, Vec2 } from '../types/schema'
 import { createLogger } from '../utils/logger'
-import { useToolStore } from '../store/useToolStore'
 import { snapPoint } from '../snap/snapSystem'
 import { commitProjectUpdate } from '../store/projectActions'
 import type { RendererHandle } from './BaseRenderer'
@@ -67,6 +66,8 @@ export interface PathDrawingHandle extends RendererHandle {
   finalize(closed: boolean): void
   /** Cancel in-progress drawing. */
   cancel(): void
+  /** Call from CanvasHost's useToolStore subscription when the active tool changes. */
+  onToolChange(newTool: string, oldTool: string): void
 }
 
 export interface PathDrawingState {
@@ -93,15 +94,6 @@ export function createPathDrawingHandler(ctx: CanvasContext): PathDrawingHandle 
   }
 
   window.addEventListener('keydown', handleKeyDown)
-
-  // TODO: ENG-88 — useToolStore.subscribe kept here until PathDrawingHandler
-  // subscription management is moved to CanvasHost (same pattern as InteractionManager).
-  // Reset when tool changes away from path
-  const unsubTool = useToolStore.subscribe((state, prevState) => {
-    if (state.activeTool !== prevState.activeTool && state.activeTool !== 'path' && isDrawing) {
-      resetDrawing()
-    }
-  })
 
   function resetDrawing(): void {
     drawingPoints = []
@@ -216,10 +208,15 @@ export function createPathDrawingHandler(ctx: CanvasContext): PathDrawingHandle 
       resetDrawing()
     },
 
+    onToolChange(newTool: string, _oldTool: string): void {
+      if (newTool !== 'path' && isDrawing) {
+        resetDrawing()
+      }
+    },
+
     update(): void {},
     destroy(): void {
       window.removeEventListener('keydown', handleKeyDown)
-      unsubTool()
       resetDrawing()
     },
   }
