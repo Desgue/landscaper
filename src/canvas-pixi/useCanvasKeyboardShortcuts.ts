@@ -98,5 +98,7 @@ export function useCanvasKeyboardShortcuts(
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [width, height, interactionManagerRef])
+    // interactionManagerRef is a stable ref — read dynamically at call time
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width, height])
 }
