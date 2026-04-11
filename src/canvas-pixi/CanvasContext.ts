@@ -11,6 +11,7 @@
 
 import type { Project, Registries, ToolId } from '../types/schema'
 import type { BoundaryPlacementState } from './BoundaryHandler'
+import type { MeasurePhase } from '../canvas/toolStores'
 
 // ---------------------------------------------------------------------------
 // Supporting types (read-only snapshots passed to handlers)
@@ -34,13 +35,20 @@ export interface SelectionState {
 export interface ToolState {
   readonly activeTool: ToolId
   readonly previousTool: ToolId | null
+  readonly selectedStructureTypeId: string | null
+  readonly selectedPlantTypeId: string | null
+  readonly selectedPathTypeId: string | null
+  readonly selectedTerrainTypeId: string | null
+  /** Terrain paint brush size — 1 (small), 2 (medium), or 3 (large). */
+  readonly brushSize: 1 | 2 | 3
+  readonly editingLabelId: string | null
 }
 
 /**
- * Read-only snapshot of the measurement store state.
- * Mirrors MeasurementStore from canvas/toolStores.ts.
+ * Re-exported from canvas/toolStores.ts so callers can import it from here
+ * without a direct dependency on the stores module.
  */
-export type MeasurePhase = 'idle' | 'first_placed' | 'completed'
+export type { MeasurePhase }
 
 export interface MeasurementState {
   readonly phase: MeasurePhase

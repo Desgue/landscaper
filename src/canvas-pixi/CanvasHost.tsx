@@ -18,8 +18,14 @@ import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useInspectorStore } from '../store/useInspectorStore'
 import { usePlacementFeedbackStore } from '../store/usePlacementFeedbackStore'
-import { useMeasurementStore } from '../canvas/toolStores'
-import { useLabelToolStore } from '../canvas/toolStores'
+import {
+  useMeasurementStore,
+  useLabelToolStore,
+  useStructureToolStore,
+  usePlantToolStore,
+  usePathToolStore,
+  useTerrainPaintStore,
+} from '../canvas/toolStores'
 import { toWorld } from '../canvas/viewport'
 import { RenderScheduler } from './RenderScheduler'
 import { createTextureAtlas } from './textures/TextureAtlas'
@@ -85,7 +91,21 @@ function createCanvasContext(): CanvasContext {
     // ---- Tool state --------------------------------------------------------
     getToolState() {
       const { activeTool, previousTool } = useToolStore.getState()
-      return { activeTool, previousTool }
+      const { selectedStructureTypeId } = useStructureToolStore.getState()
+      const { selectedPlantTypeId } = usePlantToolStore.getState()
+      const { selectedPathTypeId } = usePathToolStore.getState()
+      const { selectedTerrainTypeId, brushSize } = useTerrainPaintStore.getState()
+      const { editingLabelId } = useLabelToolStore.getState()
+      return {
+        activeTool,
+        previousTool,
+        selectedStructureTypeId,
+        selectedPlantTypeId,
+        selectedPathTypeId,
+        selectedTerrainTypeId,
+        brushSize,
+        editingLabelId,
+      }
     },
     setLabelEditing(id) {
       useLabelToolStore.getState().setEditing(id)
@@ -95,7 +115,7 @@ function createCanvasContext(): CanvasContext {
     getSelectionState() {
       const { selectedIds, primaryId, groupEditingId, lastClickWorldPos, tabCycleIndex } =
         useSelectionStore.getState()
-      return { selectedIds, primaryId, groupEditingId, lastClickWorldPos, tabCycleIndex }
+      return { selectedIds: new Set(selectedIds), primaryId, groupEditingId, lastClickWorldPos, tabCycleIndex }
     },
     select(id) {
       useSelectionStore.getState().select(id)

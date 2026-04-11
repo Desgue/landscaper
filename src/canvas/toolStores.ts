@@ -77,7 +77,7 @@ export const useLabelToolStore = create<LabelToolState>((set) => ({
 
 import type { Vec2 } from '../types/schema'
 
-type MeasurePhase = 'idle' | 'first_placed' | 'completed'
+export type MeasurePhase = 'idle' | 'first_placed' | 'completed'
 
 interface MeasurementStore {
   phase: MeasurePhase
