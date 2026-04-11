@@ -14,7 +14,6 @@ import { useViewportStore } from '../store/useViewportStore'
 import { useToolStore } from '../store/useToolStore'
 import { usePathToolStore } from '../canvas/toolStores'
 import { snapPoint } from '../snap/snapSystem'
-import { connectStore } from './connectStore'
 import type { RendererHandle } from './BaseRenderer'
 
 // ---------------------------------------------------------------------------
@@ -95,15 +94,11 @@ export function createPathDrawingHandler(): PathDrawingHandle {
   window.addEventListener('keydown', handleKeyDown)
 
   // Reset when tool changes away from path
-  const unsubTool = connectStore(
-    useToolStore,
-    (s) => s.activeTool,
-    (newTool) => {
-      if (newTool !== 'path' && isDrawing) {
-        resetDrawing()
-      }
-    },
-  )
+  const unsubTool = useToolStore.subscribe((state, prevState) => {
+    if (state.activeTool !== prevState.activeTool && state.activeTool !== 'path' && isDrawing) {
+      resetDrawing()
+    }
+  })
 
   function resetDrawing(): void {
     drawingPoints = []

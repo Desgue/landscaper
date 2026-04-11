@@ -17,7 +17,6 @@
  */
 
 import { Container, Sprite, Graphics } from 'pixi.js'
-import { connectStore } from './connectStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { setupWorldObject, applyLayerState } from './BaseRenderer'
@@ -546,36 +545,30 @@ export function createTerrainRenderer(
   const unsubs: Array<() => void> = []
 
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.currentProject?.elements,
-      () => handleTerrainChange(),
-    ),
+    useProjectStore.subscribe((state, prevState) => {
+      if (state.currentProject?.elements !== prevState.currentProject?.elements) handleTerrainChange()
+    }),
   )
 
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.currentProject?.layers,
-      () => {
+    useProjectStore.subscribe((state, prevState) => {
+      if (state.currentProject?.layers !== prevState.currentProject?.layers) {
         const project = useProjectStore.getState().currentProject
         if (!project) return
         resolveTerrainLayerState(project.elements, project.layers)
         applyLayerState(terrainContainer, terrainLayerVisible, terrainLayerLocked)
         scheduler.markDirty()
-      },
-    ),
+      }
+    }),
   )
 
   unsubs.push(
-    connectStore(
-      useViewportStore,
-      (s) => `${s.panX},${s.panY},${s.zoom}`,
-      () => {
+    useViewportStore.subscribe((state, prevState) => {
+      if (state.panX !== prevState.panX || state.panY !== prevState.panY || state.zoom !== prevState.zoom) {
         updateChunkVisibility()
         scheduler.markDirty()
-      },
-    ),
+      }
+    }),
   )
 
   // Initial build

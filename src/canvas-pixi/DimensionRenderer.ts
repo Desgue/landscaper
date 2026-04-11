@@ -12,7 +12,6 @@
  */
 
 import { Container, Graphics, Text } from 'pixi.js'
-import { connectStore } from './connectStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { setupWorldObject, clearGraphics } from './BaseRenderer'
@@ -307,32 +306,26 @@ export function createDimensionRenderer(
   // ---------------------------------------------------------------------------
 
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.currentProject?.elements,
-      () => rebuildFromStore(),
-    ),
+    useProjectStore.subscribe((state, prevState) => {
+      if (state.currentProject?.elements !== prevState.currentProject?.elements) rebuildFromStore()
+    }),
   )
 
   // Rebuild when layer visibility/locked state changes
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.currentProject?.layers,
-      () => rebuildFromStore(),
-    ),
+    useProjectStore.subscribe((state, prevState) => {
+      if (state.currentProject?.layers !== prevState.currentProject?.layers) rebuildFromStore()
+    }),
   )
 
   // Re-render on zoom change (line widths and font sizes are zoom-independent)
   unsubs.push(
-    connectStore(
-      useViewportStore,
-      (s) => s.zoom,
-      (zoom) => {
-        currentZoom = zoom
+    useViewportStore.subscribe((state, prevState) => {
+      if (state.zoom !== prevState.zoom) {
+        currentZoom = state.zoom
         rebuildFromStore()
-      },
-    ),
+      }
+    }),
   )
 
   // Initial render
