@@ -103,8 +103,7 @@ Plants respect realistic placement constraints [canvas-viewport.md "## Collision
 - **Spacing enforcement** (herbs, shrubs, groundcovers, climbers): `spacingCm` is the minimum center-to-center distance for a plant type. Each plant's collision radius is `spacingCm / 2`. Two plants violate spacing when `distance(centerA, centerB) < (spacingA + spacingB) / 2`
 - **Tree spacing**: trees also use `spacingCm / 2` as their plant-to-plant spacing radius (same formula as herbs). `canopyWidthCm` is NOT used for spacing. So two trees violate spacing when `distance(centerA, centerB) < (spacingA + spacingB) / 2`, where spacingA/B are the trees' `spacingCm` values.
 - **Tree trunk collision** (separate from spacing): tree trunks additionally block ground-level elements using `trunkWidthCm / 2` as the collision radius. Non-plant elements (structures, paths) cannot overlap the trunk circle. Tree canopy does NOT participate in collision detection [canvas-viewport.md "## Collision Rules"]
-- **Blocked by structures**: plants cannot be placed inside structures unless the structure has `category: "container"` (raised beds, garden beds, planters) or `category: "overhead"` (pergolas — plants allowed beneath)
+- **Blocked by structures**: plants cannot be placed inside structures with blocking categories (boundary, feature, furniture). Structures with `category: "container"` (raised beds, garden beds, planters) and `category: "overhead"` (pergolas — plants allowed beneath) do not block plant placement.
 - **Allowed on terrain**: plants can be placed on any terrain type
 - **Allowed on paths**: plants can be placed near or on paths (e.g., plants along a border)
-
-Invalid placement shows a red ghost preview. Placement is blocked until the cursor moves to a valid position.
+- **Feedback on collision**: when placement is invalid due to spacing or structure collision, a brief message appears ("Too close to another plant" or "Can't place on a structure") and the plant is not created until a valid position is found.

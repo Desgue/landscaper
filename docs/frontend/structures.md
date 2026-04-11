@@ -82,12 +82,12 @@ Rectangular structures use cached sprite textures from the TextureAtlas for perf
 
 Structures follow realistic placement constraints [canvas-viewport.md "## Collision Rules"]:
 
-- **Blocked by structures**: structures cannot overlap other structures (except: elements can be placed beneath `category: "overhead"` structures)
+- **Blocked by structures**: structures with blocking categories (boundary, feature, furniture) cannot overlap other blocking structures. Structures with non-blocking categories (container, surface, overhead) have relaxed constraints (see below).
 - **Blocked by paths**: structures cannot overlap paths (and vice versa)
-- **Allowed on terrain**: structures can be placed on any terrain type
-- **Container category**: structures with `category: "container"` (raised beds, planters) accept plants inside their bounds
+- **Allowed on terrain**: structures can be placed on any terrain type, except surface structures which prevent terrain painting below them
+- **Container category**: structures with `category: "container"` (raised beds, planters) do not block structure placement and accept plants inside their bounds
 - **Overhead category**: structures with `category: "overhead"` (pergolas, arbors) do NOT block ground-level elements. Plants, paths, furniture, and other structures can exist beneath them
 - **Surface category**: structures with `category: "surface"` (patios, decks) block terrain painting over their area. Other surface structures cannot overlap them. Plants and labels are allowed on top
-- **Furniture and feature categories**: block other structures like `"boundary"` but have no special sub-rules
+- **Furniture and feature categories**: block structures with `category: "boundary"` (and vice versa), but do not block overhead or container structures
 
-Invalid placement shows a red ghost preview. Placement is blocked until the cursor moves to a valid position.
+Invalid placement shows a red ghost preview (structure tool and arc tool). Placement is blocked until the cursor moves to a valid position.

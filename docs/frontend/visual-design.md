@@ -53,22 +53,34 @@ Every toolbar button, palette item, and interactive icon. Shows action name + sh
 
 ## Color Palette
 
+Colors are defined as CSS custom properties (`--ls-*` tokens) in `src/index.css` and loaded into PixiJS renderers via `buildCanvasTokens()` at startup.
+
 - UI chrome: white backgrounds, subtle gray borders
-- Accent: blue #1971c2 (active tool, selection, primary buttons, snap guides)
-- Canvas background: light gray or white
-- Yard boundary: distinct outline (dashed blue or dark gray)
-- Overflow area: subtly dimmed
+- Accent (interactive): `--ls-brand-500` (blue #1971c2, active tool, selection, primary buttons, snap guides)
+- Accent subtle: `--ls-brand-100` (light blue #e8f0fb, hover states, subtle backgrounds)
+- Canvas background overflow: `--ls-surface-canvas-overflow` (light gray #f5f5f0)
+- Text primary: `--ls-text-primary` (dark gray #333333, dimension text, labels)
+- Yard boundary: accent blue (snap-guidelike appearance)
 - Snap guides: accent blue, thin, 50% opacity
 - Dimension lines: dark gray #555555, thin leader lines
 - Dimension arrowheads: filled dark gray, small triangles
-- Dimension text: dark gray on white knockout background
+- Dimension text: `--ls-text-primary` on white knockout background
 - Measurement preview: dashed accent blue while measuring, distance tooltip at cursor
-- Tree canopy: semi-transparent fill (30–40% opacity) of the plant type's color
+- Plant colors (by type): `--ls-plant-vegetable`, `--ls-plant-herb`, `--ls-plant-fruit`, `--ls-plant-flower`, `--ls-plant-tree`, `--ls-plant-shrub`
+- Plant status colors: `--ls-plant-status-planned`, `--ls-plant-status-planted`, `--ls-plant-status-growing`, `--ls-plant-status-harvested`, `--ls-plant-status-removed`
+- Structure colors: `--ls-structure-soil`, `--ls-structure-texture`
 - Cost text in inspector: muted gray, right-aligned
 
 ## Terrain Rendering
 
-Solid colors in MVP. Phase 2 target: realistic but stylized tiling textures (not photographic, not hand-drawn).
+Rendered via PixiJS with a tile atlas system. Each terrain type is a solid color, procedurally tiled. The terrain rendering pipeline:
+
+1. `TextureAtlas` builds a texture atlas of 100cm × 100cm tiles at PixiJS
+2. `TerrainRenderer` renders terrain elements by stamping tiled atlas textures
+3. Tile size: 100cm world-space = 100px in the atlas (see `constants.ts` `TILE_SIZE`)
+4. Vertical extrusion (implied camera tilt): 30-degree angle, 0.5 scale factor for isometric effect
+
+Phase 2 target: realistic but stylized tiling textures (not photographic, not hand-drawn).
 
 ## Typography
 
