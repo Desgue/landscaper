@@ -415,7 +415,9 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
 
       // Construct the CanvasContext for this app instance.
       // Phase 2-4 will pass this to handlers instead of having them import stores directly.
-      const _canvasContext = createCanvasContext()
+      // CanvasContext is constructed here but wired to handlers in Phase 2-4 (ENG-86..ENG-88)
+      const canvasContext = createCanvasContext()
+      void canvasContext
 
       const selectionContainer = new Container()
       selectionContainer.label = 'selection'
