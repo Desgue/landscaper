@@ -17,7 +17,7 @@ import type {
   StructureType, PlantType, Vec2,
 } from '../types/schema'
 import { createLogger } from '../utils/logger'
-import { snapPoint } from '../snap/snapSystem'
+import { snapWorldPoint } from './snapUtils'
 import { arcAABB } from '../canvas/arcGeometry'
 import { commitProjectUpdate } from '../store/projectActions'
 import type { RendererHandle } from './BaseRenderer'
@@ -81,26 +81,6 @@ function hasPlantStructureCollision(
     }
   }
   return false
-}
-
-// ---------------------------------------------------------------------------
-// Snap helper
-// ---------------------------------------------------------------------------
-
-function snapWorld(
-  worldX: number, worldY: number, context: 'place' | 'label' | 'measurement',
-  altKey: boolean,
-  ctx: CanvasContext,
-): { x: number; y: number } {
-  const proj = ctx.getProject()
-  if (!proj) return { x: worldX, y: worldY }
-  const zoom = ctx.getZoom()
-  const result = snapPoint(
-    worldX, worldY, context, proj.elements, zoom,
-    proj.gridConfig.snapIncrementCm,
-    proj.uiState.snapEnabled, altKey,
-  )
-  return { x: result.x, y: result.y }
 }
 
 // ---------------------------------------------------------------------------
@@ -202,7 +182,7 @@ export function createStructurePlacementHandler(ctx: CanvasContext): StructurePl
       const regs = ctx.getRegistries()
       const structureType = regs.structures.find((s) => s.id === selectedStructureTypeId)
       if (!structureType) return
-      const snapped = snapWorld(worldX, worldY, 'place', altKey, ctx)
+      const snapped = snapWorldPoint(worldX, worldY, 'place', altKey, ctx)
 
       // Arc tool: 3-step
       if (isArcTool) {
@@ -250,7 +230,7 @@ export function createStructurePlacementHandler(ctx: CanvasContext): StructurePl
     onPointerMove(worldX: number, worldY: number, altKey: boolean, isArcTool: boolean): void {
       const selectedStructureTypeId = ctx.getToolState().selectedStructureTypeId
       if (!selectedStructureTypeId) return
-      const snapped = snapWorld(worldX, worldY, 'place', altKey, ctx)
+      const snapped = snapWorldPoint(worldX, worldY, 'place', altKey, ctx)
 
       // Arc tool curvature adjustment (step 3)
       if (isArcTool && arcPlacing) {
@@ -323,7 +303,7 @@ export function createPlantPlacementHandler(ctx: CanvasContext): PlantPlacementH
       const plantType = regs.plants.find((p) => p.id === selectedPlantTypeId)
       if (!plantType) return
 
-      const snapped = snapWorld(worldX, worldY, 'place', altKey, ctx)
+      const snapped = snapWorldPoint(worldX, worldY, 'place', altKey, ctx)
 
       // Collision checks
       const existingPlants = proj.elements.filter((el): el is PlantElement => el.type === 'plant')
@@ -440,7 +420,7 @@ export function createMeasurementHandler(ctx: CanvasContext): MeasurementHandle 
   return {
     onPointerDown(worldX: number, worldY: number, altKey: boolean): void {
       const store = ctx.getMeasurementState()
-      const snapped = snapWorld(worldX, worldY, 'measurement', altKey, ctx)
+      const snapped = snapWorldPoint(worldX, worldY, 'measurement', altKey, ctx)
 
       if (store.phase === 'idle') {
         ctx.setMeasurementState({
@@ -460,7 +440,7 @@ export function createMeasurementHandler(ctx: CanvasContext): MeasurementHandle 
 
     onPointerMove(worldX: number, worldY: number, altKey: boolean): void {
       if (ctx.getMeasurementState().phase !== 'first_placed') return
-      const snapped = snapWorld(worldX, worldY, 'measurement', altKey, ctx)
+      const snapped = snapWorldPoint(worldX, worldY, 'measurement', altKey, ctx)
       ctx.setMeasurementState({ livePoint: snapped })
     },
 

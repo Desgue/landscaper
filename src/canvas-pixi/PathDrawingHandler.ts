@@ -9,7 +9,7 @@
 
 import type { PathElement, PathSegment, Vec2 } from '../types/schema'
 import { createLogger } from '../utils/logger'
-import { snapPoint } from '../snap/snapSystem'
+import { snapWorldPoint } from './snapUtils'
 import { commitProjectUpdate } from '../store/projectActions'
 import type { RendererHandle } from './BaseRenderer'
 import type { CanvasContext } from './CanvasContext'
@@ -35,22 +35,6 @@ function computePathAABB(points: Vec2[]): { x: number; y: number; w: number; h: 
     maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y)
   }
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
-}
-
-// ---------------------------------------------------------------------------
-// Snap helper
-// ---------------------------------------------------------------------------
-
-function snapWorld(worldX: number, worldY: number, altKey: boolean, ctx: CanvasContext): Vec2 {
-  const proj = ctx.getProject()
-  if (!proj) return { x: worldX, y: worldY }
-  const zoom = ctx.getZoom()
-  const result = snapPoint(
-    worldX, worldY, 'place', proj.elements, zoom,
-    proj.gridConfig.snapIncrementCm,
-    proj.uiState.snapEnabled, altKey,
-  )
-  return { x: result.x, y: result.y }
 }
 
 // ---------------------------------------------------------------------------
@@ -161,7 +145,7 @@ export function createPathDrawingHandler(ctx: CanvasContext): PathDrawingHandle 
   return {
     onPointerDown(worldX: number, worldY: number, altKey: boolean): void {
       if (ctx.getToolState().activeTool !== 'path') return
-      const snapped = snapWorld(worldX, worldY, altKey, ctx)
+      const snapped = snapWorldPoint(worldX, worldY, 'place', altKey, ctx)
 
       if (!isDrawing) {
         drawingPoints = [snapped]
@@ -186,7 +170,7 @@ export function createPathDrawingHandler(ctx: CanvasContext): PathDrawingHandle 
 
     onPointerMove(worldX: number, worldY: number, altKey: boolean): void {
       if (!isDrawing) return
-      const snapped = snapWorld(worldX, worldY, altKey, ctx)
+      const snapped = snapWorldPoint(worldX, worldY, 'place', altKey, ctx)
       cursorWorld = snapped
     },
 

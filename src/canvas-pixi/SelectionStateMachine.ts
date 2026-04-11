@@ -20,6 +20,7 @@ import {
   type AABB,
 } from '../canvas/hitTestAll'
 import { snapPoint } from '../snap/snapSystem'
+import { getHandleHitThreshold } from './handleGeometry'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -113,7 +114,7 @@ export function getHandleAtPoint(
   worldY: number,
   zoom: number,
 ): HandlePosition | null {
-  const threshold = 6 / zoom
+  const threshold = getHandleHitThreshold(zoom)
   const handles = getHandlePositions(aabb)
   for (const h of handles) {
     if (Math.abs(worldX - h.x) <= threshold && Math.abs(worldY - h.y) <= threshold) {
@@ -129,7 +130,7 @@ export function isOnRotationHandle(
   worldY: number,
   zoom: number,
 ): boolean {
-  const threshold = 6 / zoom
+  const threshold = getHandleHitThreshold(zoom)
   const handleX = aabb.x + aabb.w / 2
   const handleY = aabb.y - 10 / zoom
   return Math.abs(worldX - handleX) <= threshold && Math.abs(worldY - handleY) <= threshold
@@ -264,7 +265,7 @@ export function createSelectionStateMachine(ctx: CanvasContext): SelectionStateM
       const selectedEl = project.elements.find((el) => el.id === currentPrimaryId)
       if (selectedEl && selectedEl.type === 'path') {
         const pathEl = selectedEl as PathElement
-        const threshold = 6 / zoom
+        const threshold = getHandleHitThreshold(zoom)
         for (let i = 0; i < pathEl.points.length; i++) {
           const pt = pathEl.points[i]
           if (Math.abs(worldX - pt.x) <= threshold && Math.abs(worldY - pt.y) <= threshold) {
