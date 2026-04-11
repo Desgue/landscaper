@@ -7,6 +7,7 @@ import LayerPanel from './LayerPanel'
 import StatusBar from './StatusBar'
 import Minimap from './Minimap'
 import YardBoundaryHTMLOverlays from './YardBoundaryHTMLOverlays'
+import PlacementFeedback from './PlacementFeedback'
 
 const Canvas = lazy(() => import('../canvas-pixi/CanvasHost'))
 import ZOrderContextMenu from './ZOrderContextMenu'
@@ -87,6 +88,7 @@ export default function AppLayout() {
                 <Canvas width={canvasSize.width} height={canvasSize.height} />
               </Suspense>
               <YardBoundaryHTMLOverlays />
+              <PlacementFeedback />
               <Minimap canvasWidth={canvasSize.width} canvasHeight={canvasSize.height} />
             </div>
 

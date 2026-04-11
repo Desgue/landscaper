@@ -21,6 +21,7 @@ import { useProjectStore } from '../store/useProjectStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { useInspectorStore } from '../store/useInspectorStore'
 import { useStructureToolStore, usePlantToolStore, useLabelToolStore, useMeasurementStore } from '../canvas/toolStores'
+import { usePlacementFeedbackStore } from '../store/usePlacementFeedbackStore'
 import { snapPoint } from '../snap/snapSystem'
 import { arcAABB } from '../canvas/arcGeometry'
 import { commitProjectUpdate } from '../store/projectActions'
@@ -331,11 +332,13 @@ export function createPlantPlacementHandler(): PlantPlacementHandle {
       const existingPlants = proj.elements.filter((el): el is PlantElement => el.type === 'plant')
       if (hasSpacingCollision(snapped.x, snapped.y, plantType.spacingCm, existingPlants, regs.plants)) {
         log.debug('plant placement rejected: spacing collision', { x: snapped.x, y: snapped.y, spacingCm: plantType.spacingCm })
+        usePlacementFeedbackStore.getState().showFeedback('Too close to another plant')
         return
       }
       const structures = proj.elements.filter((el): el is StructureElement => el.type === 'structure')
       if (hasPlantStructureCollision(snapped.x, snapped.y, structures, regs.structures)) {
         log.debug('plant placement rejected: structure collision', { x: snapped.x, y: snapped.y })
+        usePlacementFeedbackStore.getState().showFeedback('Can\'t place on a structure')
         return
       }
 
