@@ -1,10 +1,6 @@
 import { useState } from 'react'
 import { useProjectStore } from '../store/useProjectStore'
 import { useSelectionStore } from '../store/useSelectionStore'
-import {
-  inspectorSlotRegistry,
-  InspectorSlotsContext,
-} from './inspectorSlots'
 import type { CanvasElement } from '../types/schema'
 import { TerrainInspector } from './inspector/TerrainInspector'
 import { PlantInspector } from './inspector/PlantInspector'
@@ -86,8 +82,7 @@ export default function InspectorPanel() {
   const selectedCount = selectedIds.size
 
   return (
-    <InspectorSlotsContext.Provider value={inspectorSlotRegistry}>
-      <div
+    <div
         className="flex flex-col border-l flex-shrink-0 overflow-hidden transition-all"
         style={{ width: collapsed ? 0 : 280, background: 'var(--ls-surface-panel)', borderColor: 'var(--ls-border-subtle)' }}
       >
@@ -144,6 +139,5 @@ export default function InspectorPanel() {
           </button>
         )}
       </div>
-    </InspectorSlotsContext.Provider>
   )
 }
