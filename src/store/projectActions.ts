@@ -37,5 +37,8 @@ export function commitProjectUpdate(
   const snapshot = structuredClone(proj)
   store.updateProject(updater)
   useHistoryStore.getState().pushHistory(snapshot)
+  // updateProject already calls markDirty internally; this second call restarts
+  // the debounce timer, which is harmless. Keeping it explicit here so the full
+  // 4-step contract (snapshot → mutate → pushHistory → markDirty) is visible.
   store.markDirty()
 }
