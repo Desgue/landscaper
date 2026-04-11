@@ -12,7 +12,6 @@
  */
 
 import { Container, Graphics, Text } from 'pixi.js'
-import { connectStore } from './connectStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { useBoundaryUIStore } from '../store/useBoundaryUIStore'
@@ -100,8 +99,6 @@ export function createBoundaryRenderer(
   // Pool of Text objects for edge labels
   let labelPool: Text[] = []
 
-  // Track last zoom to avoid full re-render on pan-only changes
-  let lastZoom = useViewportStore.getState().zoom
 
   // ---------------------------------------------------------------------------
   // Placement preview
@@ -420,37 +417,28 @@ export function createBoundaryRenderer(
 
   // Re-render on boundary changes
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.currentProject?.yardBoundary ?? null,
-      () => render(),
-    ),
+    useProjectStore.subscribe((state, prevState) => {
+      if ((state.currentProject?.yardBoundary ?? null) !== (prevState.currentProject?.yardBoundary ?? null)) render()
+    }),
   )
 
   // Re-render placement preview when placement state changes
   unsubs.push(
-    connectStore(
-      useBoundaryUIStore,
-      (s) => s.placementState,
-      () => renderPlacementPreview(),
-    ),
+    useBoundaryUIStore.subscribe((state, prevState) => {
+      if (state.placementState !== prevState.placementState) renderPlacementPreview()
+    }),
   )
 
   // Viewport changes: full re-render on zoom change, overflow-dim-only on pan
   unsubs.push(
-    connectStore(
-      useViewportStore,
-      (s) => ({ panX: s.panX, panY: s.panY, zoom: s.zoom }),
-      (val) => {
-        if (val.zoom !== lastZoom) {
-          lastZoom = val.zoom
-          render()
-        } else {
-          // Pan-only: just update the overflow dim rectangle
-          renderOverflowDimOnly()
-        }
-      },
-    ),
+    useViewportStore.subscribe((state, prevState) => {
+      if (state.zoom !== prevState.zoom) {
+        render()
+      } else if (state.panX !== prevState.panX || state.panY !== prevState.panY) {
+        // Pan-only: just update the overflow dim rectangle
+        renderOverflowDimOnly()
+      }
+    }),
   )
 
   // Initial render

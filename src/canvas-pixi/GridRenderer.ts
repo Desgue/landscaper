@@ -3,12 +3,11 @@
  *
  * Renders a dot grid using a TilingSprite backed by a pre-rendered Canvas2D
  * pattern texture. Subscribes to viewport zoom (for minor grid threshold)
- * and project gridVisible flag via connectStore.
+ * and project gridVisible flag via store subscriptions.
  *
  * Pattern: create(gridContainer) => { update, destroy }
  */
 import { Container, TilingSprite, Texture } from 'pixi.js'
-import { connectStore } from './connectStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { useProjectStore } from '../store/useProjectStore'
 import type { RenderScheduler } from './RenderScheduler'
@@ -95,27 +94,24 @@ export function createGridRenderer(gridContainer: Container, scheduler: RenderSc
   const unsubs: Array<() => void> = []
 
   unsubs.push(
-    connectStore(
-      useViewportStore,
-      (s) => s.zoom,
-      (newZoom) => {
-        zoom = newZoom
+    useViewportStore.subscribe((state, prevState) => {
+      if (state.zoom !== prevState.zoom) {
+        zoom = state.zoom
         rebuildTexture()
         scheduler.markDirty()
-      },
-    ),
+      }
+    }),
   )
 
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.currentProject?.uiState.gridVisible ?? true,
-      (newVisible) => {
-        visible = newVisible
+    useProjectStore.subscribe((state, prevState) => {
+      const next = state.currentProject?.uiState.gridVisible ?? true
+      if (next !== (prevState.currentProject?.uiState.gridVisible ?? true)) {
+        visible = next
         sprite.visible = visible
         scheduler.markDirty()
-      },
-    ),
+      }
+    }),
   )
 
   return {
