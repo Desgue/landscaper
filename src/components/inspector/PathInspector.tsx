@@ -1,6 +1,4 @@
-import { useCallback } from 'react'
 import { useProjectStore } from '../../store/useProjectStore'
-import { useHistoryStore } from '../../store/useHistoryStore'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -12,26 +10,12 @@ import {
   LockedToggle,
   InspectorExtensionSlots,
 } from './inspectorShared'
+import { useInspectorEdit } from './useInspectorEdit'
 
 export function PathInspector({ element }: { element: PathElement }) {
   const registries = useProjectStore((s) => s.registries)
-  const updateProject = useProjectStore((s) => s.updateProject)
-  const pushHistory = useHistoryStore((s) => s.pushHistory)
   const pathType = registries.paths.find((p) => p.id === element.pathTypeId)
-
-  const update = useCallback(
-    (updater: (el: PathElement) => void) => {
-      const proj = useProjectStore.getState().currentProject
-      if (!proj) return
-      const snapshot = structuredClone(proj)
-      updateProject((draft) => {
-        const el = draft.elements.find((e) => e.id === element.id)
-        if (el && el.type === 'path') updater(el as PathElement)
-      })
-      pushHistory(snapshot)
-    },
-    [element.id, updateProject, pushHistory],
-  )
+  const { update } = useInspectorEdit<PathElement>(element.id, 'path')
 
   // Calculate total length from segments
   const totalLengthCm = element.points.reduce((sum, pt, i) => {

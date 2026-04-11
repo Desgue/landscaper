@@ -1,6 +1,4 @@
-import { useCallback, useRef } from 'react'
 import { useProjectStore } from '../../store/useProjectStore'
-import { useHistoryStore } from '../../store/useHistoryStore'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -10,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { PlantElement, PlantStatus, Project } from '../../types/schema'
+import type { PlantElement, PlantStatus } from '../../types/schema'
 import { labelCls, dividerCls } from './inspectorConstants'
 import {
   ReadonlyField,
@@ -18,55 +16,12 @@ import {
   LockedToggle,
   InspectorExtensionSlots,
 } from './inspectorShared'
+import { useInspectorEdit } from './useInspectorEdit'
 
 export function PlantInspector({ element }: { element: PlantElement }) {
   const registries = useProjectStore((s) => s.registries)
-  const updateProject = useProjectStore((s) => s.updateProject)
-  const pushHistory = useHistoryStore((s) => s.pushHistory)
   const plantType = registries.plants.find((p) => p.id === element.plantTypeId)
-
-  // Snapshot ref for debounced text edits (notes)
-  const snapshotRef = useRef<Project | null>(null)
-
-  const startEdit = useCallback(() => {
-    if (!snapshotRef.current) {
-      const proj = useProjectStore.getState().currentProject
-      if (proj) snapshotRef.current = structuredClone(proj)
-    }
-  }, [])
-
-  const commitEdit = useCallback(() => {
-    if (snapshotRef.current) {
-      pushHistory(snapshotRef.current)
-      snapshotRef.current = null
-    }
-  }, [pushHistory])
-
-  /** Immediate update with history push (for discrete controls). */
-  const update = useCallback(
-    (updater: (el: PlantElement) => void) => {
-      const proj = useProjectStore.getState().currentProject
-      if (!proj) return
-      const snapshot = structuredClone(proj)
-      updateProject((draft) => {
-        const el = draft.elements.find((e) => e.id === element.id)
-        if (el && el.type === 'plant') updater(el as PlantElement)
-      })
-      pushHistory(snapshot)
-    },
-    [element.id, updateProject, pushHistory],
-  )
-
-  /** Live preview update without history push (for text inputs). */
-  const updateLive = useCallback(
-    (updater: (el: PlantElement) => void) => {
-      updateProject((draft) => {
-        const el = draft.elements.find((e) => e.id === element.id)
-        if (el && el.type === 'plant') updater(el as PlantElement)
-      })
-    },
-    [element.id, updateProject],
-  )
+  const { startEdit, commitEdit, update, updateLive } = useInspectorEdit<PlantElement>(element.id, 'plant')
 
   return (
     <div>
