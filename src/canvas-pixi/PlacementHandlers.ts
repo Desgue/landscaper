@@ -16,19 +16,22 @@ import type {
   StructureElement, PlantElement, LabelElement,
   StructureType, PlantType, Vec2,
 } from '../types/schema'
+import { createLogger } from '../utils/logger'
 import { useProjectStore } from '../store/useProjectStore'
-import { useHistoryStore } from '../store/useHistoryStore'
 import { useViewportStore } from '../store/useViewportStore'
 import { useInspectorStore } from '../store/useInspectorStore'
 import { useStructureToolStore, usePlantToolStore, useLabelToolStore, useMeasurementStore } from '../canvas/toolStores'
 import { usePlacementFeedbackStore } from '../store/usePlacementFeedbackStore'
 import { snapPoint } from '../snap/snapSystem'
 import { arcAABB } from '../canvas/arcGeometry'
+import { commitProjectUpdate } from '../store/projectActions'
 import type { RendererHandle } from './BaseRenderer'
 
 // ---------------------------------------------------------------------------
 // Structure collision helper
 // ---------------------------------------------------------------------------
+
+const log = createLogger('PlacementHandlers')
 
 const BLOCKING_CATEGORIES = new Set(['boundary', 'feature', 'furniture'])
 
@@ -175,12 +178,14 @@ export function createStructurePlacementHandler(): StructurePlacementHandle {
     const existingStructures = proj.elements.filter(
       (el): el is StructureElement => el.type === 'structure',
     )
-    if (hasStructureCollision(rect.x, rect.y, rect.width, rect.height, existingStructures, regs.structures)) return
-    const snapshot = structuredClone(proj)
+    if (hasStructureCollision(rect.x, rect.y, rect.width, rect.height, existingStructures, regs.structures)) {
+      log.debug('structure placement rejected: collision', { x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+      return
+    }
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
     const layerId = proj.layers[0]?.id ?? 'default'
-    useProjectStore.getState().updateProject((draft) => {
+    commitProjectUpdate('placeStructure', (draft) => {
       draft.elements.push({
         id, type: 'structure', structureTypeId: selectedStructureTypeId,
         x: rect.x, y: rect.y, width: rect.width, height: rect.height,
@@ -188,8 +193,6 @@ export function createStructurePlacementHandler(): StructurePlacementHandle {
         createdAt: now, updatedAt: now, shape, arcSagitta: sagitta, notes: null,
       } satisfies StructureElement)
     })
-    useHistoryStore.getState().pushHistory(snapshot)
-    useProjectStore.getState().markDirty()
     useInspectorStore.getState().setInspectedElementId(id)
   }
 
@@ -328,21 +331,22 @@ export function createPlantPlacementHandler(): PlantPlacementHandle {
       // Collision checks
       const existingPlants = proj.elements.filter((el): el is PlantElement => el.type === 'plant')
       if (hasSpacingCollision(snapped.x, snapped.y, plantType.spacingCm, existingPlants, regs.plants)) {
+        log.debug('plant placement rejected: spacing collision', { x: snapped.x, y: snapped.y, spacingCm: plantType.spacingCm })
         usePlacementFeedbackStore.getState().showFeedback('Too close to another plant')
         return
       }
       const structures = proj.elements.filter((el): el is StructureElement => el.type === 'structure')
       if (hasPlantStructureCollision(snapped.x, snapped.y, structures, regs.structures)) {
+        log.debug('plant placement rejected: structure collision', { x: snapped.x, y: snapped.y })
         usePlacementFeedbackStore.getState().showFeedback('Can\'t place on a structure')
         return
       }
 
-      const snapshot = structuredClone(proj)
       const id = crypto.randomUUID()
       const now = new Date().toISOString()
       const layerId = proj.layers[0]?.id ?? 'default'
 
-      useProjectStore.getState().updateProject((draft) => {
+      commitProjectUpdate('placePlant', (draft) => {
         draft.elements.push({
           id, type: 'plant', plantTypeId: selectedPlantTypeId,
           x: snapped.x, y: snapped.y,
@@ -352,8 +356,6 @@ export function createPlantPlacementHandler(): PlantPlacementHandle {
           quantity: 1, status: 'planned', plantedDate: null, notes: null,
         } satisfies PlantElement)
       })
-      useHistoryStore.getState().pushHistory(snapshot)
-      useProjectStore.getState().markDirty()
       useInspectorStore.getState().setInspectedElementId(id)
     },
 
@@ -389,12 +391,11 @@ export function createLabelPlacementHandler(): LabelPlacementHandle {
       )
       if (existingLabel) return
 
-      const snapshot = structuredClone(proj)
       const id = crypto.randomUUID()
       const now = new Date().toISOString()
       const layerId = proj.layers[0]?.id ?? 'default'
 
-      useProjectStore.getState().updateProject((draft) => {
+      commitProjectUpdate('placeLabel', (draft) => {
         draft.elements.push({
           id, type: 'label', text: 'Text', fontSize: 16,
           fontColor: '#000000', fontFamily: 'sans-serif',
@@ -404,8 +405,6 @@ export function createLabelPlacementHandler(): LabelPlacementHandle {
           createdAt: now, updatedAt: now,
         } satisfies LabelElement)
       })
-      useHistoryStore.getState().pushHistory(snapshot)
-      useProjectStore.getState().markDirty()
       useLabelToolStore.getState().setEditing(id)
     },
 

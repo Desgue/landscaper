@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import type { Project, Registries } from '../types/schema';
 import { saveProject } from '../db/projectsDb';
 import { BUILTIN_REGISTRIES } from '../data/builtinRegistries';
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('ProjectStore');
 
 interface ProjectStore {
   currentProject: Project | null;
@@ -10,7 +13,7 @@ interface ProjectStore {
   _saveTimer: ReturnType<typeof setTimeout> | null;
 
   loadProject(project: Project, registries: Registries): void;
-  updateProject(updater: (draft: Project) => void): void;
+  updateProject(actionName: string, updater: (draft: Project) => void): void;
   markDirty(): void;
   closeProject(): void;
   setRegistries(r: Registries): void;
@@ -30,7 +33,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set({ currentProject: project, registries, isDirty: false, _saveTimer: null });
   },
 
-  updateProject(updater: (draft: Project) => void): void {
+  updateProject(actionName: string, updater: (draft: Project) => void): void {
+    log.debug('updateProject', { actionName });
     const { currentProject } = get();
     if (!currentProject) return;
     const cloned = structuredClone(currentProject);

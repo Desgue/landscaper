@@ -1,4 +1,7 @@
 import type { CanvasElement, SnapContext, SnapLine, SnapResult } from '../types/schema'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('SnapSystem')
 
 // Grid snap: round value to nearest increment
 // snap(274, 10) = 270, snap(276, 10) = 280, snap(275, 10) = 280
@@ -119,10 +122,16 @@ export function snapPoint(
   const snappedX = resolveAxis(worldX, 'x', worldX)
   const snappedY = resolveAxis(worldY, 'y', worldY)
 
-  return {
+  const result: SnapResult = {
     x: snappedX,
     y: snappedY,
     snapped: snappedX !== worldX || snappedY !== worldY,
     guideLines,
   }
+
+  if (result.snapped) {
+    log.debug('snapPoint', { x: worldX, y: worldY, snappedX, snappedY, candidateCount: allCandidates.length, guideCount: guideLines.length })
+  }
+
+  return result
 }
