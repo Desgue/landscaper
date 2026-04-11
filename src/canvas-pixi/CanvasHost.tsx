@@ -15,8 +15,8 @@ import { useToolStore } from '../store/useToolStore'
 import { useCursorStore } from '../store/useCursorStore'
 import { toWorld } from '../canvas/viewport'
 import { RenderScheduler } from './RenderScheduler'
-import { DisposalManager } from './DisposalManager'
 import { createTextureAtlas } from './textures/TextureAtlas'
+import { createSelectionOverlay } from './SelectionOverlay'
 import { createInteractionManager, type InteractionManagerHandle } from './InteractionManager'
 import { createTerrainPaintHandler } from './TerrainPaintHandler'
 import {
@@ -47,7 +47,6 @@ const TEXTURE_GC_INTERVAL = 60_000
 export default function CanvasHost({ width, height }: CanvasHostProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<Application | null>(null)
-  const worldRef = useRef<Container | null>(null)
   const interactionRef = useRef<Container | null>(null)
   const schedulerRef = useRef<RenderScheduler | null>(null)
   const canvasSizeRef = useRef({ width, height })
@@ -55,14 +54,10 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
 
   const [contextLost, setContextLost] = useState(false)
 
-  // ---- Pan state ----
   const { isDragging, panStateRef, startPan, movePan, endPan } = useCanvasPan()
 
   // ---- Cursor world-position tracking ----
   const cursorRafRef = useRef(0)
-
-  // ---- Disposal tracking ----
-  const disposalRef = useRef(new DisposalManager())
 
   // ---- Store accessors (stable refs to avoid re-render deps) ----
   const activeTool = useToolStore((s) => s.activeTool)
@@ -81,7 +76,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
   }, [isPanActive, isDragging, activeTool])
 
   // ---- Keyboard shortcuts ----
-  useCanvasKeyboardShortcuts({ width, height, interactionManagerRef })
+  useCanvasKeyboardShortcuts(width, height, interactionManagerRef)
 
   // Coerce to boolean so the init effect only re-runs on 0↔non-zero
   // transitions, not on every pixel resize.
@@ -96,7 +91,6 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
     if (!container) return
 
     let destroyed = false
-    const disposal = disposalRef.current
     const scheduler = new RenderScheduler()
     schedulerRef.current = scheduler
 
@@ -121,7 +115,6 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       }
 
       // Build canvas tokens once (reads CSS custom properties via getComputedStyle).
-      // Cached here — never called per-frame.
       const tokens = buildCanvasTokens()
 
       // Apply token-derived background color
@@ -143,30 +136,19 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       // ------------------------------------------------------------------
       // Scene graph
       // ------------------------------------------------------------------
-
-      // WORLD container — holds all scene content, transformed by viewport
-      const world = new Container()
-      world.label = 'world'
-      world.eventMode = 'none'
-      world.isRenderGroup = true
-      worldRef.current = world
-      disposal.registerContainer(world)
-
       const {
+        world,
         gridContainer,
         terrainContainer,
         pathsContainer,
         elementsContainer,
         labelsContainer,
         overflowDimContainer,
-        boundarySubContainer,
         interaction,
-        hud,
-      } = buildCanvasSceneGraph(app, world, width, height)
+      } = buildCanvasSceneGraph(app, width, height)
 
       interactionRef.current = interaction
 
-      app.stage.addChild(world, interaction, hud)
 
       // ------------------------------------------------------------------
       // Viewport wiring: subscribe to store, apply to world container
@@ -178,9 +160,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         scheduler.markDirty()
       }
 
-      // Apply initial viewport
       applyViewport()
-
       const unsubViewport = useViewportStore.subscribe(applyViewport)
 
       // ------------------------------------------------------------------
@@ -191,7 +171,6 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         const button = nativeEvent.button ?? 0
 
         if (button === 1) {
-          // Middle-click pan
           nativeEvent.preventDefault?.()
           startPan(nativeEvent.clientX, nativeEvent.clientY)
         } else if (button === 0 && useToolStore.getState().activeTool === 'hand') {
@@ -202,7 +181,6 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       const onPointerMove = (e: FederatedPointerEvent) => {
         const nativeEvent = e.nativeEvent as PointerEvent
 
-        // Pan
         if (panStateRef.current.active) {
           movePan(nativeEvent.clientX, nativeEvent.clientY)
         }
@@ -231,7 +209,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       interaction.on('pointerupoutside', onPointerUp)
 
       // ------------------------------------------------------------------
-      // Wheel zoom with smooth animation (lerp over ~150ms)
+      // Wheel zoom
       // ------------------------------------------------------------------
       const zoomAnimator = createZoomAnimator()
       app.canvas.addEventListener('wheel', zoomAnimator.onWheel, { passive: false })
@@ -245,7 +223,6 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         const screenY = e.clientY - rect.top
         const { panX, panY, zoom } = useViewportStore.getState()
         const w = toWorld(screenX, screenY, panX, panY, zoom)
-        // Delegate to InteractionManager for centralized dispatch
         interactionManagerRef.current?.handleDblClick(w.x, w.y)
       }
       app.canvas.addEventListener('dblclick', onDblClick)
@@ -253,6 +230,8 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       // ------------------------------------------------------------------
       // WebGL context loss/restore
       // ------------------------------------------------------------------
+      const rendererUpdaters: Array<() => void> = []
+
       const onContextLost = () => {
         console.warn('[CanvasHost] WebGL context lost')
         setContextLost(true)
@@ -261,8 +240,6 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       const onContextRestored = () => {
         console.info('[CanvasHost] WebGL context restored')
         setContextLost(false)
-        // Force re-render all Text-bearing renderers (v8 bug #11685:
-        // Text objects disappear after WebGL context restore)
         for (const update of rendererUpdaters) update()
         scheduler.markDirty()
       }
@@ -284,49 +261,37 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       // ------------------------------------------------------------------
       const textureAtlas = createTextureAtlas()
 
-      // Canvas size accessor for renderers — reads from ref so resize updates propagate
       const getCanvasSize = () => canvasSizeRef.current
 
-      // Selection overlay renders into a dedicated sub-container of world
-      // (must be in world space for correct pan/zoom transform on selection
-      // boxes, handles, and snap guide lines)
+      // ------------------------------------------------------------------
+      // All renderers
+      // ------------------------------------------------------------------
+      const renderers = createAllRenderers({
+        world,
+        gridContainer,
+        terrainContainer,
+        pathsContainer,
+        elementsContainer,
+        labelsContainer,
+        overflowDimContainer,
+        scheduler,
+        textureAtlas,
+        getCanvasSize,
+        tokens,
+      })
+
+      rendererUpdaters.push(...renderers.textRendererUpdaters)
+
+      // ------------------------------------------------------------------
+      // Phase 4: Selection overlay + Interaction manager + Tool handlers
+      // ------------------------------------------------------------------
       const selectionContainer = new Container()
       selectionContainer.label = 'selection'
       selectionContainer.eventMode = 'none'
       world.addChild(selectionContainer)
 
-      // ------------------------------------------------------------------
-      // All renderers
-      // ------------------------------------------------------------------
-      const {
-        gridRenderer,
-        terrainRenderer,
-        boundaryRenderer,
-        pathRenderer,
-        plantRenderer,
-        structureRenderer,
-        labelRenderer,
-        dimensionRenderer,
-        selectionOverlay,
-        rendererUpdaters,
-      } = createAllRenderers(
-        {
-          gridContainer,
-          terrainContainer,
-          pathsContainer,
-          elementsContainer,
-          labelsContainer,
-          overflowDimContainer,
-          boundarySubContainer,
-        },
-        selectionContainer,
-        scheduler,
-        textureAtlas,
-        getCanvasSize,
-        tokens,
-      )
+      const selectionOverlay = createSelectionOverlay(selectionContainer, scheduler)
 
-      // Create tool handlers (framework-agnostic, no PixiJS deps)
       const terrainPaintHandler = createTerrainPaintHandler()
       const structurePlacementHandler = createStructurePlacementHandler()
       const plantPlacementHandler = createPlantPlacementHandler()
@@ -336,10 +301,8 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       const boundaryHandler = createBoundaryHandler()
       useBoundaryUIStore.getState().setBoundaryHandle(boundaryHandler)
 
-      // Canvas rect accessor for coordinate conversion
       const getCanvasRect = () => container.getBoundingClientRect()
 
-      // Central interaction manager: dispatches events to SSM or tool handlers
       const interactionManager = createInteractionManager(
         interaction,
         scheduler,
@@ -359,13 +322,15 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       )
       interactionManagerRef.current = interactionManager
 
+      rendererUpdaters.push(() => selectionOverlay.update())
+
       // ------------------------------------------------------------------
       // Render scheduler
       // ------------------------------------------------------------------
       scheduler.start(app)
 
       // ------------------------------------------------------------------
-      // Cleanup reference for teardown
+      // Cleanup
       // ------------------------------------------------------------------
       cleanupRef.current = () => {
         scheduler.stop()
@@ -380,15 +345,15 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         useBoundaryUIStore.getState().setBoundaryHandle(null)
         boundaryHandler.destroy()
         interactionManagerRef.current = null
-        dimensionRenderer.destroy()
-        labelRenderer.destroy()
-        structureRenderer.destroy()
-        plantRenderer.destroy()
-        pathRenderer.destroy()
-        boundaryRenderer.destroy()
-        terrainRenderer.destroy()
+        renderers.dimensionRenderer.destroy()
+        renderers.labelRenderer.destroy()
+        renderers.structureRenderer.destroy()
+        renderers.plantRenderer.destroy()
+        renderers.pathRenderer.destroy()
+        renderers.boundaryRenderer.destroy()
+        renderers.terrainRenderer.destroy()
         textureAtlas.destroy()
-        gridRenderer.destroy()
+        renderers.gridRenderer.destroy()
         unsubViewport()
         if (cursorRafRef.current) {
           cancelAnimationFrame(cursorRafRef.current)
@@ -404,14 +369,13 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         interaction.off('pointermove', onPointerMove)
         interaction.off('pointerup', onPointerUp)
         interaction.off('pointerupoutside', onPointerUp)
-        disposal.destroyAll()
+        world.destroy({ children: true })
         if (container.contains(app.canvas)) {
           container.removeChild(app.canvas)
         }
         setPixiApp(null)
         app.destroy(true)
         appRef.current = null
-        worldRef.current = null
         interactionRef.current = null
       }
     }
@@ -428,10 +392,6 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       destroyed = true
       cleanupRef.current()
     }
-    // Re-run when dimensions become available (0→non-zero transition).
-    // Subsequent resizes are handled cheaply by the resize useEffect below,
-    // so we do NOT include raw width/height here to avoid destroying the
-    // entire PixiJS scene graph on every resize.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasSize])
 
@@ -444,10 +404,8 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
 
     app.renderer.resize(width, height)
 
-    // Update canvas size ref so renderers see current dimensions
     canvasSizeRef.current = { width, height }
 
-    // Update interaction hit area
     const interaction = interactionRef.current
     if (interaction && interaction.children.length > 0) {
       const hitArea = interaction.children[0] as import('pixi.js').Graphics

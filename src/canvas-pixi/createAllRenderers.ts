@@ -1,4 +1,8 @@
-import type { Container } from 'pixi.js'
+import { Container } from 'pixi.js'
+import type { RenderScheduler } from './RenderScheduler'
+import type { TextureAtlas } from './textures/TextureAtlas'
+import type { CanvasTokens } from '../tokens/canvasTokens'
+import type { RendererHandle } from './BaseRenderer'
 import { createGridRenderer } from './GridRenderer'
 import { createTerrainRenderer } from './TerrainRenderer'
 import { createBoundaryRenderer } from './BoundaryRenderer'
@@ -7,86 +11,88 @@ import { createPlantRenderer } from './PlantRenderer'
 import { createStructureRenderer } from './StructureRenderer'
 import { createLabelRenderer } from './LabelRenderer'
 import { createDimensionRenderer } from './DimensionRenderer'
-import { createSelectionOverlay } from './SelectionOverlay'
-import type { RenderScheduler } from './RenderScheduler'
-import type { createTextureAtlas } from './textures/TextureAtlas'
-import type { buildCanvasTokens } from '../tokens/canvasTokens'
 
-export interface RendererContainers {
+export interface RendererSet {
+  gridRenderer: RendererHandle
+  terrainRenderer: RendererHandle
+  boundaryRenderer: RendererHandle
+  pathRenderer: RendererHandle
+  plantRenderer: RendererHandle
+  structureRenderer: RendererHandle
+  labelRenderer: RendererHandle
+  dimensionRenderer: RendererHandle
+  textRendererUpdaters: Array<() => void>
+}
+
+interface RendererDeps {
+  world: Container
   gridContainer: Container
   terrainContainer: Container
   pathsContainer: Container
   elementsContainer: Container
   labelsContainer: Container
   overflowDimContainer: Container
-  boundarySubContainer: Container
+  scheduler: RenderScheduler
+  textureAtlas: TextureAtlas
+  getCanvasSize: () => { width: number; height: number }
+  tokens: CanvasTokens
 }
 
-export interface AllRenderers {
-  gridRenderer: ReturnType<typeof createGridRenderer>
-  terrainRenderer: ReturnType<typeof createTerrainRenderer>
-  boundaryRenderer: ReturnType<typeof createBoundaryRenderer>
-  pathRenderer: ReturnType<typeof createPathRenderer>
-  plantRenderer: ReturnType<typeof createPlantRenderer>
-  structureRenderer: ReturnType<typeof createStructureRenderer>
-  labelRenderer: ReturnType<typeof createLabelRenderer>
-  dimensionRenderer: ReturnType<typeof createDimensionRenderer>
-  selectionOverlay: ReturnType<typeof createSelectionOverlay>
-  rendererUpdaters: Array<() => void>
-}
-
-export function createAllRenderers(
-  containers: RendererContainers,
-  selectionContainer: Container,
-  scheduler: RenderScheduler,
-  textureAtlas: ReturnType<typeof createTextureAtlas>,
-  getCanvasSize: () => { width: number; height: number },
-  tokens: ReturnType<typeof buildCanvasTokens>,
-): AllRenderers {
+export function createAllRenderers(deps: RendererDeps): RendererSet {
   const {
+    world,
     gridContainer,
     terrainContainer,
     pathsContainer,
     elementsContainer,
     labelsContainer,
     overflowDimContainer,
-    boundarySubContainer,
-  } = containers
+    scheduler,
+    textureAtlas,
+    getCanvasSize,
+    tokens,
+  } = deps
 
   const gridRenderer = createGridRenderer(gridContainer, scheduler)
   const terrainRenderer = createTerrainRenderer(terrainContainer, scheduler, textureAtlas, getCanvasSize)
+
+  // BoundaryRenderer draws outlines/handles into a sub-container of world,
+  // and the overflow dim into the overflowDim sub-container.
+  const boundarySubContainer = new Container()
+  boundarySubContainer.label = 'boundary'
+  boundarySubContainer.eventMode = 'none'
+  // Insert boundary visuals between paths and elements layers
+  const pathsIdx = world.getChildIndex(pathsContainer)
+  world.addChildAt(boundarySubContainer, pathsIdx + 1)
+
   const boundaryRenderer = createBoundaryRenderer(
     boundarySubContainer,
     overflowDimContainer,
     scheduler,
     getCanvasSize,
   )
+
   const pathRenderer = createPathRenderer(pathsContainer, scheduler)
   const plantRenderer = createPlantRenderer(elementsContainer, scheduler, textureAtlas, getCanvasSize)
   const structureRenderer = createStructureRenderer(elementsContainer, scheduler, textureAtlas, getCanvasSize)
   const labelRenderer = createLabelRenderer(labelsContainer, scheduler)
   const dimensionRenderer = createDimensionRenderer(labelsContainer, scheduler)
 
-  // Apply canvas tokens to renderers that support it
+  // Apply canvas tokens to renderers
   boundaryRenderer.setTokens?.(tokens)
   dimensionRenderer.setTokens?.(tokens)
   labelRenderer.setTokens?.(tokens)
   plantRenderer.setTokens?.(tokens)
   structureRenderer.setTokens?.(tokens)
 
-  // Register Text-bearing renderers for context restore (v8 bug #11685)
-  const rendererUpdaters: Array<() => void> = [
+  // Text-bearing renderers for context restore (v8 bug #11685)
+  const textRendererUpdaters = [
     () => plantRenderer.update(),
     () => structureRenderer.update(),
     () => labelRenderer.update(),
     () => dimensionRenderer.update(),
     () => boundaryRenderer.update(),
   ]
-
-  const selectionOverlay = createSelectionOverlay(selectionContainer, scheduler)
-
-  // Register selection overlay for context restore (it uses Graphics)
-  rendererUpdaters.push(() => selectionOverlay.update())
 
   return {
     gridRenderer,
@@ -97,7 +103,6 @@ export function createAllRenderers(
     structureRenderer,
     labelRenderer,
     dimensionRenderer,
-    selectionOverlay,
-    rendererUpdaters,
+    textRendererUpdaters,
   }
 }

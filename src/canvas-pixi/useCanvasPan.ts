@@ -1,10 +1,17 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useViewportStore } from '../store/useViewportStore'
+
+interface PanState {
+  active: boolean
+  startPanX: number
+  startPanY: number
+  startPointerX: number
+  startPointerY: number
+}
 
 export function useCanvasPan() {
   const [isDragging, setIsDragging] = useState(false)
-
-  const panStateRef = useRef({
+  const panStateRef = useRef<PanState>({
     active: false,
     startPanX: 0,
     startPanY: 0,

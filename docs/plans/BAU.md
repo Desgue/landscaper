@@ -2,7 +2,7 @@
 
 > **Purpose:** AI-first backlog of improvements, bug fixes, and technical debt items. Each item is scoped for an agent to pick up, create a plan from `PLAN_TEMPLATE.md`, and implement autonomously.
 
-**Last updated:** 2026-04-08
+**Last updated:** 2026-04-09
 
 ---
 
@@ -43,17 +43,16 @@ Items are grouped into parallel tracks. Within a track, arrows indicate "must co
 ### Critical paths
 
 ```
-Chain 1 — UI Rethink (longest path, gates most UI work):
-  BAU-30 → BAU-5 → BAU-6 → BAU-13 + BAU-14 (parallel)
-       └→ BAU-23 → BAU-25 + BAU-26 (parallel)
-       └→ BAU-24
-       └→ Landing page plan (pause until BAU-30 done)
+Chain 1 — UI Rethink (BAU-30 done; chain in progress):
+  BAU-5 → BAU-6 → BAU-13 + BAU-14 (parallel)
+  BAU-23 → BAU-25 + BAU-26 (parallel)
+  BAU-24
+  Landing page plan (now unblocked)
 
 Chain 2 — Rendering (safe to run now, no UI chrome):
   BAU-19 → BAU-27 → BAU-22
 
 Chain 3 — Error UX (safe to run now):
-  BAU-2 + BAU-3 (parallel, no blockers)
   BAU-4 → BAU-9 + BAU-10 + BAU-21 (parallel)
 ```
 
@@ -62,18 +61,17 @@ Chain 3 — Error UX (safe to run now):
 | Track | Sequence | Notes |
 |-------|----------|-------|
 | **A — Rendering** | BAU-19 → BAU-27 → BAU-22 | Fix visibility first, then scale, then structure distortion |
-| **B — Errors** | BAU-2 + BAU-3 (parallel) → BAU-4 → BAU-9 + BAU-10 + BAU-21 (parallel) | BAU-4 toast system unlocks 3 items; BAU-2 + BAU-3 unblock BAU-4 |
-| **C — UI Rethink** | BAU-30 → BAU-5 → BAU-6 → BAU-13 + BAU-14 (parallel) | BAU-30 gates BAU-5; BAU-5 gates BAU-6 and BAU-14; BAU-6 gates BAU-13 |
-| **C — UI Rethink (spikes)** | BAU-30 → BAU-23 + BAU-24 (parallel) → BAU-25 + BAU-26 (parallel) | All spike work gates on BAU-30 identity decision |
-| **D — Standalone** | BAU-7, BAU-11, BAU-15, BAU-20, BAU-28, BAU-29, BAU-31 | No blockers; can start immediately in any order |
+| **B — Errors** | BAU-4 → BAU-9 + BAU-10 + BAU-21 (parallel) | BAU-2 + BAU-3 done; BAU-4 toast system is next and unlocks 3 items |
+| **C — UI Rethink** | BAU-5 → BAU-6 → BAU-13 + BAU-14 (parallel) | BAU-30 done; BAU-5 is next gate |
+| **C — UI Rethink (spikes)** | BAU-23 + BAU-24 (parallel) → BAU-25 + BAU-26 (parallel) | BAU-30 done; spikes now unblocked |
+| **D — Standalone** | BAU-7, BAU-11, BAU-28, BAU-29 | No blockers; can start immediately in any order |
 
-Tracks A, B (partial), and D can run now in parallel. Track C starts after BAU-30 spike completes.
+Tracks A, B, C, and D can all run now in parallel. BAU-30 is done.
 
 ### Cross-category dependencies
 
 | Upstream | Downstream | Reason |
 |----------|------------|--------|
-| BAU-30 (spike) | BAU-5, BAU-6, BAU-13, BAU-14, BAU-23, BAU-24, BAU-25, BAU-26, Landing page | All involve significant UI; design direction must be decided first |
 | BAU-19 (rendering) | BAU-27 (rendering) | Must fix tree visibility before sprite scaling matters |
 | BAU-27 (rendering) | BAU-22 (rendering) | Fix sprite scaling before addressing structure texture distortion |
 | BAU-4 (errors) | BAU-9 (errors), BAU-10 (errors), BAU-21 (UX) | All need the centralized toast system |
@@ -83,7 +81,7 @@ Tracks A, B (partial), and D can run now in parallel. Track C starts after BAU-3
 
 ### No dependencies (safe to start now)
 
-BAU-2, BAU-3, BAU-4, BAU-7, BAU-11, BAU-15, BAU-19, BAU-20, BAU-28, BAU-29, BAU-31
+BAU-4, BAU-7, BAU-11, BAU-19, BAU-28, BAU-29
 
 ---
 
@@ -95,12 +93,10 @@ Derived from dependency chains and priority. Items within a wave are independent
 
 | Order | Issue | Title | Rationale |
 |-------|-------|-------|-----------|
-| 1 | [ENG-41](https://linear.app/dg-tech/issue/ENG-41) | BAU-2: Error boundary for lazy imports | Urgent, tiny, prevents white-screen crashes |
-| 2 | [ENG-42](https://linear.app/dg-tech/issue/ENG-42) | BAU-3: File size validation on import | Urgent, tiny, prevents memory crash |
-| 3 | [ENG-35](https://linear.app/dg-tech/issue/ENG-35) | BAU-19: Trees/shrubs not visible on canvas | Urgent, core functionality broken |
-| 4 | [ENG-36](https://linear.app/dg-tech/issue/ENG-36) | BAU-4: Centralized error logging + toasts | High; unblocks BAU-21, BAU-10, BAU-9 |
-| 5 | [ENG-39](https://linear.app/dg-tech/issue/ENG-39) | [Phase 1] CI workflow + .nvmrc | High infra; unblocks deploy workflow |
-| 6 | [ENG-33](https://linear.app/dg-tech/issue/ENG-33) | [Phase 4] Migrate PixiJS colors to buildCanvasTokens() | Urgent Todo; active design token phase |
+| 1 | [ENG-35](https://linear.app/dg-tech/issue/ENG-35) | BAU-19: Trees/shrubs not visible on canvas | Urgent, core functionality broken |
+| 2 | [ENG-36](https://linear.app/dg-tech/issue/ENG-36) | BAU-4: Centralized error logging + toasts | High; unblocks BAU-21, BAU-10, BAU-9 |
+| 3 | [ENG-39](https://linear.app/dg-tech/issue/ENG-39) | [Phase 1] CI workflow + .nvmrc | High infra; unblocks deploy workflow |
+| 4 | [ENG-56](https://linear.app/dg-tech/issue/ENG-56) / [ENG-33](https://linear.app/dg-tech/issue/ENG-33) | [Phase 1+4] Migrate PixiJS colors to buildCanvasTokens() | In Progress; ENG-56 in flight |
 
 ### Wave 2 — Now-Unblocked Bugs + Infra
 
@@ -135,14 +131,14 @@ Derived from dependency chains and priority. Items within a wave are independent
 | 23 | [ENG-37](https://linear.app/dg-tech/issue/ENG-37) | PLAN-H: Image-based sprite loading pipeline | Standalone |
 | 24 | [ENG-45](https://linear.app/dg-tech/issue/ENG-45) | BAU-7: Canvas keyboard accessibility | Large effort; non-blocking |
 
-### Wave 5 — Spikes (Blocked on BAU-30)
+### Wave 5 — Spikes (BAU-30 done — now unblocked)
 
-These all depend on BAU-30 (design direction spike) completing first.
+BAU-30 is done. These spikes can be picked up now.
 
 | Order | Issue | Title | Unblocked by |
 |-------|-------|-------|--------------|
-| 25 | [ENG-17](https://linear.app/dg-tech/issue/ENG-17) | BAU-23: Professional design tool parity spike | BAU-30 |
-| 26 | [ENG-18](https://linear.app/dg-tech/issue/ENG-18) | BAU-24: Construction lines spike | BAU-30 |
+| 25 | [ENG-17](https://linear.app/dg-tech/issue/ENG-17) | BAU-23: Professional design tool parity spike | — |
+| 26 | [ENG-18](https://linear.app/dg-tech/issue/ENG-18) | BAU-24: Construction lines spike | — |
 | 27 | [ENG-19](https://linear.app/dg-tech/issue/ENG-19) | BAU-25: Plant schedule generation spike | ENG-17 (BAU-23) |
 | 28 | [ENG-20](https://linear.app/dg-tech/issue/ENG-20) | BAU-26: SVG/DXF export spike | ENG-17 (BAU-23) |
 
@@ -155,7 +151,7 @@ These all depend on BAU-30 (design direction spike) completing first.
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
 | BAU-19 | Tree/shrub plants not visible on canvas | critical | `planned` — [ENG-35](https://linear.app/dg-tech/issue/ENG-35) |
-| BAU-20 | API yard_photo validation rejects data-URL format | critical | `planned` — [ENG-14](https://linear.app/dg-tech/issue/ENG-14) |
+| BAU-20 | API yard_photo validation rejects data-URL format | critical | `done` — [ENG-14](https://linear.app/dg-tech/issue/ENG-14) |
 | BAU-22 | Structure sprite texture includes extrusion (double south-face) | medium | `planned` — [ENG-49](https://linear.app/dg-tech/issue/ENG-49) |
 | BAU-27 | Plant sprites rendered at fixed 64px regardless of real-world size | high | `planned` — [ENG-43](https://linear.app/dg-tech/issue/ENG-43) |
 | BAU-28 | Structure bounding box doesn't rotate with shape | medium | `planned` — [ENG-50](https://linear.app/dg-tech/issue/ENG-50) |
@@ -164,8 +160,8 @@ These all depend on BAU-30 (design direction spike) completing first.
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
-| BAU-2 | Error boundary for lazy imports | critical | `planned` — [ENG-41](https://linear.app/dg-tech/issue/ENG-41) |
-| BAU-3 | File size validation on import | critical | `planned` — [ENG-42](https://linear.app/dg-tech/issue/ENG-42) |
+| BAU-2 | Error boundary for lazy imports | critical | `done` — [ENG-41](https://linear.app/dg-tech/issue/ENG-41) |
+| BAU-3 | File size validation on import | critical | `done` — [ENG-42](https://linear.app/dg-tech/issue/ENG-42) |
 | BAU-4 | Centralized error logging with user-facing toasts | high | `planned` — [ENG-36](https://linear.app/dg-tech/issue/ENG-36) |
 | BAU-9 | API retry with exponential backoff | high | `planned` — [ENG-44](https://linear.app/dg-tech/issue/ENG-44) |
 | BAU-10 | PNG export error feedback | medium | `planned` — [ENG-51](https://linear.app/dg-tech/issue/ENG-51) |
@@ -193,9 +189,9 @@ These all depend on BAU-30 (design direction spike) completing first.
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
 | BAU-8 | ~~IndexedDB migration system~~ | ~~high~~ | `dropped` — over-engineered; schema evolution handled by validation on load |
-| BAU-15 | Go server graceful shutdown | medium | `planned` — [ENG-15](https://linear.app/dg-tech/issue/ENG-15) |
+| BAU-15 | Go server graceful shutdown | medium | `done` — [ENG-15](https://linear.app/dg-tech/issue/ENG-15) |
 | BAU-16 | ~~Anonymous error tracking (Sentry or similar)~~ | ~~low~~ | `dropped` — premature for personal project; BAU-4 toasts cover user-facing errors |
-| BAU-31 | Deploy to Railway | high | `planned` — [ENG-24](https://linear.app/dg-tech/issue/ENG-24) |
+| BAU-31 | Deploy to Railway | high | `in-progress` — [ENG-24](https://linear.app/dg-tech/issue/ENG-24) |
 
 ### Cleanup & Documentation
 
@@ -215,7 +211,7 @@ These all depend on BAU-30 (design direction spike) completing first.
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
-| BAU-30 | Spike: UI identity rethink — move away from Excalidraw toward professional design tool | critical | `planned` — [ENG-16](https://linear.app/dg-tech/issue/ENG-16) |
+| BAU-30 | Spike: UI identity rethink — move away from Excalidraw toward professional design tool | critical | `done` — [ENG-16](https://linear.app/dg-tech/issue/ENG-16) |
 | BAU-23 | Spike: Professional design tool parity | high | `planned` — [ENG-17](https://linear.app/dg-tech/issue/ENG-17) |
 | BAU-24 | Spike: Construction lines and reference guides | high | `planned` — [ENG-18](https://linear.app/dg-tech/issue/ENG-18) |
 | BAU-25 | Spike: Plant schedule generation | medium | `planned` — [ENG-19](https://linear.app/dg-tech/issue/ENG-19) |

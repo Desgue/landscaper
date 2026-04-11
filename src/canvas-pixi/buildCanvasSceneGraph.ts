@@ -1,24 +1,28 @@
-import { Container, Graphics } from 'pixi.js'
-import type { Application } from 'pixi.js'
+import { type Application, Container, Graphics } from 'pixi.js'
 
-export interface CanvasSceneGraph {
+export interface SceneGraph {
+  world: Container
   gridContainer: Container
   terrainContainer: Container
   pathsContainer: Container
   elementsContainer: Container
   labelsContainer: Container
   overflowDimContainer: Container
-  boundarySubContainer: Container
   interaction: Container
   hud: Container
 }
 
 export function buildCanvasSceneGraph(
-  _app: Application,
-  world: Container,
+  app: Application,
   width: number,
   height: number,
-): CanvasSceneGraph {
+): SceneGraph {
+  // WORLD container — holds all scene content, transformed by viewport
+  const world = new Container()
+  world.label = 'world'
+  world.eventMode = 'none'
+  world.isRenderGroup = true
+
   // World sub-containers (bottom to top)
   const gridContainer = new Container()
   gridContainer.label = 'grid'
@@ -70,21 +74,16 @@ export function buildCanvasSceneGraph(
   hud.label = 'hud'
   hud.eventMode = 'none'
 
-  // Insert boundary sub-container between paths and elements layers
-  const boundarySubContainer = new Container()
-  boundarySubContainer.label = 'boundary'
-  boundarySubContainer.eventMode = 'none'
-  const pathsIdx = world.getChildIndex(pathsContainer)
-  world.addChildAt(boundarySubContainer, pathsIdx + 1)
+  app.stage.addChild(world, interaction, hud)
 
   return {
+    world,
     gridContainer,
     terrainContainer,
     pathsContainer,
     elementsContainer,
     labelsContainer,
     overflowDimContainer,
-    boundarySubContainer,
     interaction,
     hud,
   }

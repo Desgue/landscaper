@@ -3,10 +3,12 @@ import { clampZoom } from '../canvas/viewport'
 
 const ZOOM_ANIM_DURATION = 150
 
-export function createZoomAnimator(): {
+export interface ZoomAnimatorHandle {
   onWheel: (e: WheelEvent) => void
   destroy: () => void
-} {
+}
+
+export function createZoomAnimator(): ZoomAnimatorHandle {
   let zoomAnimRaf = 0
   let zoomAnimStart = 0
   let zoomAnimFrom = 1
