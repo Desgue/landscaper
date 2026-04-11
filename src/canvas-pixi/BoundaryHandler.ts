@@ -10,7 +10,7 @@
  * remain in the existing YardBoundaryHTMLOverlays component.
  */
 
-import type { Vec2, YardBoundaryEdge } from '../types/schema'
+import type { Vec2, YardBoundaryEdge, Project } from '../types/schema'
 import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useViewportStore } from '../store/useViewportStore'

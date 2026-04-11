@@ -23,12 +23,12 @@ import { useHistoryStore } from './useHistoryStore'
 /**
  * Atomically snapshot, mutate, push history, and mark dirty in a single call.
  *
- * @param actionName - Human-readable label for this mutation.
- *   // TODO(logging): actionName feeds into structured logging — see audit Section 3
+ * @param _actionName - Human-readable label for this mutation.
+ *   // TODO(logging): _actionName feeds into structured logging — see audit Section 3
  * @param updater - Receives a mutable draft of the current project. Return void.
  */
 export function commitProjectUpdate(
-  actionName: string,
+  _actionName: string,
   updater: (draft: Project) => void,
 ): void {
   const store = useProjectStore.getState()
