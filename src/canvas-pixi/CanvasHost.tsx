@@ -428,13 +428,13 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
 
       const selectionOverlay = createSelectionOverlay(selectionContainer, scheduler)
 
-      const terrainPaintHandler = createTerrainPaintHandler()
-      const structurePlacementHandler = createStructurePlacementHandler()
-      const plantPlacementHandler = createPlantPlacementHandler()
-      const labelPlacementHandler = createLabelPlacementHandler()
-      const measurementHandler = createMeasurementHandler()
-      const pathDrawingHandler = createPathDrawingHandler()
-      const boundaryHandler = createBoundaryHandler()
+      const terrainPaintHandler = createTerrainPaintHandler(canvasContext)
+      const structurePlacementHandler = createStructurePlacementHandler(canvasContext)
+      const plantPlacementHandler = createPlantPlacementHandler(canvasContext)
+      const labelPlacementHandler = createLabelPlacementHandler(canvasContext)
+      const measurementHandler = createMeasurementHandler(canvasContext)
+      const pathDrawingHandler = createPathDrawingHandler(canvasContext)
+      const boundaryHandler = createBoundaryHandler(canvasContext)
       useBoundaryUIStore.getState().setBoundaryHandle(boundaryHandler)
 
       const getCanvasRect = () => container.getBoundingClientRect()

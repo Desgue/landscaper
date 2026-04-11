@@ -6,14 +6,10 @@
  * Uses Amanatides-Woo DDA for gap-free brush strokes.
  */
 
-import type { Project, TerrainElement, StructureElement } from '../types/schema'
+import type { Project, TerrainElement, StructureElement, Registries } from '../types/schema'
 import { createLogger } from '../utils/logger'
-import { useProjectStore } from '../store/useProjectStore'
-import { useHistoryStore } from '../store/useHistoryStore'
-import { useToolStore } from '../store/useToolStore'
-import { useInspectorStore } from '../store/useInspectorStore'
-import { useTerrainPaintStore } from '../canvas/toolStores'
 import type { RendererHandle } from './BaseRenderer'
+import type { CanvasContext } from './CanvasContext'
 
 // ---------------------------------------------------------------------------
 // Algorithms (ported from TerrainLayer.tsx — pure functions)
@@ -85,17 +81,17 @@ function brushCells(
 function paintCell(
   cellX: number, cellY: number, terrainTypeId: string,
   draft: Project, layerId: string,
+  registries: Registries,
 ): void {
   // Remove existing terrain at this position
   draft.elements = draft.elements.filter(
     (el) => !(el.type === 'terrain' && el.x === cellX && el.y === cellY),
   )
-  // Check if surface structure blocks painting
-  const regs = useProjectStore.getState().registries
+  // Check if surface structure blocks painting (registries extracted before draft mutation)
   const blocked = draft.elements.some(
     (el) =>
       el.type === 'structure' &&
-      regs.structures.find((s) => s.id === (el as StructureElement).structureTypeId)?.category === 'surface' &&
+      registries.structures.find((s) => s.id === (el as StructureElement).structureTypeId)?.category === 'surface' &&
       el.x < cellX + 100 && el.x + el.width > cellX &&
       el.y < cellY + 100 && el.y + el.height > cellY,
   )
@@ -122,20 +118,20 @@ export interface TerrainPaintHandle extends RendererHandle {
   onPointerUp(): void
 }
 
-export function createTerrainPaintHandler(): TerrainPaintHandle {
+export function createTerrainPaintHandler(ctx: CanvasContext): TerrainPaintHandle {
   let isDragging = false
   let lastWorldPos: { x: number; y: number } | null = null
   let prePaintSnapshot: Project | null = null
 
   function onPointerDown(worldX: number, worldY: number, _altKey: boolean): void {
     if (!Number.isFinite(worldX) || !Number.isFinite(worldY)) return
-    const tool = useToolStore.getState().activeTool
+    const tool = ctx.getToolState().activeTool
     if (tool !== 'terrain') return
 
-    const proj = useProjectStore.getState().currentProject
+    const proj = ctx.getProject()
     if (!proj) return
 
-    const { selectedTerrainTypeId, brushSize } = useTerrainPaintStore.getState()
+    const { selectedTerrainTypeId, brushSize } = ctx.getToolState()
     if (!selectedTerrainTypeId) return
 
     prePaintSnapshot = structuredClone(proj)
@@ -145,10 +141,12 @@ export function createTerrainPaintHandler(): TerrainPaintHandle {
     const { cellX, cellY } = worldToCell(worldX, worldY)
     const layerId = proj.layers[0]?.id ?? 'default'
     const cells = brushCells(cellX, cellY, brushSize)
+    // Extract registries before the draft mutation to avoid calling getState() inside a mutator
+    const registries = ctx.getRegistries()
 
-    useProjectStore.getState().updateProject('paintTerrain', (draft) => {
+    ctx.applyLiveUpdate('paintTerrain', (draft) => {
       for (const cell of cells) {
-        paintCell(cell.cellX, cell.cellY, selectedTerrainTypeId, draft, layerId)
+        paintCell(cell.cellX, cell.cellY, selectedTerrainTypeId, draft, layerId, registries)
       }
     })
   }
@@ -157,13 +155,13 @@ export function createTerrainPaintHandler(): TerrainPaintHandle {
     if (!isDragging) return
     if (!Number.isFinite(worldX) || !Number.isFinite(worldY)) return
 
-    const tool = useToolStore.getState().activeTool
+    const tool = ctx.getToolState().activeTool
     if (tool !== 'terrain') return
 
-    const proj = useProjectStore.getState().currentProject
+    const proj = ctx.getProject()
     if (!proj) return
 
-    const { selectedTerrainTypeId, brushSize } = useTerrainPaintStore.getState()
+    const { selectedTerrainTypeId, brushSize } = ctx.getToolState()
     if (!selectedTerrainTypeId) return
 
     const prev = lastWorldPos ?? { x: worldX, y: worldY }
@@ -171,12 +169,14 @@ export function createTerrainPaintHandler(): TerrainPaintHandle {
 
     const layerId = proj.layers[0]?.id ?? 'default'
     const traversed = traversedCells(prev.x, prev.y, worldX, worldY)
+    // Extract registries before the draft mutation to avoid calling getState() inside a mutator
+    const registries = ctx.getRegistries()
 
-    useProjectStore.getState().updateProject('paintTerrainStroke', (draft) => {
+    ctx.applyLiveUpdate('paintTerrainStroke', (draft) => {
       for (const tc of traversed) {
         const expanded = brushCells(tc.cellX, tc.cellY, brushSize)
         for (const cell of expanded) {
-          paintCell(cell.cellX, cell.cellY, selectedTerrainTypeId, draft, layerId)
+          paintCell(cell.cellX, cell.cellY, selectedTerrainTypeId, draft, layerId, registries)
         }
       }
     })
@@ -189,17 +189,16 @@ export function createTerrainPaintHandler(): TerrainPaintHandle {
 
     // intentional drag-paint pattern: snapshot captured at onPointerDown; history committed on release, not inline
     if (prePaintSnapshot) {
-      useHistoryStore.getState().pushHistory(prePaintSnapshot)
-      useProjectStore.getState().markDirty()
+      ctx.pushDragHistory(prePaintSnapshot)
       prePaintSnapshot = null
     }
 
     // Select last painted terrain element for inspector
-    const proj = useProjectStore.getState().currentProject
+    const proj = ctx.getProject()
     if (proj) {
       const terrainEls = proj.elements.filter((el) => el.type === 'terrain')
       if (terrainEls.length > 0) {
-        useInspectorStore.getState().setInspectedElementId(terrainEls[terrainEls.length - 1].id)
+        ctx.setInspectedElement(terrainEls[terrainEls.length - 1].id)
       }
     }
   }
