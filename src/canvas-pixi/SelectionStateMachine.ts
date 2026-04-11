@@ -309,6 +309,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
           for (const el of selElements) {
             drag.elementStartPositions.set(el.id, { x: el.x, y: el.y, w: el.width, h: el.height })
           }
+          log.debug('handleDown → resizing (multi)', { handle, elementCount: selElements.length, worldX, worldY })
           return
         }
       }
@@ -331,6 +332,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
           drag.resizeElementId = currentPrimaryId
           drag.resizeStartAABB = { ...aabb }
           drag.preOpSnapshot = structuredClone(project)
+          log.debug('handleDown → resizing', { handle, elementId: currentPrimaryId, worldX, worldY })
           return
         }
       }
@@ -350,6 +352,7 @@ export function createSelectionStateMachine(): SelectionStateMachine {
           const cy = aabb.y + aabb.h / 2
           drag.rotateStartAngle = Math.atan2(worldY - cy, worldX - cx) * (180 / Math.PI) - selectedEl.rotation
           drag.preOpSnapshot = structuredClone(project)
+          log.debug('handleDown → rotating', { elementId: currentPrimaryId, worldX, worldY })
           return
         }
       }

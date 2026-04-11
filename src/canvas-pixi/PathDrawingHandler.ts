@@ -8,6 +8,7 @@
  */
 
 import type { PathElement, PathSegment, Vec2 } from '../types/schema'
+import { createLogger } from '../utils/logger'
 import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useViewportStore } from '../store/useViewportStore'
@@ -20,6 +21,8 @@ import type { RendererHandle } from './BaseRenderer'
 // ---------------------------------------------------------------------------
 // Geometry
 // ---------------------------------------------------------------------------
+
+const log = createLogger('PathDrawingHandler')
 
 const MAX_PATH_POINTS = 500
 
@@ -133,9 +136,15 @@ export function createPathDrawingHandler(): PathDrawingHandle {
 
     const regs = useProjectStore.getState().registries
     const pathTypeId = usePathToolStore.getState().selectedPathTypeId
-    if (!pathTypeId) return
+    if (!pathTypeId) {
+      log.debug('finalizePath rejected: no pathTypeId selected')
+      return
+    }
     const pathType = regs.paths.find((p) => p.id === pathTypeId)
-    if (!pathType) return
+    if (!pathType) {
+      log.debug('finalizePath rejected: path type not found', { pathTypeId })
+      return
+    }
 
     const finalSegments = closed
       ? [...segments, { type: 'line' as const, arcSagitta: null }]

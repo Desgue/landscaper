@@ -129,11 +129,9 @@ export function snapPoint(
     guideLines,
   }
 
-  try {
-    if (result.snapped && localStorage.getItem('LOG_SNAP') === 'true') {
-      log.debug('snapPoint', { x: worldX, y: worldY, snappedX, snappedY, candidateCount: allCandidates.length, guideCount: guideLines.length })
-    }
-  } catch { /* localStorage unavailable */ }
+  if (result.snapped) {
+    log.debug('snapPoint', { x: worldX, y: worldY, snappedX, snappedY, candidateCount: allCandidates.length, guideCount: guideLines.length })
+  }
 
   return result
 }
