@@ -21,6 +21,19 @@ import {
 } from './DrawingUtils'
 
 // ---------------------------------------------------------------------------
+// Token-driven colors — overridden by updateStructureColors()
+// ---------------------------------------------------------------------------
+
+let SOIL_COLOR = '#6D4C41'
+let FIRE_PIT_COLOR = '#FF6F00'
+
+/** Update structure colors from canvas tokens. Called by StructureRenderer.setTokens(). */
+export function updateStructureColors(colors: { soil: string; texture: string }): void {
+  SOIL_COLOR = colors.soil
+  FIRE_PIT_COLOR = colors.texture
+}
+
+// ---------------------------------------------------------------------------
 // Canvas creation helper
 // ---------------------------------------------------------------------------
 
@@ -192,7 +205,7 @@ function drawContainerTexture(
 
   // Soil-noise fill on top portion (top 30%)
   const soilH = Math.floor(h * 0.3)
-  const soilColor = '#6D4C41'
+  const soilColor = SOIL_COLOR
   ctx.fillStyle = soilColor
   ctx.fillRect(0, 0, w, soilH)
 
@@ -311,8 +324,8 @@ function drawFeatureTexture(
   } else {
     // Warm radial gradient for fire pits
     const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR * 0.8)
-    gradient.addColorStop(0, '#FF6F00')
-    gradient.addColorStop(0.4, '#FF8F00')
+    gradient.addColorStop(0, FIRE_PIT_COLOR)
+    gradient.addColorStop(0.4, lighten(FIRE_PIT_COLOR, 15))
     gradient.addColorStop(0.8, darkenByFactor(color, 0.8))
     gradient.addColorStop(1, color)
     ctx.fillStyle = gradient

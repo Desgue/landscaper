@@ -7,6 +7,7 @@
  */
 
 import type { Project, TerrainElement, StructureElement } from '../types/schema'
+import { createLogger } from '../utils/logger'
 import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useToolStore } from '../store/useToolStore'
@@ -17,6 +18,8 @@ import type { RendererHandle } from './BaseRenderer'
 // ---------------------------------------------------------------------------
 // Algorithms (ported from TerrainLayer.tsx — pure functions)
 // ---------------------------------------------------------------------------
+
+const log = createLogger('TerrainPaintHandler')
 
 function worldToCell(worldX: number, worldY: number): { cellX: number; cellY: number } {
   return {
@@ -96,7 +99,10 @@ function paintCell(
       el.x < cellX + 100 && el.x + el.width > cellX &&
       el.y < cellY + 100 && el.y + el.height > cellY,
   )
-  if (blocked) return
+  if (blocked) {
+    log.debug('cell blocked by structure', { cellX, cellY })
+    return
+  }
   const id = crypto.randomUUID()
   const now = new Date().toISOString()
   draft.elements.push({
@@ -140,7 +146,7 @@ export function createTerrainPaintHandler(): TerrainPaintHandle {
     const layerId = proj.layers[0]?.id ?? 'default'
     const cells = brushCells(cellX, cellY, brushSize)
 
-    useProjectStore.getState().updateProject((draft) => {
+    useProjectStore.getState().updateProject('paintTerrain', (draft) => {
       for (const cell of cells) {
         paintCell(cell.cellX, cell.cellY, selectedTerrainTypeId, draft, layerId)
       }
@@ -166,7 +172,7 @@ export function createTerrainPaintHandler(): TerrainPaintHandle {
     const layerId = proj.layers[0]?.id ?? 'default'
     const traversed = traversedCells(prev.x, prev.y, worldX, worldY)
 
-    useProjectStore.getState().updateProject((draft) => {
+    useProjectStore.getState().updateProject('paintTerrainStroke', (draft) => {
       for (const tc of traversed) {
         const expanded = brushCells(tc.cellX, tc.cellY, brushSize)
         for (const cell of expanded) {
@@ -181,6 +187,7 @@ export function createTerrainPaintHandler(): TerrainPaintHandle {
     isDragging = false
     lastWorldPos = null
 
+    // intentional drag-paint pattern: snapshot captured at onPointerDown; history committed on release, not inline
     if (prePaintSnapshot) {
       useHistoryStore.getState().pushHistory(prePaintSnapshot)
       useProjectStore.getState().markDirty()

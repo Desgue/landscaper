@@ -11,11 +11,7 @@ import LandingPage from './pages/LandingPage'
 import ErrorBoundary from './components/ErrorBoundary'
 
 const LazyWelcomeScreen = React.lazy(() => import('./components/WelcomeScreen'))
-const LazyAppLayout = React.lazy(() =>
-  import('./components/registerInspectorSlots').then(() =>
-    import('./components/AppLayout')
-  )
-)
+const LazyAppLayout = React.lazy(() => import('./components/AppLayout'))
 const LazyGeneratePage = React.lazy(() => import('./pages/GeneratePage'))
 
 function LoadingFallback() {

@@ -13,7 +13,6 @@
  */
 
 import { Container, Sprite, Text } from 'pixi.js'
-import { connectStore } from './connectStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { useViewportStore } from '../store/useViewportStore'
 import {
@@ -23,6 +22,9 @@ import type { RendererHandle } from './BaseRenderer'
 import type { RenderScheduler } from './RenderScheduler'
 import type { TextureAtlas } from './textures/TextureAtlas'
 import type { PlantElement, PlantType, PlantStatus, Layer } from '../types/schema'
+import type { CanvasTokens } from '../tokens/canvasTokens'
+import { pixiIntToHex } from '../tokens/canvasTokens'
+import { updatePlantColors } from './textures/PlantSprites'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -52,7 +54,7 @@ const STATUS_SYMBOLS: Record<PlantStatus, string> = {
   removed: '✕',   // x mark
 }
 
-const STATUS_COLORS: Record<PlantStatus, string> = {
+let STATUS_COLORS: Record<PlantStatus, string> = {
   planned: '#9E9E9E',
   planted: '#4CAF50',
   growing: '#66BB6A',
@@ -310,38 +312,32 @@ export function createPlantRenderer(
 
   // Rebuild when project elements change
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.currentProject?.elements,
-      () => rebuildFromStore(),
-    ),
+    useProjectStore.subscribe((state, prevState) => {
+      if (state.currentProject?.elements !== prevState.currentProject?.elements) rebuildFromStore()
+    }),
   )
 
   // Rebuild when registries change (plant type definitions may update)
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.registries.plants,
-      () => rebuildFromStore(),
-    ),
+    useProjectStore.subscribe((state, prevState) => {
+      if (state.registries.plants !== prevState.registries.plants) rebuildFromStore()
+    }),
   )
 
   // Rebuild when layer visibility/locked state changes
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.currentProject?.layers,
-      () => rebuildFromStore(),
-    ),
+    useProjectStore.subscribe((state, prevState) => {
+      if (state.currentProject?.layers !== prevState.currentProject?.layers) rebuildFromStore()
+    }),
   )
 
   // Update element visibility when viewport changes (pan/zoom)
   unsubs.push(
-    connectStore(
-      useViewportStore,
-      (s) => `${s.panX},${s.panY},${s.zoom}`,
-      () => updateElementVisibility(),
-    ),
+    useViewportStore.subscribe((state, prevState) => {
+      if (state.panX !== prevState.panX || state.panY !== prevState.panY || state.zoom !== prevState.zoom) {
+        updateElementVisibility()
+      }
+    }),
   )
 
   // Initial render
@@ -353,6 +349,30 @@ export function createPlantRenderer(
 
   return {
     update: rebuildFromStore,
+    setTokens(tokens: CanvasTokens) {
+      // Update status colors (integer → hex for Text fill)
+      STATUS_COLORS = {
+        planned: pixiIntToHex(tokens.plantStatusColors.planned),
+        planted: pixiIntToHex(tokens.plantStatusColors.planted),
+        growing: pixiIntToHex(tokens.plantStatusColors.growing),
+        harvested: pixiIntToHex(tokens.plantStatusColors.harvested),
+        removed: pixiIntToHex(tokens.plantStatusColors.removed),
+      }
+
+      // Update category colors in PlantSprites (integer → hex for Canvas2D)
+      updatePlantColors({
+        vegetable: pixiIntToHex(tokens.plantColors.vegetable),
+        herb: pixiIntToHex(tokens.plantColors.herb),
+        fruit: pixiIntToHex(tokens.plantColors.fruit),
+        flower: pixiIntToHex(tokens.plantColors.flower),
+        tree: pixiIntToHex(tokens.plantColors.tree),
+        shrub: pixiIntToHex(tokens.plantColors.shrub),
+      })
+
+      // Invalidate cached textures (colors are baked in) and rebuild
+      atlas.invalidatePlantCache()
+      rebuildFromStore()
+    },
     destroy(): void {
       for (const unsub of unsubs) unsub()
       unsubs.length = 0

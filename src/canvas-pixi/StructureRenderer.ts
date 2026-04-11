@@ -16,7 +16,6 @@
  */
 
 import { Container, Graphics, Sprite, Text } from 'pixi.js'
-import { connectStore } from './connectStore'
 import { useProjectStore } from '../store/useProjectStore'
 import { useViewportStore } from '../store/useViewportStore'
 import {
@@ -30,6 +29,9 @@ import type { RendererHandle } from './BaseRenderer'
 import type { RenderScheduler } from './RenderScheduler'
 import type { TextureAtlas } from './textures/TextureAtlas'
 import type { StructureElement, StructureType, Layer } from '../types/schema'
+import type { CanvasTokens } from '../tokens/canvasTokens'
+import { pixiIntToHex } from '../tokens/canvasTokens'
+import { updateStructureColors } from './textures/StructureSprites'
 import { sampleArc } from '../canvas/arcGeometry'
 
 // ---------------------------------------------------------------------------
@@ -597,37 +599,31 @@ export function createStructureRenderer(
   // ---------------------------------------------------------------------------
 
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.currentProject?.elements,
-      () => rebuildFromStore(),
-    ),
+    useProjectStore.subscribe((state, prevState) => {
+      if (state.currentProject?.elements !== prevState.currentProject?.elements) rebuildFromStore()
+    }),
   )
 
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.registries.structures,
-      () => rebuildFromStore(),
-    ),
+    useProjectStore.subscribe((state, prevState) => {
+      if (state.registries.structures !== prevState.registries.structures) rebuildFromStore()
+    }),
   )
 
   // Rebuild when layer visibility/locked state changes
   unsubs.push(
-    connectStore(
-      useProjectStore,
-      (s) => s.currentProject?.layers,
-      () => rebuildFromStore(),
-    ),
+    useProjectStore.subscribe((state, prevState) => {
+      if (state.currentProject?.layers !== prevState.currentProject?.layers) rebuildFromStore()
+    }),
   )
 
   // Update element visibility when viewport changes (pan/zoom)
   unsubs.push(
-    connectStore(
-      useViewportStore,
-      (s) => `${s.panX},${s.panY},${s.zoom}`,
-      () => updateElementVisibility(),
-    ),
+    useViewportStore.subscribe((state, prevState) => {
+      if (state.panX !== prevState.panX || state.panY !== prevState.panY || state.zoom !== prevState.zoom) {
+        updateElementVisibility()
+      }
+    }),
   )
 
   // Initial render
@@ -639,6 +635,17 @@ export function createStructureRenderer(
 
   return {
     update: rebuildFromStore,
+    setTokens(tokens: CanvasTokens) {
+      // Update structure colors in StructureSprites (integer → hex for Canvas2D)
+      updateStructureColors({
+        soil: pixiIntToHex(tokens.structureColors.soil),
+        texture: pixiIntToHex(tokens.structureColors.texture),
+      })
+
+      // Invalidate cached textures (colors are baked in) and rebuild
+      atlas.invalidateStructureCache()
+      rebuildFromStore()
+    },
     destroy(): void {
       for (const unsub of unsubs) unsub()
       unsubs.length = 0
