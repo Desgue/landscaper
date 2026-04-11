@@ -103,6 +103,10 @@ function makeMockCanvasContext(): CanvasContext {
     getZoom() {
       return useViewportStore.getState().zoom
     },
+    getPan() {
+      const { panX, panY } = useViewportStore.getState()
+      return { panX, panY }
+    },
     getToolState() {
       const { activeTool, previousTool } = useToolStore.getState()
       return {
