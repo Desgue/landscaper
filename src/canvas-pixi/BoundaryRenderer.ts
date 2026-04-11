@@ -99,8 +99,6 @@ export function createBoundaryRenderer(
   // Pool of Text objects for edge labels
   let labelPool: Text[] = []
 
-  // Track last zoom to avoid full re-render on pan-only changes
-  const _lastZoom = useViewportStore.getState().zoom
 
   // ---------------------------------------------------------------------------
   // Placement preview
@@ -435,7 +433,6 @@ export function createBoundaryRenderer(
   unsubs.push(
     useViewportStore.subscribe((state, prevState) => {
       if (state.zoom !== prevState.zoom) {
-        lastZoom = state.zoom
         render()
       } else if (state.panX !== prevState.panX || state.panY !== prevState.panY) {
         // Pan-only: just update the overflow dim rectangle
