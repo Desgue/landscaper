@@ -175,6 +175,292 @@ function createCanvasContext(): CanvasContext {
 // ---- Texture GC interval (ms) ----
 const TEXTURE_GC_INTERVAL = 60_000
 
+// ---------------------------------------------------------------------------
+// initApp setup helpers
+// ---------------------------------------------------------------------------
+
+/** Initialise the PixiJS Application, mount its canvas, and return design tokens. */
+async function setupPixiApp(
+  app: Application,
+  container: HTMLDivElement,
+  width: number,
+  height: number,
+) {
+  await app.init({
+    background: 0x000000, // overridden by tokens below
+    width,
+    height,
+    antialias: true,
+    autoDensity: true,
+    resolution: window.devicePixelRatio || 1,
+    autoStart: false,
+    powerPreference: 'high-performance',
+  })
+
+  const tokens = buildCanvasTokens()
+
+  app.renderer.background.color = tokens.surfaceCanvasOverflow
+
+  // Stop built-in ticker — we use render-on-demand
+  app.ticker.stop()
+
+  // Texture GC: disable auto-eviction, manual run every 60s
+  if (app.renderer.textureGC) {
+    app.renderer.textureGC.maxIdle = Infinity
+  }
+
+  container.appendChild(app.canvas)
+  setPixiApp(app)
+
+  return { tokens }
+}
+
+/** Subscribe the world container to the viewport store and return cleanup. */
+function setupViewportWiring(
+  world: Container,
+  scheduler: RenderScheduler,
+): () => void {
+  const applyViewport = () => {
+    const { panX, panY, zoom } = useViewportStore.getState()
+    world.position.set(panX, panY)
+    world.scale.set(zoom, zoom)
+    scheduler.markDirty()
+  }
+
+  applyViewport()
+  return useViewportStore.subscribe(applyViewport)
+}
+
+interface PointerEventHandles {
+  onPointerDown: (e: FederatedPointerEvent) => void
+  onPointerMove: (e: FederatedPointerEvent) => void
+  onPointerUp: () => void
+  zoomAnimator: ReturnType<typeof createZoomAnimator>
+  onDblClick: (e: MouseEvent) => void
+}
+
+/** Wire pointer events on the interaction layer and DOM canvas. Returns handles needed for cleanup. */
+function setupPointerEvents(
+  app: Application,
+  interaction: Container,
+  container: HTMLDivElement,
+  cursorRafRef: React.MutableRefObject<number>,
+  interactionManagerRef: React.MutableRefObject<InteractionManagerHandle | null>,
+  panStateRef: React.MutableRefObject<{ active: boolean }>,
+  startPan: (x: number, y: number) => void,
+  movePan: (x: number, y: number) => void,
+  endPan: () => void,
+): PointerEventHandles {
+  const onPointerDown = (e: FederatedPointerEvent) => {
+    const nativeEvent = e.nativeEvent as PointerEvent
+    const button = nativeEvent.button ?? 0
+
+    if (button === 1) {
+      nativeEvent.preventDefault?.()
+      startPan(nativeEvent.clientX, nativeEvent.clientY)
+    } else if (button === 0 && useToolStore.getState().activeTool === 'hand') {
+      startPan(nativeEvent.clientX, nativeEvent.clientY)
+    }
+  }
+
+  const onPointerMove = (e: FederatedPointerEvent) => {
+    const nativeEvent = e.nativeEvent as PointerEvent
+
+    if (panStateRef.current.active) {
+      movePan(nativeEvent.clientX, nativeEvent.clientY)
+    }
+
+    // Cursor world-position tracking (throttled via rAF)
+    const clientX = nativeEvent.clientX
+    const clientY = nativeEvent.clientY
+    if (!cursorRafRef.current) {
+      cursorRafRef.current = requestAnimationFrame(() => {
+        cursorRafRef.current = 0
+        const rect = container.getBoundingClientRect()
+        const { panX, panY, zoom } = useViewportStore.getState()
+        const w = toWorld(clientX - rect.left, clientY - rect.top, panX, panY, zoom)
+        useCursorStore.getState().setCursorWorld(w.x, w.y)
+      })
+    }
+  }
+
+  const onPointerUp = () => {
+    endPan()
+  }
+
+  interaction.on('pointerdown', onPointerDown)
+  interaction.on('pointermove', onPointerMove)
+  interaction.on('pointerup', onPointerUp)
+  interaction.on('pointerupoutside', onPointerUp)
+
+  // Wheel zoom
+  const zoomAnimator = createZoomAnimator()
+  app.canvas.addEventListener('wheel', zoomAnimator.onWheel, { passive: false })
+
+  // Double-click (native DOM, since PixiJS lacks native dblclick)
+  const onDblClick = (e: MouseEvent) => {
+    const rect = container.getBoundingClientRect()
+    const screenX = e.clientX - rect.left
+    const screenY = e.clientY - rect.top
+    const { panX, panY, zoom } = useViewportStore.getState()
+    const w = toWorld(screenX, screenY, panX, panY, zoom)
+    interactionManagerRef.current?.handleDblClick(w.x, w.y)
+  }
+  app.canvas.addEventListener('dblclick', onDblClick)
+
+  return { onPointerDown, onPointerMove, onPointerUp, zoomAnimator, onDblClick }
+}
+
+/** Register WebGL context-loss/restore listeners. Returns a cleanup function. */
+function setupContextLossHandlers(
+  app: Application,
+  scheduler: RenderScheduler,
+  setContextLost: (lost: boolean) => void,
+  rendererUpdaters: Array<() => void>,
+): () => void {
+  const onContextLost = () => {
+    console.warn('[CanvasHost] WebGL context lost')
+    setContextLost(true)
+  }
+
+  const onContextRestored = () => {
+    console.info('[CanvasHost] WebGL context restored')
+    setContextLost(false)
+    for (const update of rendererUpdaters) update()
+    scheduler.markDirty()
+  }
+
+  app.canvas.addEventListener('webglcontextlost', onContextLost)
+  app.canvas.addEventListener('webglcontextrestored', onContextRestored)
+
+  return () => {
+    app.canvas.removeEventListener('webglcontextlost', onContextLost)
+    app.canvas.removeEventListener('webglcontextrestored', onContextRestored)
+  }
+}
+
+/** Start the texture-GC interval and create the texture atlas. Returns cleanup function and atlas. */
+function setupTextureResources(app: Application) {
+  const gcInterval = setInterval(() => {
+    if (app.renderer?.textureGC) {
+      app.renderer.textureGC.run()
+    }
+  }, TEXTURE_GC_INTERVAL)
+
+  const textureAtlas = createTextureAtlas()
+
+  const destroy = () => {
+    clearInterval(gcInterval)
+    textureAtlas.destroy()
+  }
+
+  return { textureAtlas, destroy }
+}
+
+/** Construct all tool handlers and register the boundary handle with its store. */
+function setupToolHandlers(canvasContext: CanvasContext) {
+  const terrainPaintHandler = createTerrainPaintHandler(canvasContext)
+  const structurePlacementHandler = createStructurePlacementHandler(canvasContext)
+  const plantPlacementHandler = createPlantPlacementHandler(canvasContext)
+  const labelPlacementHandler = createLabelPlacementHandler(canvasContext)
+  const measurementHandler = createMeasurementHandler(canvasContext)
+  const pathDrawingHandler = createPathDrawingHandler(canvasContext)
+  const boundaryHandler = createBoundaryHandler(canvasContext)
+  useBoundaryUIStore.getState().setBoundaryHandle(boundaryHandler)
+
+  const destroy = () => {
+    terrainPaintHandler.destroy()
+    structurePlacementHandler.destroy()
+    plantPlacementHandler.destroy()
+    labelPlacementHandler.destroy()
+    measurementHandler.destroy()
+    pathDrawingHandler.destroy()
+    useBoundaryUIStore.getState().setBoundaryHandle(null)
+    boundaryHandler.destroy()
+  }
+
+  return {
+    terrainPaintHandler,
+    structurePlacementHandler,
+    plantPlacementHandler,
+    labelPlacementHandler,
+    measurementHandler,
+    pathDrawingHandler,
+    boundaryHandler,
+    destroy,
+  }
+}
+
+/** Create the interaction manager and wire store subscriptions. Returns cleanup and the manager handle. */
+function setupInteractionManager(
+  interaction: Container,
+  scheduler: RenderScheduler,
+  selectionOverlay: ReturnType<typeof createSelectionOverlay>,
+  toolHandlers: ReturnType<typeof setupToolHandlers>,
+  container: HTMLDivElement,
+  panStateRef: React.MutableRefObject<{ active: boolean }>,
+  canvasContext: CanvasContext,
+  interactionManagerRef: React.MutableRefObject<InteractionManagerHandle | null>,
+) {
+  const {
+    terrainPaintHandler,
+    structurePlacementHandler,
+    plantPlacementHandler,
+    labelPlacementHandler,
+    measurementHandler,
+    pathDrawingHandler,
+    boundaryHandler,
+  } = toolHandlers
+
+  const getCanvasRect = () => container.getBoundingClientRect()
+
+  const interactionManager = createInteractionManager(
+    interaction,
+    scheduler,
+    selectionOverlay,
+    {
+      terrainPaint: terrainPaintHandler,
+      structurePlacement: structurePlacementHandler,
+      plantPlacement: plantPlacementHandler,
+      labelPlacement: labelPlacementHandler,
+      measurement: measurementHandler,
+      pathDrawing: pathDrawingHandler,
+      boundary: boundaryHandler,
+    },
+    getCanvasRect,
+    () => panStateRef.current.active,
+    canvasContext,
+    container,
+  )
+  interactionManagerRef.current = interactionManager
+
+  // Sync inspector with selection primary change
+  const unsubInspector = useSelectionStore.subscribe((state, prevState) => {
+    if (state.primaryId !== prevState.primaryId) {
+      interactionManager.onSelectionPrimaryChange(state.primaryId)
+    }
+  })
+
+  // Reset SSM + path drawing state on tool change
+  const unsubTool = useToolStore.subscribe((state, prevState) => {
+    const newTool = state.activeTool
+    const oldTool = prevState.activeTool
+    if (newTool !== oldTool) {
+      interactionManager.onToolChange(newTool, oldTool)
+      pathDrawingHandler.onToolChange(newTool, oldTool)
+    }
+  })
+
+  const destroy = () => {
+    interactionManager.destroy()
+    unsubInspector()
+    unsubTool()
+    interactionManagerRef.current = null
+  }
+
+  return { interactionManager, destroy }
+}
+
 export default function CanvasHost({ width, height }: CanvasHostProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<Application | null>(null)
@@ -228,16 +514,10 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
     const app = new Application()
 
     const initApp = async () => {
-      await app.init({
-        background: 0x000000, // overridden by tokens below
-        width,
-        height,
-        antialias: true,
-        autoDensity: true,
-        resolution: window.devicePixelRatio || 1,
-        autoStart: false,
-        powerPreference: 'high-performance',
-      })
+      // ------------------------------------------------------------------
+      // PixiJS application init
+      // ------------------------------------------------------------------
+      const { tokens } = await setupPixiApp(app, container, width, height)
 
       // Guard against React 19 Strict Mode double-mount
       if (destroyed) {
@@ -245,24 +525,7 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         return
       }
 
-      // Build canvas tokens once (reads CSS custom properties via getComputedStyle).
-      const tokens = buildCanvasTokens()
-
-      // Apply token-derived background color
-      app.renderer.background.color = tokens.surfaceCanvasOverflow
-
-      // Stop built-in ticker — we use render-on-demand
-      app.ticker.stop()
-
-      // Texture GC: disable auto-eviction, manual run every 60s
-      if (app.renderer.textureGC) {
-        app.renderer.textureGC.maxIdle = Infinity
-      }
-
-      // Mount canvas element
-      container.appendChild(app.canvas)
       appRef.current = app
-      setPixiApp(app)
 
       // ------------------------------------------------------------------
       // Scene graph
@@ -280,117 +543,42 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
 
       interactionRef.current = interaction
 
+      // ------------------------------------------------------------------
+      // Viewport wiring
+      // ------------------------------------------------------------------
+      const unsubViewport = setupViewportWiring(world, scheduler)
 
       // ------------------------------------------------------------------
-      // Viewport wiring: subscribe to store, apply to world container
+      // Pointer events (interaction layer + DOM canvas)
       // ------------------------------------------------------------------
-      const applyViewport = () => {
-        const { panX, panY, zoom } = useViewportStore.getState()
-        world.position.set(panX, panY)
-        world.scale.set(zoom, zoom)
-        scheduler.markDirty()
-      }
-
-      applyViewport()
-      const unsubViewport = useViewportStore.subscribe(applyViewport)
-
-      // ------------------------------------------------------------------
-      // Pointer events on interaction layer
-      // ------------------------------------------------------------------
-      const onPointerDown = (e: FederatedPointerEvent) => {
-        const nativeEvent = e.nativeEvent as PointerEvent
-        const button = nativeEvent.button ?? 0
-
-        if (button === 1) {
-          nativeEvent.preventDefault?.()
-          startPan(nativeEvent.clientX, nativeEvent.clientY)
-        } else if (button === 0 && useToolStore.getState().activeTool === 'hand') {
-          startPan(nativeEvent.clientX, nativeEvent.clientY)
-        }
-      }
-
-      const onPointerMove = (e: FederatedPointerEvent) => {
-        const nativeEvent = e.nativeEvent as PointerEvent
-
-        if (panStateRef.current.active) {
-          movePan(nativeEvent.clientX, nativeEvent.clientY)
-        }
-
-        // Cursor world-position tracking (throttled via rAF)
-        const clientX = nativeEvent.clientX
-        const clientY = nativeEvent.clientY
-        if (!cursorRafRef.current) {
-          cursorRafRef.current = requestAnimationFrame(() => {
-            cursorRafRef.current = 0
-            const rect = container.getBoundingClientRect()
-            const { panX, panY, zoom } = useViewportStore.getState()
-            const w = toWorld(clientX - rect.left, clientY - rect.top, panX, panY, zoom)
-            useCursorStore.getState().setCursorWorld(w.x, w.y)
-          })
-        }
-      }
-
-      const onPointerUp = () => {
-        endPan()
-      }
-
-      interaction.on('pointerdown', onPointerDown)
-      interaction.on('pointermove', onPointerMove)
-      interaction.on('pointerup', onPointerUp)
-      interaction.on('pointerupoutside', onPointerUp)
+      const pointerHandles = setupPointerEvents(
+        app,
+        interaction,
+        container,
+        cursorRafRef,
+        interactionManagerRef,
+        panStateRef,
+        startPan,
+        movePan,
+        endPan,
+      )
 
       // ------------------------------------------------------------------
-      // Wheel zoom
+      // WebGL context loss / restore
       // ------------------------------------------------------------------
-      const zoomAnimator = createZoomAnimator()
-      app.canvas.addEventListener('wheel', zoomAnimator.onWheel, { passive: false })
-
-      // ------------------------------------------------------------------
-      // Double-click (native DOM, since PixiJS lacks native dblclick)
-      // ------------------------------------------------------------------
-      const onDblClick = (e: MouseEvent) => {
-        const rect = container.getBoundingClientRect()
-        const screenX = e.clientX - rect.left
-        const screenY = e.clientY - rect.top
-        const { panX, panY, zoom } = useViewportStore.getState()
-        const w = toWorld(screenX, screenY, panX, panY, zoom)
-        interactionManagerRef.current?.handleDblClick(w.x, w.y)
-      }
-      app.canvas.addEventListener('dblclick', onDblClick)
-
-      // ------------------------------------------------------------------
-      // WebGL context loss/restore
-      // ------------------------------------------------------------------
+      // rendererUpdaters is populated after renderers and overlay are created
       const rendererUpdaters: Array<() => void> = []
-
-      const onContextLost = () => {
-        console.warn('[CanvasHost] WebGL context lost')
-        setContextLost(true)
-      }
-
-      const onContextRestored = () => {
-        console.info('[CanvasHost] WebGL context restored')
-        setContextLost(false)
-        for (const update of rendererUpdaters) update()
-        scheduler.markDirty()
-      }
-
-      app.canvas.addEventListener('webglcontextlost', onContextLost)
-      app.canvas.addEventListener('webglcontextrestored', onContextRestored)
+      const cleanupContextHandlers = setupContextLossHandlers(
+        app,
+        scheduler,
+        setContextLost,
+        rendererUpdaters,
+      )
 
       // ------------------------------------------------------------------
-      // Texture GC manual sweep
+      // Texture GC interval + atlas
       // ------------------------------------------------------------------
-      const gcInterval = setInterval(() => {
-        if (app.renderer?.textureGC) {
-          app.renderer.textureGC.run()
-        }
-      }, TEXTURE_GC_INTERVAL)
-
-      // ------------------------------------------------------------------
-      // Texture atlas
-      // ------------------------------------------------------------------
-      const textureAtlas = createTextureAtlas()
+      const { textureAtlas, destroy: destroyTextureResources } = setupTextureResources(app)
 
       const getCanvasSize = () => canvasSizeRef.current
 
@@ -414,11 +602,8 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       rendererUpdaters.push(...renderers.textRendererUpdaters)
 
       // ------------------------------------------------------------------
-      // Phase 4: Selection overlay + Interaction manager + Tool handlers
+      // Phase 4: Selection overlay + Canvas context
       // ------------------------------------------------------------------
-
-      // Construct the CanvasContext for this app instance.
-      // Phase 2 (ENG-86): wired into SelectionStateMachine via InteractionManager.
       const canvasContext = createCanvasContext()
 
       const selectionContainer = new Container()
@@ -427,82 +612,40 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
       world.addChild(selectionContainer)
 
       const selectionOverlay = createSelectionOverlay(selectionContainer, scheduler)
-
-      const terrainPaintHandler = createTerrainPaintHandler(canvasContext)
-      const structurePlacementHandler = createStructurePlacementHandler(canvasContext)
-      const plantPlacementHandler = createPlantPlacementHandler(canvasContext)
-      const labelPlacementHandler = createLabelPlacementHandler(canvasContext)
-      const measurementHandler = createMeasurementHandler(canvasContext)
-      const pathDrawingHandler = createPathDrawingHandler(canvasContext)
-      const boundaryHandler = createBoundaryHandler(canvasContext)
-      useBoundaryUIStore.getState().setBoundaryHandle(boundaryHandler)
-
-      const getCanvasRect = () => container.getBoundingClientRect()
-
-      const interactionManager = createInteractionManager(
-        interaction,
-        scheduler,
-        selectionOverlay,
-        {
-          terrainPaint: terrainPaintHandler,
-          structurePlacement: structurePlacementHandler,
-          plantPlacement: plantPlacementHandler,
-          labelPlacement: labelPlacementHandler,
-          measurement: measurementHandler,
-          pathDrawing: pathDrawingHandler,
-          boundary: boundaryHandler,
-        },
-        getCanvasRect,
-        () => panStateRef.current.active,
-        canvasContext,
-        container,
-      )
-      interactionManagerRef.current = interactionManager
-
-      // ------------------------------------------------------------------
-      // Store subscriptions — owned here so cleanup is centralised
-      // ------------------------------------------------------------------
-
-      // Sync inspector with selection primary change
-      const unsubInspector = useSelectionStore.subscribe((state, prevState) => {
-        if (state.primaryId !== prevState.primaryId) {
-          interactionManager.onSelectionPrimaryChange(state.primaryId)
-        }
-      })
-
-      // Reset SSM + path drawing state on tool change
-      const unsubTool = useToolStore.subscribe((state, prevState) => {
-        const newTool = state.activeTool
-        const oldTool = prevState.activeTool
-        if (newTool !== oldTool) {
-          interactionManager.onToolChange(newTool, oldTool)
-          pathDrawingHandler.onToolChange(newTool, oldTool)
-        }
-      })
-
       rendererUpdaters.push(() => selectionOverlay.update())
 
       // ------------------------------------------------------------------
-      // Render scheduler
+      // Tool handlers
+      // ------------------------------------------------------------------
+      const toolHandlers = setupToolHandlers(canvasContext)
+
+      // ------------------------------------------------------------------
+      // Interaction manager + store subscriptions
+      // ------------------------------------------------------------------
+      const { destroy: destroyInteractionManager } = setupInteractionManager(
+        interaction,
+        scheduler,
+        selectionOverlay,
+        toolHandlers,
+        container,
+        panStateRef,
+        canvasContext,
+        interactionManagerRef,
+      )
+
+      // ------------------------------------------------------------------
+      // Render scheduler start
       // ------------------------------------------------------------------
       scheduler.start(app)
 
       // ------------------------------------------------------------------
-      // Cleanup
+      // Cleanup orchestration
       // ------------------------------------------------------------------
       cleanupRef.current = () => {
         scheduler.stop()
-        interactionManager.destroy()
+        destroyInteractionManager()
         selectionOverlay.destroy()
-        terrainPaintHandler.destroy()
-        structurePlacementHandler.destroy()
-        plantPlacementHandler.destroy()
-        labelPlacementHandler.destroy()
-        measurementHandler.destroy()
-        pathDrawingHandler.destroy()
-        useBoundaryUIStore.getState().setBoundaryHandle(null)
-        boundaryHandler.destroy()
-        interactionManagerRef.current = null
+        toolHandlers.destroy()
         renderers.dimensionRenderer.destroy()
         renderers.labelRenderer.destroy()
         renderers.structureRenderer.destroy()
@@ -510,21 +653,18 @@ export default function CanvasHost({ width, height }: CanvasHostProps) {
         renderers.pathRenderer.destroy()
         renderers.boundaryRenderer.destroy()
         renderers.terrainRenderer.destroy()
-        textureAtlas.destroy()
         renderers.gridRenderer.destroy()
+        destroyTextureResources()
         unsubViewport()
-        unsubInspector()
-        unsubTool()
         if (cursorRafRef.current) {
           cancelAnimationFrame(cursorRafRef.current)
           cursorRafRef.current = 0
         }
+        const { zoomAnimator, onPointerDown, onPointerMove, onPointerUp, onDblClick } = pointerHandles
         zoomAnimator.destroy()
-        clearInterval(gcInterval)
         app.canvas.removeEventListener('wheel', zoomAnimator.onWheel)
         app.canvas.removeEventListener('dblclick', onDblClick)
-        app.canvas.removeEventListener('webglcontextlost', onContextLost)
-        app.canvas.removeEventListener('webglcontextrestored', onContextRestored)
+        cleanupContextHandlers()
         interaction.off('pointerdown', onPointerDown)
         interaction.off('pointermove', onPointerMove)
         interaction.off('pointerup', onPointerUp)
