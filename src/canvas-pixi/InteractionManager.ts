@@ -12,6 +12,7 @@
 import type { Container } from 'pixi.js'
 import type { FederatedPointerEvent } from 'pixi.js'
 import { toWorld } from '../canvas/viewport'
+import { type WorldPoint } from '../canvas/coordinates'
 import { getElementsAtPoint } from '../canvas/hitTestAll'
 import type { RenderScheduler } from './RenderScheduler'
 import type { RendererHandle } from './BaseRenderer'
@@ -90,7 +91,7 @@ export function createInteractionManager(
     resizeObserver.observe(canvasElement)
   }
 
-  function eventToWorld(e: FederatedPointerEvent): { worldX: number; worldY: number } {
+  function eventToWorld(e: FederatedPointerEvent): WorldPoint {
     if (rectDirty) {
       cachedRect = getCanvasRect()
       rectDirty = false
@@ -100,8 +101,7 @@ export function createInteractionManager(
     const screenY = native.clientY - cachedRect.top
     const { panX, panY } = ctx.getPan()
     const zoom = ctx.getZoom()
-    const w = toWorld(screenX, screenY, panX, panY, zoom)
-    return { worldX: w.x, worldY: w.y }
+    return toWorld(screenX, screenY, panX, panY, zoom)
   }
 
   // ---- Tool dispatch helpers ----
@@ -115,10 +115,10 @@ export function createInteractionManager(
     type: SelectionPointerEvent['type'],
   ): SelectionPointerEvent {
     const native = e.nativeEvent as PointerEvent
-    const { worldX, worldY } = eventToWorld(e)
+    const world = eventToWorld(e)
     return {
-      worldX,
-      worldY,
+      worldX: world.x,
+      worldY: world.y,
       button: native.button ?? 0,
       shiftKey: native.shiftKey,
       altKey: native.altKey,
@@ -148,7 +148,7 @@ export function createInteractionManager(
     if (native.button !== 0) return // Only left-click for tool interaction
 
     const tool = ctx.getToolState().activeTool
-    const { worldX, worldY } = eventToWorld(e)
+    const { x: worldX, y: worldY } = eventToWorld(e)
 
     // Boundary placement intercepts select tool when placing
     if (tool === 'select' && isBoundaryPlacing()) {
@@ -208,7 +208,7 @@ export function createInteractionManager(
 
     const tool = ctx.getToolState().activeTool
     const native = e.nativeEvent as PointerEvent
-    const { worldX, worldY } = eventToWorld(e)
+    const { x: worldX, y: worldY } = eventToWorld(e)
 
     // Boundary placement move
     if (tool === 'select' && isBoundaryPlacing()) {
