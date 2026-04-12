@@ -157,6 +157,171 @@ function normalizeBoxAABB(x1: number, y1: number, x2: number, y2: number): AABB 
 }
 
 // ---------------------------------------------------------------------------
+// Mode-initialiser functions
+// ---------------------------------------------------------------------------
+
+function initPathPointDrag(
+  worldX: number,
+  worldY: number,
+  project: Project,
+  primaryId: string,
+  selectedSize: number,
+  zoom: number,
+): DragState | null {
+  if (selectedSize !== 1) return null
+  const selectedEl = project.elements.find((el) => el.id === primaryId)
+  if (!selectedEl || selectedEl.type !== 'path') return null
+  const pathEl = selectedEl as PathElement
+  const threshold = getHandleHitThreshold(zoom)
+  for (let i = 0; i < pathEl.points.length; i++) {
+    const pt = pathEl.points[i]
+    if (Math.abs(worldX - pt.x) <= threshold && Math.abs(worldY - pt.y) <= threshold) {
+      const drag = createIdleDragState()
+      drag.mode = 'path_point_dragging'
+      drag.startWorldX = worldX
+      drag.startWorldY = worldY
+      drag.currentWorldX = worldX
+      drag.currentWorldY = worldY
+      drag.pathPointElementId = primaryId
+      drag.pathPointIndex = i
+      drag.preOpSnapshot = structuredClone(project)
+      log.debug('handleDown → path_point_dragging', { elementId: primaryId, pointIndex: i, worldX, worldY })
+      return drag
+    }
+  }
+  return null
+}
+
+function initMultiResizeDrag(
+  worldX: number,
+  worldY: number,
+  project: Project,
+  selectedIds: ReadonlySet<string>,
+  zoom: number,
+): DragState | null {
+  if (selectedIds.size <= 1) return null
+  const selElements = project.elements.filter((el) => selectedIds.has(el.id))
+  if (selElements.length <= 1) return null
+  const combinedAABB = getSelectionAABB(selElements)
+  const handle = getHandleAtPoint(combinedAABB, worldX, worldY, zoom)
+  if (!handle) return null
+  const drag = createIdleDragState()
+  drag.mode = 'resizing'
+  drag.startWorldX = worldX
+  drag.startWorldY = worldY
+  drag.currentWorldX = worldX
+  drag.currentWorldY = worldY
+  drag.resizeHandle = handle
+  drag.resizeElementId = null
+  drag.resizeMulti = true
+  drag.resizeStartAABB = { ...combinedAABB }
+  drag.preOpSnapshot = structuredClone(project)
+  for (const el of selElements) {
+    drag.elementStartPositions.set(el.id, { x: el.x, y: el.y, w: el.width, h: el.height })
+  }
+  log.debug('handleDown → resizing (multi)', { handle, elementCount: selElements.length, worldX, worldY })
+  return drag
+}
+
+function initSingleResizeDrag(
+  worldX: number,
+  worldY: number,
+  project: Project,
+  primaryId: string,
+  selectedSize: number,
+  zoom: number,
+): DragState | null {
+  if (selectedSize !== 1) return null
+  const selectedEl = project.elements.find((el) => el.id === primaryId)
+  if (!selectedEl || (selectedEl.type !== 'structure' && selectedEl.type !== 'label')) return null
+  const aabb = getElementAABB(selectedEl)
+  const handle = getHandleAtPoint(aabb, worldX, worldY, zoom)
+  if (!handle) return null
+  const drag = createIdleDragState()
+  drag.mode = 'resizing'
+  drag.startWorldX = worldX
+  drag.startWorldY = worldY
+  drag.currentWorldX = worldX
+  drag.currentWorldY = worldY
+  drag.resizeHandle = handle
+  drag.resizeElementId = primaryId
+  drag.resizeStartAABB = { ...aabb }
+  drag.preOpSnapshot = structuredClone(project)
+  log.debug('handleDown → resizing', { handle, elementId: primaryId, worldX, worldY })
+  return drag
+}
+
+function initRotateDrag(
+  worldX: number,
+  worldY: number,
+  project: Project,
+  primaryId: string,
+  selectedSize: number,
+  zoom: number,
+): DragState | null {
+  if (selectedSize !== 1) return null
+  const selectedEl = project.elements.find((el) => el.id === primaryId)
+  if (!selectedEl || selectedEl.type !== 'structure') return null
+  const aabb = getElementAABB(selectedEl)
+  if (!isOnRotationHandle(aabb, worldX, worldY, zoom)) return null
+  const drag = createIdleDragState()
+  drag.mode = 'rotating'
+  drag.startWorldX = worldX
+  drag.startWorldY = worldY
+  drag.currentWorldX = worldX
+  drag.currentWorldY = worldY
+  drag.rotateElementId = primaryId
+  const cx = aabb.x + aabb.w / 2
+  const cy = aabb.y + aabb.h / 2
+  drag.rotateStartAngle = Math.atan2(worldY - cy, worldX - cx) * (180 / Math.PI) - selectedEl.rotation
+  drag.preOpSnapshot = structuredClone(project)
+  log.debug('handleDown → rotating', { elementId: primaryId, worldX, worldY })
+  return drag
+}
+
+function initMoveDrag(
+  worldX: number,
+  worldY: number,
+  project: Project,
+  selectedIds: ReadonlySet<string>,
+): DragState | null {
+  const drag = createIdleDragState()
+  drag.mode = 'moving'
+  drag.startWorldX = worldX
+  drag.startWorldY = worldY
+  drag.currentWorldX = worldX
+  drag.currentWorldY = worldY
+  drag.preOpSnapshot = structuredClone(project)
+  log.debug('handleDown → moving', { elementCount: selectedIds.size, worldX, worldY })
+  for (const el of project.elements) {
+    if (selectedIds.has(el.id)) {
+      drag.elementStartPositions.set(el.id, { x: el.x, y: el.y, w: el.width, h: el.height })
+    }
+  }
+  return drag
+}
+
+function initBoxSelect(
+  worldX: number,
+  worldY: number,
+  shiftKey: boolean,
+  currentSelectedIds: ReadonlySet<string>,
+): DragState {
+  const drag = createIdleDragState()
+  drag.mode = 'box_selecting'
+  drag.startWorldX = worldX
+  drag.startWorldY = worldY
+  drag.currentWorldX = worldX
+  drag.currentWorldY = worldY
+  drag.additiveBoxSelect = shiftKey
+  log.debug('handleDown → box_selecting', { worldX, worldY, additive: shiftKey })
+  if (shiftKey) {
+    drag.previousSelectedIds = Array.from(currentSelectedIds)
+  }
+  return drag
+}
+
+// ---------------------------------------------------------------------------
 // State Machine
 // ---------------------------------------------------------------------------
 
@@ -260,99 +425,23 @@ export function createSelectionStateMachine(ctx: CanvasContext): SelectionStateM
 
     const zoom = ctx.getZoom()
 
-    // Check path point handles
-    if (currentSelectedIds.size === 1 && currentPrimaryId) {
-      const selectedEl = project.elements.find((el) => el.id === currentPrimaryId)
-      if (selectedEl && selectedEl.type === 'path') {
-        const pathEl = selectedEl as PathElement
-        const threshold = getHandleHitThreshold(zoom)
-        for (let i = 0; i < pathEl.points.length; i++) {
-          const pt = pathEl.points[i]
-          if (Math.abs(worldX - pt.x) <= threshold && Math.abs(worldY - pt.y) <= threshold) {
-            drag = createIdleDragState()
-            drag.mode = 'path_point_dragging'
-            drag.startWorldX = worldX
-            drag.startWorldY = worldY
-            drag.currentWorldX = worldX
-            drag.currentWorldY = worldY
-            drag.pathPointElementId = currentPrimaryId
-            drag.pathPointIndex = i
-            drag.preOpSnapshot = structuredClone(project)
-            log.debug('handleDown → path_point_dragging', { elementId: currentPrimaryId, pointIndex: i, worldX, worldY })
-            return
-          }
-        }
-      }
-    }
+    // Handle hit-tests (path points, resize handles, rotation handle) — before click-to-select
+    const handleHit =
+      (currentPrimaryId
+        ? initPathPointDrag(worldX, worldY, project, currentPrimaryId, currentSelectedIds.size, zoom)
+        : null) ??
+      initMultiResizeDrag(worldX, worldY, project, currentSelectedIds, zoom) ??
+      (currentPrimaryId
+        ? initSingleResizeDrag(worldX, worldY, project, currentPrimaryId, currentSelectedIds.size, zoom)
+        : null) ??
+      (currentPrimaryId
+        ? initRotateDrag(worldX, worldY, project, currentPrimaryId, currentSelectedIds.size, zoom)
+        : null) ??
+      null
 
-    // Check multi-element resize handles (group AABB)
-    if (currentSelectedIds.size > 1) {
-      const selElements = project.elements.filter((el) => currentSelectedIds.has(el.id))
-      if (selElements.length > 1) {
-        const combinedAABB = getSelectionAABB(selElements)
-        const handle = getHandleAtPoint(combinedAABB, worldX, worldY, zoom)
-        if (handle) {
-          drag = createIdleDragState()
-          drag.mode = 'resizing'
-          drag.startWorldX = worldX
-          drag.startWorldY = worldY
-          drag.currentWorldX = worldX
-          drag.currentWorldY = worldY
-          drag.resizeHandle = handle
-          drag.resizeElementId = null
-          drag.resizeMulti = true
-          drag.resizeStartAABB = { ...combinedAABB }
-          drag.preOpSnapshot = structuredClone(project)
-          for (const el of selElements) {
-            drag.elementStartPositions.set(el.id, { x: el.x, y: el.y, w: el.width, h: el.height })
-          }
-          log.debug('handleDown → resizing (multi)', { handle, elementCount: selElements.length, worldX, worldY })
-          return
-        }
-      }
-    }
-
-    // Check single-element resize handles
-    if (currentSelectedIds.size === 1 && currentPrimaryId) {
-      const selectedEl = project.elements.find((el) => el.id === currentPrimaryId)
-      if (selectedEl && (selectedEl.type === 'structure' || selectedEl.type === 'label')) {
-        const aabb = getElementAABB(selectedEl)
-        const handle = getHandleAtPoint(aabb, worldX, worldY, zoom)
-        if (handle) {
-          drag = createIdleDragState()
-          drag.mode = 'resizing'
-          drag.startWorldX = worldX
-          drag.startWorldY = worldY
-          drag.currentWorldX = worldX
-          drag.currentWorldY = worldY
-          drag.resizeHandle = handle
-          drag.resizeElementId = currentPrimaryId
-          drag.resizeStartAABB = { ...aabb }
-          drag.preOpSnapshot = structuredClone(project)
-          log.debug('handleDown → resizing', { handle, elementId: currentPrimaryId, worldX, worldY })
-          return
-        }
-      }
-
-      // Check rotation handle (structures only)
-      if (selectedEl && selectedEl.type === 'structure') {
-        const aabb = getElementAABB(selectedEl)
-        if (isOnRotationHandle(aabb, worldX, worldY, zoom)) {
-          drag = createIdleDragState()
-          drag.mode = 'rotating'
-          drag.startWorldX = worldX
-          drag.startWorldY = worldY
-          drag.currentWorldX = worldX
-          drag.currentWorldY = worldY
-          drag.rotateElementId = currentPrimaryId
-          const cx = aabb.x + aabb.w / 2
-          const cy = aabb.y + aabb.h / 2
-          drag.rotateStartAngle = Math.atan2(worldY - cy, worldX - cx) * (180 / Math.PI) - selectedEl.rotation
-          drag.preOpSnapshot = structuredClone(project)
-          log.debug('handleDown → rotating', { elementId: currentPrimaryId, worldX, worldY })
-          return
-        }
-      }
+    if (handleHit !== null) {
+      drag = handleHit
+      return
     }
 
     // Store click position for Tab cycling
@@ -389,22 +478,9 @@ export function createSelectionStateMachine(ctx: CanvasContext): SelectionStateM
         ctx.selectMultiple(idsToSelect)
       }
 
-      // Start MOVING
-      drag = createIdleDragState()
-      drag.mode = 'moving'
-      drag.startWorldX = worldX
-      drag.startWorldY = worldY
-      drag.currentWorldX = worldX
-      drag.currentWorldY = worldY
-      drag.preOpSnapshot = structuredClone(project)
-      log.debug('handleDown → moving', { elementIds: [...idsToSelect], worldX, worldY })
-
+      // Start MOVING — read updated selection after selectMultiple
       const sel = ctx.getSelectionState().selectedIds
-      for (const el of project.elements) {
-        if (sel.has(el.id)) {
-          drag.elementStartPositions.set(el.id, { x: el.x, y: el.y, w: el.width, h: el.height })
-        }
-      }
+      drag = initMoveDrag(worldX, worldY, project, sel) ?? drag
     } else {
       // Clicked on empty space
       if (!shiftKey) {
@@ -414,18 +490,7 @@ export function createSelectionStateMachine(ctx: CanvasContext): SelectionStateM
         }
       }
 
-      // Start BOX_SELECTING
-      drag = createIdleDragState()
-      drag.mode = 'box_selecting'
-      drag.startWorldX = worldX
-      drag.startWorldY = worldY
-      drag.currentWorldX = worldX
-      drag.currentWorldY = worldY
-      drag.additiveBoxSelect = shiftKey
-      log.debug('handleDown → box_selecting', { worldX, worldY, additive: shiftKey })
-      if (shiftKey) {
-        drag.previousSelectedIds = Array.from(currentSelectedIds)
-      }
+      drag = initBoxSelect(worldX, worldY, shiftKey, currentSelectedIds)
     }
   }
 
