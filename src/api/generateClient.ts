@@ -1,4 +1,5 @@
 import type { GenerateOptions } from '../types/generate';
+import type { Project, Registries } from '../types/schema';
 
 // Fields to strip from the project copy — the backend ignores them
 const STRIPPED_PROJECT_FIELDS = [
@@ -111,6 +112,39 @@ export async function sendGenerateRequest(
   }
   throw error;
 }
+
+// ── GenerateAdapter interface ───────────────────────────────────────────────
+// Allows the store to delegate the actual HTTP call for testability.
+
+export interface GenerateAdapter {
+  /**
+   * Submit a generate request and return the result as a Blob.
+   * Implementations may use fetch, return a mock, etc.
+   * The signal is provided by the store for cancellation/timeout.
+   */
+  generate(
+    project: Project,
+    registries: Registries,
+    options: GenerateOptions,
+    yardPhoto: string | null,
+    signal: AbortSignal,
+  ): Promise<Blob>;
+}
+
+/**
+ * Production adapter — calls `/api/generate` via fetch.
+ */
+export const httpGenerateAdapter: GenerateAdapter = {
+  async generate(project, registries, options, yardPhoto, signal) {
+    const body = buildRequestBody(
+      project as unknown as Record<string, unknown>,
+      registries as unknown as Record<string, unknown>,
+      options,
+      yardPhoto,
+    );
+    return sendGenerateRequest(body, signal);
+  },
+};
 
 export function mapErrorToToast(error: unknown): string | null {
   // Check for timeout flag first (set by the store's 60s client timer)

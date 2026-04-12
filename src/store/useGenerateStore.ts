@@ -17,7 +17,8 @@ import {
   IMAGE_SIZES,
 } from '../types/generate';
 import { useProjectStore } from './useProjectStore';
-import { buildRequestBody, sendGenerateRequest, mapErrorToToast } from '../api/generateClient';
+import { httpGenerateAdapter, mapErrorToToast } from '../api/generateClient';
+import type { GenerateAdapter } from '../api/generateClient';
 import { createLogger } from '../utils/logger';
 
 const log = createLogger('GenerateStore');
@@ -54,11 +55,20 @@ interface GenerateStore {
   // Feature 11: Style transfer
   activeStyleResult: string | null;
 
+  // Lifecycle state (encapsulated in store, not module-level globals)
+  _activeController: AbortController | null;
+  _timeoutTimer: ReturnType<typeof setTimeout> | null;
+  _isTimeoutAbort: boolean;
+
+  // Adapter (injectable for testing)
+  _adapter: GenerateAdapter;
+
   // Actions
   setActiveFeature(feature: FeatureId): void;
   setOption<K extends keyof GenerateOptions>(key: K, value: GenerateOptions[K]): void;
   setOptions(patch: Partial<GenerateOptions>): void;
   setYardPhoto(dataUrl: string | null, filename: string | null): void;
+  setAdapter(adapter: GenerateAdapter): void;
   generate(): Promise<void>;
   cancel(): void;
   clearResult(): void;
@@ -87,10 +97,6 @@ interface GenerateStore {
   restoreFromProject(): void;
 }
 
-let activeController: AbortController | null = null;
-let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
-let isTimeoutAbort = false;
-
 export const useGenerateStore = create<GenerateStore>((set, get) => ({
   activeFeature: 'initial',
   options: { ...DEFAULT_OPTIONS },
@@ -105,6 +111,14 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
   selectedMaterialId: null,
   selectedZoneId: null,
   activeStyleResult: null,
+
+  // Lifecycle state — owned by the store, not module-level globals
+  _activeController: null,
+  _timeoutTimer: null,
+  _isTimeoutAbort: false,
+
+  // Default to the production HTTP adapter
+  _adapter: httpGenerateAdapter,
 
   setActiveFeature(feature) {
     set({ activeFeature: feature });
@@ -137,41 +151,49 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
     set({ yardPhoto: dataUrl, yardPhotoName: filename });
   },
 
+  setAdapter(adapter) {
+    set({ _adapter: adapter });
+  },
+
   async generate() {
     // Concurrent guard: no-op if already loading
     if (get().status.kind === 'loading') return;
 
-    const { options, yardPhoto } = get();
+    const { options, yardPhoto, _adapter } = get();
     const projectStore = useProjectStore.getState();
     const project = projectStore.currentProject;
     if (!project) return;
 
-    const body = buildRequestBody(
-      project as unknown as Record<string, unknown>,
-      projectStore.registries as unknown as Record<string, unknown>,
-      options,
-      yardPhoto,
-    );
-
     // Set up AbortController and timeout
     const controller = new AbortController();
-    activeController = controller;
-    isTimeoutAbort = false;
+    let isTimeoutAbort = false;
 
-    timeoutTimer = setTimeout(() => {
+    const timeoutTimer = setTimeout(() => {
       isTimeoutAbort = true;
       controller.abort();
     }, 60_000);
+
+    set({
+      _activeController: controller,
+      _timeoutTimer: timeoutTimer,
+      _isTimeoutAbort: false,
+    });
 
     const startTime = Date.now();
     log.info('generate: start', { feature: get().activeFeature, hasYardPhoto: !!yardPhoto });
     set({ status: { kind: 'loading', startedAt: startTime } });
 
     try {
-      const blob = await sendGenerateRequest(body, controller.signal);
+      const blob = await _adapter.generate(
+        project,
+        projectStore.registries,
+        options,
+        yardPhoto,
+        controller.signal,
+      );
 
       // If cancel() already ran, don't overwrite idle status
-      if (activeController !== controller) return;
+      if (get()._activeController !== controller) return;
 
       // Revoke previous object URL to prevent memory leak
       const prevUrl = get().resultUrl;
@@ -205,7 +227,7 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
       });
     } catch (err) {
       // If cancel() already ran, don't overwrite idle status
-      if (activeController !== controller) return;
+      if (get()._activeController !== controller) return;
 
       // Attach timeout flag for mapErrorToToast
       if (isTimeoutAbort && err instanceof DOMException && err.name === 'AbortError') {
@@ -222,23 +244,26 @@ export const useGenerateStore = create<GenerateStore>((set, get) => ({
         set({ status: { kind: 'idle' } });
       }
     } finally {
-      if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
-      activeController = null;
-      isTimeoutAbort = false;
+      const { _timeoutTimer: t } = get();
+      if (t) { clearTimeout(t); }
+      set({ _activeController: null, _timeoutTimer: null, _isTimeoutAbort: false });
     }
   },
 
   cancel() {
-    if (timeoutTimer) {
-      clearTimeout(timeoutTimer);
-      timeoutTimer = null;
+    const { _timeoutTimer, _activeController } = get();
+    if (_timeoutTimer) {
+      clearTimeout(_timeoutTimer);
     }
-    if (activeController) {
-      activeController.abort();
-      activeController = null;
+    if (_activeController) {
+      _activeController.abort();
     }
-    isTimeoutAbort = false;
-    set({ status: { kind: 'idle' } });
+    set({
+      _activeController: null,
+      _timeoutTimer: null,
+      _isTimeoutAbort: false,
+      status: { kind: 'idle' },
+    });
   },
 
   clearResult() {
