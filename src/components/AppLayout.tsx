@@ -15,8 +15,23 @@ import JournalView from './JournalView'
 import CostSummaryPanel from './CostSummaryPanel'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useProjectStore } from '../store/useProjectStore'
+import { useHistoryStore, setOnApplySnapshot } from '../store/useHistoryStore'
 import { getAllProjects } from '../db/projectsDb'
 import { BUILTIN_REGISTRIES } from '../data/builtinRegistries'
+
+// Wire history → project store at module load time.
+// undo/redo will call loadProject + markDirty without the history store
+// needing to import useProjectStore directly.
+setOnApplySnapshot((snapshot) => {
+  const store = useProjectStore.getState();
+  store.loadProject(snapshot, store.registries);
+  store.markDirty();
+});
+
+// Provide the history store with a way to read the live current project.
+useHistoryStore.getState().setGetCurrentProject(
+  () => useProjectStore.getState().currentProject,
+);
 
 export default function AppLayout() {
   const containerRef = useRef<HTMLDivElement>(null)
