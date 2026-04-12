@@ -155,46 +155,68 @@ export function createSelectionOverlay(
     }
   }
 
-  // Subscribe to selection and tool changes
+  // Dirty-flag batching: defer redraw() to the scheduler's render callback
+  // so that multiple store changes in the same frame only trigger one redraw.
+  let dirty = false
+
+  function markOverlayDirty(): void {
+    if (!dirty) {
+      dirty = true
+      scheduler.markDirty()
+    }
+  }
+
+  // Pre-render callback registered with the scheduler — runs at most once per
+  // rAF frame, coalescing any number of store changes that occurred since the
+  // last frame into a single redraw call.
+  const onRenderCallback = (): void => {
+    if (dirty) {
+      dirty = false
+      redraw()
+    }
+  }
+
+  scheduler.onRender(onRenderCallback)
+
+  // Subscribe to selection and tool changes — only signal dirty, never redraw
+  // directly. Multiple store changes in the same synchronous tick therefore
+  // cost a single redraw instead of N redraws.
   const unsubs = [
     useSelectionStore.subscribe((state, prevState) => {
-      if (state.selectedIds !== prevState.selectedIds) { redraw(); scheduler.markDirty() }
+      if (state.selectedIds !== prevState.selectedIds) markOverlayDirty()
     }),
     useToolStore.subscribe((state, prevState) => {
-      if (state.activeTool !== prevState.activeTool) { redraw(); scheduler.markDirty() }
+      if (state.activeTool !== prevState.activeTool) markOverlayDirty()
     }),
     useProjectStore.subscribe((state, prevState) => {
-      if (state.currentProject?.elements !== prevState.currentProject?.elements) { redraw(); scheduler.markDirty() }
+      if (state.currentProject?.elements !== prevState.currentProject?.elements) markOverlayDirty()
     }),
     useViewportStore.subscribe((state, prevState) => {
-      if (state.zoom !== prevState.zoom) { redraw(); scheduler.markDirty() }
+      if (state.zoom !== prevState.zoom) markOverlayDirty()
     }),
   ]
 
   // Initial render
-  redraw()
-  scheduler.markDirty()
+  markOverlayDirty()
 
   return {
     updateVisualState(state: SelectionVisualState): void {
       currentVisualState = state
-      redraw()
-      scheduler.markDirty()
+      markOverlayDirty()
     },
 
     setHoveredId(id: string | null): void {
       if (id === hoveredId) return
       hoveredId = id
-      redraw()
-      scheduler.markDirty()
+      markOverlayDirty()
     },
 
     update(): void {
-      redraw()
-      scheduler.markDirty()
+      markOverlayDirty()
     },
 
     destroy(): void {
+      scheduler.offRender(onRenderCallback)
       for (const unsub of unsubs) unsub()
       g.clear()
       g.destroy()
