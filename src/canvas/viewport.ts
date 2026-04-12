@@ -3,6 +3,7 @@
 // Y-axis points DOWN (HTML Canvas convention).
 
 import type { ViewportState } from '../types/schema'
+import { type ScreenPoint, type WorldPoint, screenPoint, worldPoint } from './coordinates'
 
 export const ZOOM_MIN = 0.05
 export const ZOOM_MAX = 10.0
@@ -14,11 +15,8 @@ export function toScreen(
   panX: number,
   panY: number,
   zoom: number,
-): { x: number; y: number } {
-  return {
-    x: worldX * zoom + panX,
-    y: worldY * zoom + panY,
-  }
+): ScreenPoint {
+  return screenPoint(worldX * zoom + panX, worldY * zoom + panY)
 }
 
 // Convert screen coordinates (px) to world coordinates (cm)
@@ -28,11 +26,8 @@ export function toWorld(
   panX: number,
   panY: number,
   zoom: number,
-): { x: number; y: number } {
-  return {
-    x: (screenX - panX) / zoom,
-    y: (screenY - panY) / zoom,
-  }
+): WorldPoint {
+  return worldPoint((screenX - panX) / zoom, (screenY - panY) / zoom)
 }
 
 // Zoom toward cursor: keeps the world point under cursor fixed.
