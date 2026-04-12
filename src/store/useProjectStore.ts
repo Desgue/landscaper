@@ -6,11 +6,12 @@ import { createLogger } from '../utils/logger';
 
 const log = createLogger('ProjectStore');
 
+let _saveTimer: ReturnType<typeof setTimeout> | null = null;
+
 interface ProjectStore {
   currentProject: Project | null;
   registries: Registries;
   isDirty: boolean;
-  _saveTimer: ReturnType<typeof setTimeout> | null;
 
   loadProject(project: Project, registries: Registries): void;
   updateProject(actionName: string, updater: (draft: Project) => void): void;
@@ -23,14 +24,13 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   currentProject: null,
   registries: BUILTIN_REGISTRIES,
   isDirty: false,
-  _saveTimer: null,
 
   loadProject(project: Project, registries: Registries): void {
-    const { _saveTimer } = get();
     if (_saveTimer !== null) {
       clearTimeout(_saveTimer);
+      _saveTimer = null;
     }
-    set({ currentProject: project, registries, isDirty: false, _saveTimer: null });
+    set({ currentProject: project, registries, isDirty: false });
   },
 
   updateProject(actionName: string, updater: (draft: Project) => void): void {
@@ -45,12 +45,11 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   },
 
   markDirty(): void {
-    const { _saveTimer } = get();
     if (_saveTimer !== null) {
       clearTimeout(_saveTimer);
     }
     set({ isDirty: true });
-    const timer = setTimeout(() => {
+    _saveTimer = setTimeout(() => {
       const { currentProject } = get();
       if (currentProject) {
         saveProject(currentProject).then(() => {
@@ -60,15 +59,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         });
       }
     }, 2000);
-    set({ _saveTimer: timer });
   },
 
   closeProject(): void {
-    const { _saveTimer } = get();
     if (_saveTimer !== null) {
       clearTimeout(_saveTimer);
+      _saveTimer = null;
     }
-    set({ currentProject: null, isDirty: false, _saveTimer: null });
+    set({ currentProject: null, isDirty: false });
   },
 
   setRegistries(r: Registries): void {
