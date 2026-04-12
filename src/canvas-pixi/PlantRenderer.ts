@@ -12,13 +12,14 @@
  * Pattern: createPlantRenderer(container, scheduler, atlas) => RendererHandle
  */
 
-import { Container, Sprite, Text } from 'pixi.js'
+import { Container, Sprite, Text, Texture } from 'pixi.js'
 import { useProjectStore } from '../store/useProjectStore'
 import { useViewportStore } from '../store/useViewportStore'
 import {
   setupWorldObject,
 } from './BaseRenderer'
 import type { RendererHandle } from './BaseRenderer'
+import { DisplayObjectPool } from './DisplayObjectPool'
 import type { RenderScheduler } from './RenderScheduler'
 import type { TextureAtlas } from './textures/TextureAtlas'
 import type { PlantElement, PlantType, PlantStatus, Layer } from '../types/schema'
@@ -86,6 +87,39 @@ export function createPlantRenderer(
   const unsubs: Array<() => void> = []
 
   // ---------------------------------------------------------------------------
+  // Object pools — reuse Sprite and Text objects to reduce GC pressure
+  // ---------------------------------------------------------------------------
+
+  const spritePool = new DisplayObjectPool<Sprite>(
+    () => new Sprite(),
+    (s) => {
+      s.parent?.removeChild(s)
+      s.texture = Texture.EMPTY
+      s.position.set(0, 0)
+      s.anchor.set(0, 0)
+      s.width = 1
+      s.height = 1
+      s.alpha = 1
+      s.rotation = 0
+      s.tint = 0xffffff
+      s.visible = true
+    },
+  )
+
+  const textPool = new DisplayObjectPool<Text>(
+    () => new Text(),
+    (t) => {
+      t.parent?.removeChild(t)
+      t.text = ''
+      t.position.set(0, 0)
+      t.anchor.set(0, 0)
+      t.alpha = 1
+      t.rotation = 0
+      t.visible = true
+    },
+  )
+
+  // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
 
@@ -119,7 +153,8 @@ export function createPlantRenderer(
 
     // Plant sprite (shadow is baked into the sprite texture by PlantSprites.ts)
     const texture = atlas.getPlantSprite(el.plantTypeId)
-    const sprite = new Sprite(texture)
+    const sprite = spritePool.acquire()
+    sprite.texture = texture
     setupWorldObject(sprite)
     sprite.anchor.set(0.5, 0.5)
     sprite.position.set(el.x, el.y)
@@ -128,15 +163,12 @@ export function createPlantRenderer(
 
     // Status indicator
     const iconSize = Math.max(radius * STATUS_ICON_SCALE, STATUS_ICON_MIN_SIZE)
-    const statusText = new Text({
-      text: STATUS_SYMBOLS[el.status] ?? '',
-      style: {
-        fontSize: iconSize,
-        fill: STATUS_COLORS[el.status] ?? '#9E9E9E',
-        fontFamily: 'sans-serif',
-        fontWeight: 'bold',
-      },
-    })
+    const statusText = textPool.acquire()
+    statusText.text = STATUS_SYMBOLS[el.status] ?? ''
+    statusText.style.fontSize = iconSize
+    statusText.style.fill = STATUS_COLORS[el.status] ?? '#9E9E9E'
+    statusText.style.fontFamily = 'sans-serif'
+    statusText.style.fontWeight = 'bold'
     setupWorldObject(statusText)
     statusText.anchor.set(0.5, 0.5)
     statusText.position.set(el.x + radius * 0.6, el.y + radius * 0.6)
@@ -181,8 +213,8 @@ export function createPlantRenderer(
 
   function removeEntry(entry: PlantEntry): void {
     container.removeChild(entry.sprite, entry.statusText)
-    entry.sprite.destroy()
-    entry.statusText.destroy()
+    spritePool.release(entry.sprite)
+    textPool.release(entry.statusText)
   }
 
   // ---------------------------------------------------------------------------
@@ -378,6 +410,8 @@ export function createPlantRenderer(
       unsubs.length = 0
       for (const entry of entries.values()) removeEntry(entry)
       entries.clear()
+      spritePool.drain()
+      textPool.drain()
     },
   }
 }
