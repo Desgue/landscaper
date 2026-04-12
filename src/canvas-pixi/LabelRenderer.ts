@@ -18,6 +18,7 @@ import { Container, Text } from 'pixi.js'
 import { useProjectStore } from '../store/useProjectStore'
 import { setupWorldObject } from './BaseRenderer'
 import type { RendererHandle } from './BaseRenderer'
+import { DisplayObjectPool } from './DisplayObjectPool'
 import type { RenderScheduler } from './RenderScheduler'
 import type { LabelElement, Layer } from '../types/schema'
 import type { CanvasTokens } from '../tokens/canvasTokens'
@@ -69,6 +70,23 @@ export function createLabelRenderer(
   const unsubs: Array<() => void> = []
 
   // ---------------------------------------------------------------------------
+  // Object pool — reuse Text objects to reduce GC pressure
+  // ---------------------------------------------------------------------------
+
+  const textPool = new DisplayObjectPool<Text>(
+    () => new Text(),
+    (t) => {
+      t.parent?.removeChild(t)
+      t.text = ''
+      t.position.set(0, 0)
+      t.anchor.set(0, 0)
+      t.alpha = 1
+      t.rotation = 0
+      t.visible = true
+    },
+  )
+
+  // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
 
@@ -83,19 +101,16 @@ export function createLabelRenderer(
 
     const safeFontSize = Math.max(4, Math.min(200, el.fontSize || 14))
 
-    const text = new Text({
-      text: el.text,
-      style: {
-        fontSize: safeFontSize,
-        fill: fontColor,
-        fontFamily,
-        fontWeight: el.bold ? 'bold' : 'normal',
-        fontStyle: el.italic ? 'italic' : 'normal',
-        align: getTextAlign(el.textAlign),
-        wordWrap: true,
-        wordWrapWidth: el.width > 0 ? el.width : 500,
-      },
-    })
+    const text = textPool.acquire()
+    text.text = el.text
+    text.style.fontSize = safeFontSize
+    text.style.fill = fontColor
+    text.style.fontFamily = fontFamily
+    text.style.fontWeight = el.bold ? 'bold' : 'normal'
+    text.style.fontStyle = el.italic ? 'italic' : 'normal'
+    text.style.align = getTextAlign(el.textAlign)
+    text.style.wordWrap = true
+    text.style.wordWrapWidth = el.width > 0 ? el.width : 500
     setupWorldObject(text)
     const safeWidth = Number.isFinite(el.width) && el.width > 0 ? el.width : 0
     text.position.set(el.x, el.y)
@@ -151,7 +166,7 @@ export function createLabelRenderer(
 
   function removeEntry(entry: LabelEntry): void {
     container.removeChild(entry.text)
-    entry.text.destroy()
+    textPool.release(entry.text)
   }
 
   // ---------------------------------------------------------------------------
@@ -246,6 +261,7 @@ export function createLabelRenderer(
       unsubs.length = 0
       for (const entry of entries.values()) removeEntry(entry)
       entries.clear()
+      textPool.drain()
     },
   }
 }
