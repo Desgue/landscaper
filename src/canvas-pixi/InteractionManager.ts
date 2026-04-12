@@ -28,6 +28,7 @@ import type { LabelPlacementHandle } from './PlacementHandlers'
 import type { MeasurementHandle } from './PlacementHandlers'
 import type { PathDrawingHandle } from './PathDrawingHandler'
 import type { BoundaryHandle } from './BoundaryHandler'
+import { hitTestBoundaryHandles } from './boundaryHitTest'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -131,54 +132,13 @@ export function createInteractionManager(
     return toolHandlers.boundary.getPlacementState().isPlacing
   }
 
-  function hitTestBoundaryHandles(
+  function getBoundaryHandleHit(
     worldX: number, worldY: number,
   ): { type: 'vertex' | 'arc'; index: number } | null {
     const project = ctx.getProject()
     const boundary = project?.yardBoundary
-    if (!boundary || boundary.vertices.length < 3) return null
-
-    const zoom = ctx.getZoom()
-    const threshold = 6 / zoom
-    const n = boundary.vertices.length
-
-    // Vertices first (higher priority — smaller targets)
-    for (let i = 0; i < n; i++) {
-      const v = boundary.vertices[i]
-      const dx = worldX - v.x, dy = worldY - v.y
-      if (Math.sqrt(dx * dx + dy * dy) <= threshold) {
-        return { type: 'vertex', index: i }
-      }
-    }
-
-    // Edge midpoints / arc handles
-    for (let i = 0; i < n; i++) {
-      const p1 = boundary.vertices[i]
-      const p2 = boundary.vertices[(i + 1) % n]
-      const midX = (p1.x + p2.x) / 2
-      const midY = (p1.y + p2.y) / 2
-
-      let handleX = midX
-      let handleY = midY
-
-      const edge = boundary.edgeTypes[i]
-      if (edge?.type === 'arc' && edge.arcSagitta !== null) {
-        const chordDx = p2.x - p1.x, chordDy = p2.y - p1.y
-        const chordLen = Math.sqrt(chordDx * chordDx + chordDy * chordDy)
-        if (chordLen > 1e-6) {
-          const perpX = -chordDy / chordLen, perpY = chordDx / chordLen
-          handleX = midX + perpX * edge.arcSagitta
-          handleY = midY + perpY * edge.arcSagitta
-        }
-      }
-
-      const dx = worldX - handleX, dy = worldY - handleY
-      if (Math.sqrt(dx * dx + dy * dy) <= threshold) {
-        return { type: 'arc', index: i }
-      }
-    }
-
-    return null
+    if (!boundary) return null
+    return hitTestBoundaryHandles(worldX, worldY, boundary, ctx.getZoom())
   }
 
   // ---- Event handlers ----
@@ -198,7 +158,7 @@ export function createInteractionManager(
 
     // Boundary vertex/arc handle drag (when boundary exists, not placing)
     if (tool === 'select' && !isBoundaryPlacing()) {
-      const hit = hitTestBoundaryHandles(worldX, worldY)
+      const hit = getBoundaryHandleHit(worldX, worldY)
       if (hit) {
         boundaryDrag = hit
         boundaryDragMoved = false
