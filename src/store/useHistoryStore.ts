@@ -1,13 +1,32 @@
 import { create } from 'zustand';
 import type { Project, UUID } from '../types/schema';
 import { getDB } from '../db/db';
-import { useProjectStore } from './useProjectStore';
 
 const MAX_HISTORY = 200;
+
+// ---------------------------------------------------------------------------
+// Callback injection — keeps this store free of any project store dependency.
+// Call setOnApplySnapshot() at app startup to wire up undo/redo behaviour.
+// ---------------------------------------------------------------------------
+
+type ApplySnapshotFn = (snapshot: Project) => void;
+
+let onApplySnapshot: ApplySnapshotFn | null = null;
+
+export function setOnApplySnapshot(fn: ApplySnapshotFn): void {
+  onApplySnapshot = fn;
+}
+
+// ---------------------------------------------------------------------------
 
 interface HistoryStore {
   past: Project[];
   future: Project[];
+
+  // _getCurrentProject is injected so undo/redo can read the live project
+  // without importing useProjectStore.
+  _getCurrentProject: (() => Project | null) | null;
+  setGetCurrentProject(fn: () => Project | null): void;
 
   pushHistory(snapshot: Project): void;
   undo(): void;
@@ -20,6 +39,11 @@ interface HistoryStore {
 export const useHistoryStore = create<HistoryStore>((set, get) => ({
   past: [],
   future: [],
+  _getCurrentProject: null,
+
+  setGetCurrentProject(fn: () => Project | null): void {
+    set({ _getCurrentProject: fn });
+  },
 
   pushHistory(snapshot: Project): void {
     const { past } = get();
@@ -31,10 +55,10 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
   },
 
   undo(): void {
-    const { past, future } = get();
+    const { past, future, _getCurrentProject } = get();
     if (past.length === 0) return;
 
-    const currentProject = useProjectStore.getState().currentProject;
+    const currentProject = _getCurrentProject?.() ?? null;
     if (!currentProject) return;
 
     const snapshot = past[past.length - 1];
@@ -42,16 +66,14 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     const newFuture = [currentProject, ...future];
 
     set({ past: newPast, future: newFuture });
-    const store = useProjectStore.getState();
-    store.loadProject(snapshot, store.registries);
-    store.markDirty();
+    onApplySnapshot?.(snapshot);
   },
 
   redo(): void {
-    const { past, future } = get();
+    const { past, future, _getCurrentProject } = get();
     if (future.length === 0) return;
 
-    const currentProject = useProjectStore.getState().currentProject;
+    const currentProject = _getCurrentProject?.() ?? null;
     if (!currentProject) return;
 
     const snapshot = future[0];
@@ -59,9 +81,7 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     const newPast = [...past, currentProject];
 
     set({ past: newPast, future: newFuture });
-    const store = useProjectStore.getState();
-    store.loadProject(snapshot, store.registries);
-    store.markDirty();
+    onApplySnapshot?.(snapshot);
   },
 
   clearHistory(): void {
