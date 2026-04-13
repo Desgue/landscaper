@@ -81,6 +81,7 @@ export default function TopToolbar() {
 
   const activeMode = useLayoutStore((s) => s.mode)
   const setMode = useLayoutStore((s) => s.setMode)
+  const setShowCostSummary = useLayoutStore((s) => s.setShowCostSummary)
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -285,7 +286,7 @@ export default function TopToolbar() {
             Journal
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => setMode('garden')}
+            onClick={() => setShowCostSummary(true)}
             disabled={!currentProject}
           >
             Cost Summary

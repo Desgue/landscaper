@@ -38,11 +38,12 @@ useHistoryStore.getState().setGetCurrentProject(
 export default function AppLayout() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
-  const [showCostSummary, setShowCostSummary] = useState(false)
   const router = useRouter()
   const currentProject = useProjectStore((s) => s.currentProject)
   const loadProject = useProjectStore((s) => s.loadProject)
   const mode = useLayoutStore((s) => s.mode)
+  const showCostSummary = useLayoutStore((s) => s.showCostSummary)
+  const setShowCostSummary = useLayoutStore((s) => s.setShowCostSummary)
 
   useKeyboardShortcuts()
 
@@ -83,8 +84,8 @@ export default function AppLayout() {
   // Left panel: SidePalette collapses in generate mode; hidden in garden mode (future LeftNav)
   const leftPanel = isGardenMode ? null : <SidePalette />
 
-  // Right panel: InspectorPanel/LayerPanel in blueprint; GenerateShell nav in generate; nothing in garden by default
-  const rightPanel = isGenerateMode ? null : (
+  // Right panel: InspectorPanel/LayerPanel in blueprint; nothing in generate or garden by default
+  const rightPanel = (isGenerateMode || isGardenMode) ? null : (
     <div className="flex flex-col flex-shrink-0">
       <InspectorPanel />
       <LayerPanel />
@@ -98,21 +99,13 @@ export default function AppLayout() {
     </div>
   ) : null
 
-  // Status bar: hidden in generate mode
-  const statusBarVisible = !isGenerateMode
+  // Status bar: hidden in generate and garden modes
+  const statusBarVisible = !isGenerateMode && !isGardenMode
 
-  // Garden mode: show journal view as main content
-  if (isGardenMode) {
-    return (
-      <div className="flex flex-col" style={{ height: '100vh', overflow: 'hidden' }}>
-        <TopToolbar />
-        <div className="flex-1 overflow-hidden">
-          <JournalView onClose={() => useLayoutStore.getState().setMode('blueprint')} />
-        </div>
-        <ZOrderContextMenu />
-      </div>
-    )
-  }
+  // The canvas must always remain mounted to preserve PixiJS internal state.
+  // In generate mode and garden mode the canvas container is hidden via visibility + position
+  // rather than display:none, so ResizeObserver continues to report real dimensions.
+  const canvasHidden = isGenerateMode || isGardenMode
 
   return (
     <div className="flex flex-col" style={{ height: '100vh', overflow: 'hidden' }}>
@@ -124,14 +117,26 @@ export default function AppLayout() {
         {/* Left panel region */}
         {leftPanel}
 
-        {/* Center: Canvas area — never unmounts across mode switches */}
+        {/* Center: Canvas area — never unmounts across mode switches.
+            Hidden in generate/garden mode via visibility:hidden + position:absolute
+            so ResizeObserver reports real dimensions and PixiJS state is preserved. */}
         <div
           ref={containerRef}
           className="flex-1 relative overflow-hidden"
           style={{
             background: 'var(--ls-surface-canvas-overflow)',
-            // In generate mode, canvas is kept mounted but visually behind the generate panel
-            display: isGenerateMode ? 'none' : undefined,
+            ...(canvasHidden
+              ? {
+                  visibility: 'hidden',
+                  position: 'absolute',
+                  pointerEvents: 'none',
+                  // Keep the element in the layout flow with real dimensions
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                }
+              : undefined),
           }}
         >
           <Suspense fallback={null}>
@@ -146,6 +151,13 @@ export default function AppLayout() {
         {isGenerateMode && (
           <div className="flex-1 relative overflow-hidden bg-bg">
             {/* Canvas is hidden in generate mode but kept mounted above */}
+          </div>
+        )}
+
+        {/* Garden mode main content area */}
+        {isGardenMode && (
+          <div className="flex-1 overflow-hidden">
+            <JournalView onClose={() => useLayoutStore.getState().setMode('blueprint')} />
           </div>
         )}
 

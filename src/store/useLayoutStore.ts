@@ -3,6 +3,10 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 
 export type LayoutMode = 'blueprint' | 'generate' | 'garden';
 
+// Runtime allowlist to guard against invalid values reaching the store
+// (e.g. from Tabs onValueChange casting with `as LayoutMode`).
+const VALID_MODES: ReadonlySet<string> = new Set(['blueprint', 'generate', 'garden']);
+
 interface PanelExpansionState {
   sidePaletteCollapsed: boolean;
   inspectorExpanded: boolean;
@@ -12,13 +16,17 @@ interface PanelExpansionState {
 interface LayoutStore {
   mode: LayoutMode;
 
+  // Modal / overlay visibility
+  showCostSummary: boolean;
+
   // Per-mode panel expansion state
   blueprintPanels: PanelExpansionState;
   generatePanels: PanelExpansionState;
   gardenPanels: PanelExpansionState;
 
   // Actions
-  setMode(mode: LayoutMode): void;
+  setMode(mode: string): void;
+  setShowCostSummary(show: boolean): void;
   setPanelExpansion(mode: LayoutMode, patch: Partial<PanelExpansionState>): void;
 }
 
@@ -44,13 +52,19 @@ export const useLayoutStore = create<LayoutStore>()(
   persist(
     (set) => ({
       mode: 'blueprint',
+      showCostSummary: false,
 
       blueprintPanels: { ...DEFAULT_BLUEPRINT_PANELS },
       generatePanels: { ...DEFAULT_GENERATE_PANELS },
       gardenPanels: { ...DEFAULT_GARDEN_PANELS },
 
       setMode(mode) {
-        set({ mode });
+        if (!VALID_MODES.has(mode)) return;
+        set({ mode: mode as LayoutMode, showCostSummary: false });
+      },
+
+      setShowCostSummary(show) {
+        set({ showCostSummary: show });
       },
 
       setPanelExpansion(mode, patch) {
@@ -65,6 +79,7 @@ export const useLayoutStore = create<LayoutStore>()(
     }),
     {
       name: 'ls-layout-store',
+      version: 0,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         mode: state.mode,

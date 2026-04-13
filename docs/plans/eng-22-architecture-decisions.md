@@ -73,7 +73,7 @@ The mode switcher (3-segment tab control in the top bar center, as specified in 
 - Adding a fourth mode in the future is a store slice addition, not a new layout file.
 
 **Negative / Migration work:**
-- The `/app/generate` route must be deprecated. Any bookmarks or direct links to `/app/generate` will break; a redirect to `/app?mode=generate` (or equivalent) should be added to TanStack Router.
+- The `/app/generate` route must be deprecated. Any bookmarks or direct links to `/app/generate` will break; a redirect to `/app?mode=generate` (or equivalent) should be added to TanStack Router. Implementation note: redirects to `/app/canvas` with store-driven mode activation instead of URL query param, to avoid bidirectional URL↔store sync complexity.
 - The `GenerateShell` component currently renders its own layout (header, nav, workspace). Its content panels (generate options, output gallery) must be refactored to be injectable into the shared layout's panel slots.
 - `AppLayout.tsx` grows in conditional complexity unless panel slots are abstracted into named regions (`leftPanel`, `rightPanel`, `statusBar`) that each mode populates.
 
