@@ -18,6 +18,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useProjectStore } from '../store/useProjectStore'
 import { useHistoryStore, setOnApplySnapshot } from '../store/useHistoryStore'
 import { useLayoutStore } from '../store/useLayoutStore'
+import { useGenerateStore } from '../store/useGenerateStore'
 import { getAllProjects } from '../db/projectsDb'
 import { BUILTIN_REGISTRIES } from '../data/builtinRegistries'
 
@@ -44,8 +45,16 @@ export default function AppLayout() {
   const mode = useLayoutStore((s) => s.mode)
   const showCostSummary = useLayoutStore((s) => s.showCostSummary)
   const setShowCostSummary = useLayoutStore((s) => s.setShowCostSummary)
+  const restoreFromProject = useGenerateStore((s) => s.restoreFromProject)
 
   useKeyboardShortcuts()
+
+  // Restore persisted generate options whenever the user enters generate mode
+  useEffect(() => {
+    if (mode === 'generate') {
+      restoreFromProject()
+    }
+  }, [mode, restoreFromProject])
 
   // Restore last project from IndexedDB if store is empty (e.g. after page reload)
   useEffect(() => {
