@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import {
   MousePointer2,
   Hand,
@@ -17,6 +17,7 @@ import type { ToolId } from '../types/schema'
 import { useToolStore } from '../store/useToolStore'
 import { useHistoryStore } from '../store/useHistoryStore'
 import { useProjectStore } from '../store/useProjectStore'
+import { useLayoutStore, type LayoutMode } from '../store/useLayoutStore'
 import { exportProjectAsJSON } from '../db/projectsDb'
 import { useRouter } from '@tanstack/react-router'
 import {
@@ -69,12 +70,7 @@ function isInputFocused(): boolean {
   )
 }
 
-interface TopToolbarProps {
-  onOpenJournal?: () => void
-  onOpenCostSummary?: () => void
-}
-
-export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopToolbarProps = {}) {
+export default function TopToolbar() {
   const { activeTool, setTool, pushTemporaryTool, popTemporaryTool } = useToolStore()
   const undo = useHistoryStore((s) => s.undo)
   const redo = useHistoryStore((s) => s.redo)
@@ -83,7 +79,9 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
   const closeProject = useProjectStore((s) => s.closeProject)
   const router = useRouter()
 
-  const [activeMode, setActiveMode] = useState('blueprint')
+  const activeMode = useLayoutStore((s) => s.mode)
+  const setMode = useLayoutStore((s) => s.setMode)
+  const setShowCostSummary = useLayoutStore((s) => s.setShowCostSummary)
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -219,8 +217,8 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Mode switcher (UI only — wired to store in Phase 5) */}
-      <Tabs value={activeMode} onValueChange={setActiveMode}>
+      {/* Mode switcher — dispatches to useLayoutStore */}
+      <Tabs value={activeMode} onValueChange={(v) => setMode(v as LayoutMode)}>
         <TabsList
           className="h-7"
           style={{ background: 'var(--ls-surface-toolbar-active)' }}
@@ -244,7 +242,7 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
       <Tooltip>
         <TooltipTrigger asChild>
           <button
-            onClick={() => router.navigate({ to: '/app/generate' })}
+            onClick={() => setMode('generate')}
             disabled={!currentProject?.yardBoundary}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors"
             style={{
@@ -282,13 +280,13 @@ export default function TopToolbar({ onOpenJournal, onOpenCostSummary }: TopTool
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" style={{ minWidth: 180 }}>
           <DropdownMenuItem
-            onClick={() => onOpenJournal?.()}
+            onClick={() => setMode('garden')}
             disabled={!currentProject}
           >
             Journal
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => onOpenCostSummary?.()}
+            onClick={() => setShowCostSummary(true)}
             disabled={!currentProject}
           >
             Cost Summary

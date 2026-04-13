@@ -666,7 +666,7 @@ Each renderer class receives a `setTokens(tokens: CanvasTokens): void` method. T
 2. Add mode switcher dispatch in the mode switcher component (Step 3.7 already created the UI)
 3. Migrate `showJournal`, `showCostSummary` useState in `AppLayout.tsx` → `useLayoutStore` slices
 4. Refactor `AppLayout.tsx` conditional rendering to read from store (panel slot abstraction: `leftPanel`, `rightPanel`, `statusBar` named regions)
-5. Deprecate `/app/generate` route; add TanStack Router redirect from `/app/generate` → `/app?mode=generate`
+5. Deprecate `/app/generate` route; add TanStack Router redirect from `/app/generate` → `/app?mode=generate`. Implementation note: redirects to `/app/canvas` with store-driven mode activation instead of URL query param, to avoid bidirectional URL↔store sync complexity.
 6. Refactor `GenerateShell` content panels into the shared layout's panel slots under `mode === 'generate'`
 7. Add per-mode state persistence (last active mode, expanded sections) to the store
 

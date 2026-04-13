@@ -5,14 +5,15 @@ import {
   createRouter,
   RouterProvider,
   Outlet,
+  redirect,
 } from '@tanstack/react-router'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import LandingPage from './pages/LandingPage'
 import ErrorBoundary from './components/ErrorBoundary'
+import { useLayoutStore } from './store/useLayoutStore'
 
 const LazyWelcomeScreen = React.lazy(() => import('./components/WelcomeScreen'))
 const LazyAppLayout = React.lazy(() => import('./components/AppLayout'))
-const LazyGeneratePage = React.lazy(() => import('./pages/GeneratePage'))
 
 function LoadingFallback() {
   return (
@@ -42,16 +43,6 @@ function SuspenseAppLayout() {
   )
 }
 
-function SuspenseGeneratePage() {
-  return (
-    <ErrorBoundary>
-      <Suspense fallback={<LoadingFallback />}>
-        <LazyGeneratePage />
-      </Suspense>
-    </ErrorBoundary>
-  )
-}
-
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
 })
@@ -74,10 +65,19 @@ const appCanvasRoute = createRoute({
   component: SuspenseAppLayout,
 })
 
+// /app/generate is deprecated — redirect to /app/canvas and activate generate mode.
+// Mode is set synchronously via getState() before the redirect. The persist middleware
+// initialises at module load time (before any route resolution), so rehydration will have
+// already started; the synchronous setMode call therefore wins over any rehydrated value.
+// The mode is intentionally NOT encoded in the redirect URL — the store is the source of
+// truth and bidirectional URL↔store sync was explicitly rejected (see ADR 1, ENG-22).
 const appGenerateRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app/generate',
-  component: SuspenseGeneratePage,
+  beforeLoad() {
+    useLayoutStore.getState().setMode('generate')
+    throw redirect({ to: '/app/canvas' })
+  },
 })
 
 const routeTree = rootRoute.addChildren([indexRoute, appRoute, appCanvasRoute, appGenerateRoute])
